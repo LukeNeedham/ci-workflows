@@ -51,7 +51,6 @@ Keep as is: `name`, the `types` list, `permissions`, `uses`.
 | `java-distribution` | `with:` | `zulu` | you need another JDK distribution |
 | `timezone` | `with:` | `Europe/Amsterdam` | you want timestamps in another timezone |
 | `comment-header` | `with:` | `example-app-link` | one PR needs more than one APK comment (give each a different id) |
-| `merged-only` | `with:` | `false` | you want builds of abandoned (closed, unmerged) PRs kept: set `true` |
 
 ### Other jobs in the same file
 
@@ -124,6 +123,6 @@ On the PR you opened:
 | The run fails immediately with no jobs | The caller file is invalid, or a permission it requests is not allowed. Check the *Actions* run page for the message; confirm `permissions:` is as above and that the repo may use this repo's workflows (private repos need *Access* enabled here) |
 | No comment appears on the PR | The caller is missing `pull-requests: write`, or the PR comes from a fork (forks get a read-only token) |
 | The release step fails with "no files found" | `apk-path` is wrong. Build locally and use the real path, relative to the repo root |
-| Releases are not deleted when the PR closes | `closed` is missing from `types`, or `merged-only` is `true` and the PR was closed without merging |
+| Releases are not deleted when the PR closes | `closed` is missing from the caller's `types` list |
 | The PR waits forever for a check | Branch protection still requires the old check name (see migration step 4) |
 | An old PR's builds are still listed | They predate the cleanup: run *Delete Pre-releases* |

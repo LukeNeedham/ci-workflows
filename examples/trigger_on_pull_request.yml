@@ -29,4 +29,3 @@ jobs:
       # java-distribution: zulu
       # timezone: Europe/Amsterdam       # used for the timestamps in the comment and release
       # comment-header: example-app-link # change only if a PR needs several APK comments
-      # merged-only: false               # `true` keeps the builds of PRs closed without merging

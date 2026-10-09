@@ -34,10 +34,6 @@ on:
         description: Sticky comment id
         type: string
         default: example-app-link
-      merged-only:
-        description: Only clean up when the PR was merged (false, the default, also cleans up when closed unmerged)
-        type: boolean
-        default: false
 
 jobs:
   build:
@@ -55,5 +51,3 @@ jobs:
   cleanup:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
     uses: LukeNeedham/ci-workflows/.github/workflows/android_pr_cleanup.yml@main
-    with:
-      merged-only: ${{ inputs.merged-only }}

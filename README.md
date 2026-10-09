@@ -12,8 +12,8 @@ the real logic lives here, so a fix made once reaches every project.
 
 `android_pr.yml` just chooses between the build and the cleanup workflow from the event. It is the
 one to call: it owns the input defaults, and the build and cleanup workflows are its building
-blocks (all of their inputs are required, with no defaults of their own). `delete_prereleases.yml`
-is a separate manual job.
+blocks (the build takes every input as required, with no defaults of its own; the cleanup takes
+none). `delete_prereleases.yml` is a separate manual job.
 
 These are [reusable workflows](https://docs.github.com/en/actions/using-workflows/reusing-workflows):
 a project calls them with `uses:`.
@@ -42,7 +42,6 @@ Inputs (the defaults live here and only here; `apk-path` is the one required inp
 | `java-distribution` | `zulu` | JDK distribution |
 | `timezone` | `Europe/Amsterdam` | Timezone for the timestamps in the comment and release |
 | `comment-header` | `example-app-link` | Id of the sticky comment. Change it only if a PR needs several separate APK comments |
-| `merged-only` | `false` | `false`: clean up whenever the PR is closed, merged or not. `true`: only when it was merged |
 
 `closed` has to be among the caller's `pull_request` types: that is the event that triggers the
 cleanup. Everything else (`opened`, `reopened`, `synchronize`) runs the build. A manual run
@@ -78,8 +77,8 @@ layout (a heading with the state's emoji, then a bullet list):
 lower-cased and anything other than letters, digits, `.`, `_`, `-` becomes `-`), with the APK as its
 asset. The APK link in the comment points at that asset.
 
-**What the cleanup does.** When the PR closes it finds that PR's releases by the tag scheme above
-and deletes them with their tags. It only touches **pre-releases**, so real releases are never
+**What the cleanup does.** Whenever the PR closes, merged or not, it finds that PR's releases by the
+tag scheme above and deletes them with their tags. This is not configurable. It only touches **pre-releases**, so real releases are never
 deleted. Builds from a manual run have no PR, so nothing ever cleans them up; use
 `delete_prereleases.yml` for those.
 
@@ -105,8 +104,8 @@ from manual runs.
 - **Check names.** Through `android_pr.yml` the jobs show up in PR checks as `android / build / build`
   (caller job / wrapper job / build job) instead of `build / build`. If branch protection requires a
   specific check name, update it after switching.
-- **Input defaults.** They are defined once, in `android_pr.yml`. The build and cleanup workflows
-  take every input as required, so calling one of them directly means passing all of its inputs.
+- **Input defaults.** They are defined once, in `android_pr.yml`. The build workflow takes every
+  input as required, so calling it directly means passing all of them.
 - **Versions.** `@main` always runs the latest version, so a fix here reaches every project
   immediately, and so does a mistake. To get stability, call a tag (`@v1`) instead and move the tag
   forward deliberately.
