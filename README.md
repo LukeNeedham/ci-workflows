@@ -16,68 +16,24 @@ blocks (all of their inputs are required, with no defaults of their own). `delet
 is a separate manual job.
 
 These are [reusable workflows](https://docs.github.com/en/actions/using-workflows/reusing-workflows):
-a project calls them with `uses:`. Everything below uses
-[FlagTutor](https://github.com/LukeNeedham/FlagTutor) as the worked example.
+a project calls them with `uses:`.
 
-## Using the workflows in a project
+## Setting up a project
 
-A project needs one small caller file for the PR flow, plus an optional one for the manual sweep.
-FlagTutor's `.github/workflows/` contains:
+**See [docs/setup.md](docs/setup.md)** for the caller files to copy, which parts to configure per
+project, and how to migrate an existing project. [FlagTutor](https://github.com/LukeNeedham/FlagTutor/tree/main/.github/workflows)
+is a working example.
 
-```
-trigger_on_pull_request.yml   calls android_pr.yml (plus a project-specific iOS job)
-delete_prereleases.yml        calls delete_prereleases.yml (manual)
-```
+In short: a project keeps small caller files that own the **triggers** (`on:`), the **permissions**
+and the **settings** (`with:`); the steps live here. A reusable workflow cannot decide when it
+runs, and it can never be granted more permissions than the caller gives it, so those cannot be
+moved here.
 
-The caller owns the **triggers** (`on:`) and the **permissions**; the shared workflow owns the steps.
-A reusable workflow cannot decide when it runs, and it can never be granted more permissions than
-the caller gives it, so those two blocks cannot be moved here.
+## Reference
 
-### 1. The PR flow: build, comment, clean up
+### `android_pr.yml`
 
-`.github/workflows/trigger_on_pull_request.yml`:
-
-```yaml
-name: On Pull Request
-
-on:
-  workflow_dispatch: {}
-  pull_request:
-    types: [opened, reopened, synchronize, closed]
-    branches:
-      - main
-
-permissions:
-  contents: write       # create the release that holds the APK, and delete it again
-  pull-requests: write  # post the sticky comment
-
-jobs:
-  android:
-    uses: LukeNeedham/ci-workflows/.github/workflows/android_pr.yml@main
-    with:
-      merged-only: false   # also clean up when a PR is closed without merging
-
-  # Project-specific jobs can sit next to the shared one. FlagTutor has an opt-in iOS build:
-  build-ios:
-    if: github.event_name == 'workflow_dispatch'
-    runs-on: macos-14
-    steps:
-      # ...
-```
-
-`closed` has to be in the `types` list: that is the event that triggers the cleanup. Everything
-else (`opened`, `reopened`, `synchronize`) runs the build. A manual run (`workflow_dispatch`) builds.
-
-Without a `with:` block the defaults are used, which match FlagTutor's layout. Override whatever
-differs in your project:
-
-```yaml
-  android:
-    uses: LukeNeedham/ci-workflows/.github/workflows/android_pr.yml@main
-    with:
-      gradle-task: assembleDebug
-      apk-path: app/build/outputs/apk/debug/app-debug.apk
-```
+Inputs (all optional; the defaults live here and only here):
 
 | Input | Default | Meaning |
 |---|---|---|
@@ -88,6 +44,10 @@ differs in your project:
 | `timezone` | `Europe/Amsterdam` | Timezone for the timestamps in the comment and release |
 | `comment-header` | `example-app-link` | Id of the sticky comment. Change it only if a PR needs several separate APK comments |
 | `merged-only` | `true` | `true`: only clean up when the PR was merged. `false`: also when it was closed without merging (FlagTutor uses this) |
+
+`closed` has to be among the caller's `pull_request` types: that is the event that triggers the
+cleanup. Everything else (`opened`, `reopened`, `synchronize`) runs the build. A manual run
+(`workflow_dispatch`) builds.
 
 **What the PR sees.** One comment, edited in place as the build progresses, always with the same
 layout (a heading with the state's emoji, then a bullet list):
@@ -121,30 +81,14 @@ asset. The APK link in the comment points at that asset.
 
 **What the cleanup does.** When the PR closes it finds that PR's releases by the tag scheme above
 and deletes them with their tags. It only touches **pre-releases**, so real releases are never
-deleted. Builds from a manual run have no PR, so nothing ever cleans them up; use the sweep below
-for those.
+deleted. Builds from a manual run have no PR, so nothing ever cleans them up; use
+`delete_prereleases.yml` for those.
 
-### 2. Sweep all pre-releases by hand
-
-`.github/workflows/delete_prereleases.yml`:
-
-```yaml
-name: Delete Pre-releases
-
-on:
-  workflow_dispatch:
-
-permissions:
-  contents: write
-
-jobs:
-  delete-prereleases:
-    uses: LukeNeedham/ci-workflows/.github/workflows/delete_prereleases.yml@main
-```
+### `delete_prereleases.yml`
 
 Deletes every pre-release and its tag in the repository, whatever created it, and leaves full
-releases alone. Run it from the Actions tab. Use it to clear old builds from before the automatic
-cleanup existed, or manual-run builds.
+releases alone. Use it to clear old builds from before the automatic cleanup existed, or builds
+from manual runs.
 
 ## Things to know
 
