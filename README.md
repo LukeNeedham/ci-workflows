@@ -5,7 +5,8 @@ Shared GitHub Actions workflows, reused across projects via `workflow_call`.
 ## `android_pr_build.yml`
 
 Builds the APK, publishes it as a pre-release asset, and posts/updates a sticky PR comment with the
-download link.
+download link. As soon as a build starts the comment is switched to "new build in progress" with
+the previous APK link kept but flagged stale, and to "build failed"/"cancelled" if the job dies.
 
 Use it from a project with a thin caller at `.github/workflows/trigger_on_pull_request.yml`:
 
