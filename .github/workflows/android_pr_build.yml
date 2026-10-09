@@ -1,13 +1,8 @@
 name: Android PR Build
 
-# Reusable workflow: builds an Android APK, publishes it as a pre-release asset and posts/updates
-# a sticky PR comment with the download link.
-#
-# Caller example:
-#   jobs:
-#     build:
-#       uses: LukeNeedham/ci-workflows/.github/workflows/android_pr_build.yml@main
-#       secrets: inherit
+# Building block of android_pr.yml: builds an Android APK, publishes it as a pre-release asset and
+# posts/updates a sticky PR comment with the download link. Call android_pr.yml instead of this
+# file; that is where the input defaults live, so every input here is required.
 #
 # The caller's `permissions:` cap what this workflow can do, so the caller must grant:
 #   contents: write, pull-requests: write
@@ -18,25 +13,25 @@ on:
       gradle-task:
         description: Gradle task that produces the APK
         type: string
-        default: assembleDebug
+        required: true
       apk-path:
         description: Path to the built APK, relative to the repo root
         type: string
-        default: composeApp/build/outputs/apk/debug/composeApp-debug.apk
+        required: true
       java-version:
         type: string
-        default: '17'
+        required: true
       java-distribution:
         type: string
-        default: zulu
+        required: true
       timezone:
-        description: Timezone used for the "Built at" timestamp
+        description: Timezone used for the timestamps
         type: string
-        default: Europe/Amsterdam
+        required: true
       comment-header:
-        description: Sticky comment id; change it if a PR needs several distinct APK comments
+        description: Sticky comment id
         type: string
-        default: example-app-link
+        required: true
 
 jobs:
   build:

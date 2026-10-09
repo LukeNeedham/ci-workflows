@@ -6,13 +6,14 @@ the real logic lives here, so a fix made once reaches every project.
 | Workflow | What it does | Runs when |
 |---|---|---|
 | [`android_pr.yml`](.github/workflows/android_pr.yml) | **The whole PR flow in one call**: runs the build while the PR is open and the cleanup when it closes | PR opened, pushed to, or closed |
-| [`android_pr_build.yml`](.github/workflows/android_pr_build.yml) | Builds the debug APK, publishes it as a pre-release, keeps one sticky PR comment up to date | PR opened or pushed to |
-| [`android_pr_cleanup.yml`](.github/workflows/android_pr_cleanup.yml) | Deletes the PR's build pre-releases and tags | PR closed |
+| [`android_pr_build.yml`](.github/workflows/android_pr_build.yml) | *Building block.* Builds the debug APK, publishes it as a pre-release, keeps one sticky PR comment up to date | PR opened or pushed to |
+| [`android_pr_cleanup.yml`](.github/workflows/android_pr_cleanup.yml) | *Building block.* Deletes the PR's build pre-releases and tags | PR closed |
 | [`delete_prereleases.yml`](.github/workflows/delete_prereleases.yml) | Deletes **all** pre-releases and tags in the repo | Run by hand |
 
-`android_pr.yml` just chooses between the build and the cleanup workflow from the event, so most
-projects only need that one plus, optionally, the manual sweep. The other two can be called on their
-own if you want separate caller files.
+`android_pr.yml` just chooses between the build and the cleanup workflow from the event. It is the
+one to call: it owns the input defaults, and the build and cleanup workflows are its building
+blocks (all of their inputs are required, with no defaults of their own). `delete_prereleases.yml`
+is a separate manual job.
 
 These are [reusable workflows](https://docs.github.com/en/actions/using-workflows/reusing-workflows):
 a project calls them with `uses:`. Everything below uses
@@ -123,49 +124,6 @@ and deletes them with their tags. It only touches **pre-releases**, so real rele
 deleted. Builds from a manual run have no PR, so nothing ever cleans them up; use the sweep below
 for those.
 
-### Using the build and cleanup separately
-
-If you want two caller files, or different triggers for each, call the two workflows directly. They
-take the same inputs as above (`android_pr_build.yml` everything but `merged-only`;
-`android_pr_cleanup.yml` only `merged-only`).
-
-`trigger_on_pull_request.yml` (build only):
-
-```yaml
-on:
-  workflow_dispatch: {}
-  pull_request:
-    branches: [main]
-
-permissions:
-  contents: write
-  pull-requests: write
-
-jobs:
-  build:
-    uses: LukeNeedham/ci-workflows/.github/workflows/android_pr_build.yml@main
-```
-
-`on_pull_request_closed.yml` (cleanup only):
-
-```yaml
-on:
-  pull_request:
-    types: [closed]
-    branches: [main]
-
-permissions:
-  contents: write
-
-jobs:
-  cleanup:
-    uses: LukeNeedham/ci-workflows/.github/workflows/android_pr_cleanup.yml@main
-    with:
-      merged-only: false
-```
-
-The cleanup depends on the build's tag scheme, so keep the two on the same version.
-
 ### 2. Sweep all pre-releases by hand
 
 `.github/workflows/delete_prereleases.yml`:
@@ -204,9 +162,8 @@ cleanup existed, or manual-run builds.
 - **Check names.** Through `android_pr.yml` the jobs show up in PR checks as `android / build / build`
   (caller job / wrapper job / build job) instead of `build / build`. If branch protection requires a
   specific check name, update it after switching.
-- **Input defaults.** `android_pr.yml` repeats the defaults of the two workflows it calls (a value
-  passed on explicitly replaces the callee's default). When you change a default, change it in both
-  places.
+- **Input defaults.** They are defined once, in `android_pr.yml`. The build and cleanup workflows
+  take every input as required, so calling one of them directly means passing all of its inputs.
 - **Versions.** `@main` always runs the latest version, so a fix here reaches every project
   immediately, and so does a mistake. To get stability, call a tag (`@v1`) instead and move the tag
   forward deliberately.

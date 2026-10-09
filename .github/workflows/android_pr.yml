@@ -19,9 +19,8 @@ name: Android PR
 
 on:
   workflow_call:
-    # These pass straight through. The defaults repeat those of android_pr_build.yml and
-    # android_pr_cleanup.yml (a value passed on explicitly replaces the callee's own default), so
-    # keep them in sync.
+    # The defaults for the whole PR flow live here and only here: they are passed on explicitly to
+    # android_pr_build.yml and android_pr_cleanup.yml, whose inputs are all required.
     inputs:
       gradle-task:
         description: Gradle task that produces the APK

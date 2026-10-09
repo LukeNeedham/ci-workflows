@@ -1,17 +1,8 @@
 name: Android PR Cleanup
 
-# Reusable workflow: deletes the pre-releases (and their tags) created by android_pr_build.yml for
-# a pull request's branch once the PR is merged.
-#
-# Caller example:
-#   on:
-#     pull_request:
-#       types: [closed]
-#   permissions:
-#     contents: write
-#   jobs:
-#     cleanup:
-#       uses: LukeNeedham/ci-workflows/.github/workflows/android_pr_cleanup.yml@main
+# Building block of android_pr.yml: deletes the pre-releases (and their tags) created by
+# android_pr_build.yml for a pull request's branch once the PR is closed. Call android_pr.yml
+# instead of this file; that is where the input default lives, so the input here is required.
 
 on:
   workflow_call:
@@ -19,7 +10,7 @@ on:
       merged-only:
         description: Only delete when the PR was merged (false also deletes when closed unmerged)
         type: boolean
-        default: true
+        required: true
 
 jobs:
   cleanup:
