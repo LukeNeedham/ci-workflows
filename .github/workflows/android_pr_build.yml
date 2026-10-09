@@ -131,7 +131,7 @@ jobs:
         with:
           header: ${{ inputs.comment-header }}
           message: |
-            ❌ **Build ${{ cancelled() && 'cancelled' || 'failed' }}** ([run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}))
+            ❌ **Build ${{ job.status == 'cancelled' && 'cancelled' || 'failed' }}** ([run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}))
 
             * **Triggered by:** PR Commit `${{ github.sha }}`
 
