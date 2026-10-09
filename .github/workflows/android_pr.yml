@@ -4,32 +4,22 @@ name: Android PR
 # and cleans up its build releases when it is closed. It simply picks android_pr_build.yml or
 # android_pr_cleanup.yml from the event, so a project needs one caller job instead of two.
 #
-# Caller example:
-#   on:
-#     workflow_dispatch: {}
-#     pull_request:
-#       types: [opened, reopened, synchronize, closed]
-#       branches: [main]
-#   permissions:
-#     contents: write
-#     pull-requests: write
-#   jobs:
-#     android:
-#       uses: LukeNeedham/ci-workflows/.github/workflows/android_pr.yml@main
+# Caller example: examples/trigger_on_pull_request.yml
 
 on:
   workflow_call:
     # The defaults for the whole PR flow live here and only here: they are passed on explicitly to
-    # android_pr_build.yml and android_pr_cleanup.yml, whose inputs are all required.
+    # android_pr_build.yml and android_pr_cleanup.yml, whose inputs are all required. apk-path has no
+    # default because it depends on the project.
     inputs:
       gradle-task:
         description: Gradle task that produces the APK
         type: string
         default: assembleDebug
       apk-path:
-        description: Path to the built APK, relative to the repo root
+        description: Path to the built APK, relative to the repo root (depends on the project, so no default)
         type: string
-        default: composeApp/build/outputs/apk/debug/composeApp-debug.apk
+        required: true
       java-version:
         type: string
         default: '17'
@@ -44,10 +34,6 @@ on:
         description: Sticky comment id
         type: string
         default: example-app-link
-      merged-only:
-        description: Only clean up when the PR was merged (false also cleans up when closed unmerged)
-        type: boolean
-        default: true
 
 jobs:
   build:
@@ -65,5 +51,3 @@ jobs:
   cleanup:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
     uses: LukeNeedham/ci-workflows/.github/workflows/android_pr_cleanup.yml@main
-    with:
-      merged-only: ${{ inputs.merged-only }}
