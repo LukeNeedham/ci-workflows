@@ -25,6 +25,11 @@ jobs:
   cleanup:
     if: github.event_name == 'pull_request' && (github.event.pull_request.merged == true || !inputs.merged-only)
     runs-on: ubuntu-latest
+    # Same group as the build job: closing the PR cancels a build still running for it, so that
+    # build cannot publish a release after this cleanup has already run.
+    concurrency:
+      group: android-pr-build-${{ github.repository }}-${{ github.event.pull_request.number || github.ref }}
+      cancel-in-progress: true
     steps:
       - name: Delete PR build releases
         shell: bash

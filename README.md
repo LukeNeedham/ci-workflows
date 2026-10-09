@@ -5,9 +5,14 @@ the real logic lives here, so a fix made once reaches every project.
 
 | Workflow | What it does | Runs when |
 |---|---|---|
+| [`android_pr.yml`](.github/workflows/android_pr.yml) | **The whole PR flow in one call**: runs the build while the PR is open and the cleanup when it closes | PR opened, pushed to, or closed |
 | [`android_pr_build.yml`](.github/workflows/android_pr_build.yml) | Builds the debug APK, publishes it as a pre-release, keeps one sticky PR comment up to date | PR opened or pushed to |
 | [`android_pr_cleanup.yml`](.github/workflows/android_pr_cleanup.yml) | Deletes the PR's build pre-releases and tags | PR closed |
 | [`delete_prereleases.yml`](.github/workflows/delete_prereleases.yml) | Deletes **all** pre-releases and tags in the repo | Run by hand |
+
+`android_pr.yml` just chooses between the build and the cleanup workflow from the event, so most
+projects only need that one plus, optionally, the manual sweep. The other two can be called on their
+own if you want separate caller files.
 
 These are [reusable workflows](https://docs.github.com/en/actions/using-workflows/reusing-workflows):
 a project calls them with `uses:`. Everything below uses
@@ -15,19 +20,19 @@ a project calls them with `uses:`. Everything below uses
 
 ## Using the workflows in a project
 
-A project needs one small file per workflow it wants. FlagTutor's `.github/workflows/` contains:
+A project needs one small caller file for the PR flow, plus an optional one for the manual sweep.
+FlagTutor's `.github/workflows/` contains:
 
 ```
-trigger_on_pull_request.yml   calls android_pr_build.yml (plus a project-specific iOS job)
-on_pull_request_closed.yml    calls android_pr_cleanup.yml
+trigger_on_pull_request.yml   calls android_pr.yml (plus a project-specific iOS job)
 delete_prereleases.yml        calls delete_prereleases.yml (manual)
 ```
 
 The caller owns the **triggers** (`on:`) and the **permissions**; the shared workflow owns the steps.
 A reusable workflow cannot decide when it runs, and it can never be granted more permissions than
-the caller gives it.
+the caller gives it, so those two blocks cannot be moved here.
 
-### 1. Build the APK and comment on the PR
+### 1. The PR flow: build, comment, clean up
 
 `.github/workflows/trigger_on_pull_request.yml`:
 
@@ -37,16 +42,19 @@ name: On Pull Request
 on:
   workflow_dispatch: {}
   pull_request:
+    types: [opened, reopened, synchronize, closed]
     branches:
       - main
 
 permissions:
-  contents: write       # create the release that holds the APK
+  contents: write       # create the release that holds the APK, and delete it again
   pull-requests: write  # post the sticky comment
 
 jobs:
-  build:
-    uses: LukeNeedham/ci-workflows/.github/workflows/android_pr_build.yml@main
+  android:
+    uses: LukeNeedham/ci-workflows/.github/workflows/android_pr.yml@main
+    with:
+      merged-only: false   # also clean up when a PR is closed without merging
 
   # Project-specific jobs can sit next to the shared one. FlagTutor has an opt-in iOS build:
   build-ios:
@@ -56,12 +64,15 @@ jobs:
       # ...
 ```
 
-With no `with:` block the defaults are used, which match FlagTutor's layout. Override whatever
+`closed` has to be in the `types` list: that is the event that triggers the cleanup. Everything
+else (`opened`, `reopened`, `synchronize`) runs the build. A manual run (`workflow_dispatch`) builds.
+
+Without a `with:` block the defaults are used, which match FlagTutor's layout. Override whatever
 differs in your project:
 
 ```yaml
-  build:
-    uses: LukeNeedham/ci-workflows/.github/workflows/android_pr_build.yml@main
+  android:
+    uses: LukeNeedham/ci-workflows/.github/workflows/android_pr.yml@main
     with:
       gradle-task: assembleDebug
       apk-path: app/build/outputs/apk/debug/app-debug.apk
@@ -75,6 +86,7 @@ differs in your project:
 | `java-distribution` | `zulu` | JDK distribution |
 | `timezone` | `Europe/Amsterdam` | Timezone for the timestamps in the comment and release |
 | `comment-header` | `example-app-link` | Id of the sticky comment. Change it only if a PR needs several separate APK comments |
+| `merged-only` | `true` | `true`: only clean up when the PR was merged. `false`: also when it was closed without merging (FlagTutor uses this) |
 
 **What the PR sees.** One comment, edited in place as the build progresses, always with the same
 layout (a heading with the state's emoji, then a bullet list):
@@ -98,7 +110,7 @@ layout (a heading with the state's emoji, then a bullet list):
   previous APK link is kept, flagged stale, so reviewers still have something to install.
 - If a build fails, or is cancelled by hand, the comment says so instead of claiming it is still
   running.
-- A newer push to the same PR **cancels** the running build (see [Concurrency](#concurrency)).
+- A newer push to the same PR **cancels** the running build (see [Concurrency](#things-to-know)).
 - On a manual run (`workflow_dispatch`) there is no PR, so nothing is commented. The release is
   still created.
 
@@ -106,21 +118,44 @@ layout (a heading with the state's emoji, then a bullet list):
 lower-cased and anything other than letters, digits, `.`, `_`, `-` becomes `-`), with the APK as its
 asset. The APK link in the comment points at that asset.
 
-### 2. Clean up the releases when the PR closes
+**What the cleanup does.** When the PR closes it finds that PR's releases by the tag scheme above
+and deletes them with their tags. It only touches **pre-releases**, so real releases are never
+deleted. Builds from a manual run have no PR, so nothing ever cleans them up; use the sweep below
+for those.
 
-Every build creates a release, so they pile up. `.github/workflows/on_pull_request_closed.yml`:
+### Using the build and cleanup separately
+
+If you want two caller files, or different triggers for each, call the two workflows directly. They
+take the same inputs as above (`android_pr_build.yml` everything but `merged-only`;
+`android_pr_cleanup.yml` only `merged-only`).
+
+`trigger_on_pull_request.yml` (build only):
 
 ```yaml
-name: On Pull Request Closed
+on:
+  workflow_dispatch: {}
+  pull_request:
+    branches: [main]
 
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  build:
+    uses: LukeNeedham/ci-workflows/.github/workflows/android_pr_build.yml@main
+```
+
+`on_pull_request_closed.yml` (cleanup only):
+
+```yaml
 on:
   pull_request:
     types: [closed]
-    branches:
-      - main
+    branches: [main]
 
 permissions:
-  contents: write       # delete releases and tags
+  contents: write
 
 jobs:
   cleanup:
@@ -129,17 +164,9 @@ jobs:
       merged-only: false
 ```
 
-| Input | Default | Meaning |
-|---|---|---|
-| `merged-only` | `true` | `true`: only clean up when the PR was merged. `false`: also when it was closed without merging (FlagTutor uses this) |
+The cleanup depends on the build's tag scheme, so keep the two on the same version.
 
-It finds the PR's releases by the tag scheme above and only touches **pre-releases**, so real
-releases are never deleted. Because it depends on that tag scheme, keep the two workflows on the
-same version.
-
-Builds from a manual run have no PR, so nothing ever cleans them up. Use the sweep below for those.
-
-### 3. Sweep all pre-releases by hand
+### 2. Sweep all pre-releases by hand
 
 `.github/workflows/delete_prereleases.yml`:
 
@@ -172,7 +199,14 @@ cleanup existed, or manual-run builds.
 - **Concurrency.** The build job cancels the in-progress build for the same PR when a new push
   arrives, so an older build can never finish last and overwrite the newer build's comment. A run
   cancelled this way stays silent; one cancelled by hand reports "cancelled". Builds for different
-  PRs do not affect each other.
+  PRs do not affect each other. The cleanup shares the same group, so closing a PR also cancels a
+  build still running for it; otherwise that build could publish a release after the cleanup ran.
+- **Check names.** Through `android_pr.yml` the jobs show up in PR checks as `android / build / build`
+  (caller job / wrapper job / build job) instead of `build / build`. If branch protection requires a
+  specific check name, update it after switching.
+- **Input defaults.** `android_pr.yml` repeats the defaults of the two workflows it calls (a value
+  passed on explicitly replaces the callee's default). When you change a default, change it in both
+  places.
 - **Versions.** `@main` always runs the latest version, so a fix here reaches every project
   immediately, and so does a mistake. To get stability, call a tag (`@v1`) instead and move the tag
   forward deliberately.
