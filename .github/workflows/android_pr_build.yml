@@ -41,6 +41,11 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # A newer push to the same PR cancels the running build, so an older build cannot finish last
+    # and overwrite the newer build's comment.
+    concurrency:
+      group: android-pr-build-${{ github.repository }}-${{ github.event.pull_request.number || github.ref }}
+      cancel-in-progress: true
     steps:
       # Runs first so the PR shows a new build is coming as soon as the job starts. The previous
       # APK link is kept but flagged as stale. Skipped on manual dispatches (no PR to comment on).
@@ -128,8 +133,24 @@ jobs:
             - **Run:** [#${{ github.run_number }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
 
       # Don't leave the comment claiming a build is in progress if the job dies
+      # A run cancelled by a newer push must stay quiet: the newer run owns the comment now.
+      # Only a run cancelled by hand (head commit unchanged) reports "cancelled".
+      - name: Check whether a newer push superseded this run
+        id: superseded
+        if: github.event_name == 'pull_request' && cancelled()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          RUN_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          CURRENT_SHA=$(gh api "repos/${{ github.repository }}/pulls/${PR_NUMBER}" --jq .head.sha || true)
+          if [ -n "$CURRENT_SHA" ] && [ "$CURRENT_SHA" != "$RUN_SHA" ]; then
+            echo "superseded=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Post build failed on PR
-        if: github.event_name == 'pull_request' && (failure() || cancelled())
+        if: github.event_name == 'pull_request' && (failure() || (cancelled() && steps.superseded.outputs.superseded != 'true'))
         uses: marocchino/sticky-pull-request-comment@v3
         with:
           header: ${{ inputs.comment-header }}
