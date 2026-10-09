@@ -53,7 +53,9 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           TZ_NAME: ${{ inputs.timezone }}
           HEADER: ${{ inputs.comment-header }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
+          echo "short-sha=${HEAD_SHA:0:7}" >> "$GITHUB_OUTPUT"
           echo "time=$(TZ="$TZ_NAME" date +'%d/%m/%Y %H:%M:%S')" >> "$GITHUB_OUTPUT"
           # The sticky comment action embeds this marker in the comment it manages
           OLD_BODY=$(gh api --paginate "repos/${{ github.repository }}/issues/${PR_NUMBER}/comments" \
@@ -67,12 +69,12 @@ jobs:
         with:
           header: ${{ inputs.comment-header }}
           message: |
-            ⏳ **New build in progress** ([run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}))
+            ### ⏳ Build in progress
 
-            * **Triggered by:** PR Commit `${{ github.event.pull_request.head.sha || github.sha }}`
-            * **Started at:** ${{ steps.prev.outputs.time }}
-
-            ${{ steps.prev.outputs.old-url != '' && format('Previous build (⚠️ stale, does not include this commit): {0}', steps.prev.outputs.old-url) || '' }}
+            - **Commit:** [`${{ steps.prev.outputs.short-sha }}`](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.event.pull_request.head.sha }})
+            - **Started:** ${{ steps.prev.outputs.time }}
+            - **Run:** [#${{ github.run_number }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            ${{ steps.prev.outputs.old-url != '' && format('- **Previous APK:** [download]({0}) ⚠️ stale, does not include this commit', steps.prev.outputs.old-url) || '' }}
 
       - uses: actions/checkout@v4
 
@@ -118,11 +120,12 @@ jobs:
         with:
           header: ${{ inputs.comment-header }}
           message: |
-            App apk at:
-            https://github.com/${{ github.repository }}/releases/download/${{ steps.meta.outputs.tag }}/${{ steps.meta.outputs.apk-name }}
+            ### ✅ Build succeeded
 
-            * **Triggered by:** PR Commit `${{ github.event.pull_request.head.sha || github.sha }}`
-            * **Built at:** ${{ steps.meta.outputs.time }}
+            - **APK:** 📦 [Download](https://github.com/${{ github.repository }}/releases/download/${{ steps.meta.outputs.tag }}/${{ steps.meta.outputs.apk-name }})
+            - **Commit:** [`${{ steps.prev.outputs.short-sha }}`](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.event.pull_request.head.sha }})
+            - **Built:** ${{ steps.meta.outputs.time }}
+            - **Run:** [#${{ github.run_number }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
 
       # Don't leave the comment claiming a build is in progress if the job dies
       - name: Post build failed on PR
@@ -131,8 +134,10 @@ jobs:
         with:
           header: ${{ inputs.comment-header }}
           message: |
-            ❌ **Build ${{ job.status == 'cancelled' && 'cancelled' || 'failed' }}** ([run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}))
+            ### ${{ job.status == 'cancelled' && '🚫 Build cancelled' || '❌ Build failed' }}
 
-            * **Triggered by:** PR Commit `${{ github.event.pull_request.head.sha || github.sha }}`
+            - **Commit:** [`${{ steps.prev.outputs.short-sha }}`](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.event.pull_request.head.sha }})
+            - **Started:** ${{ steps.prev.outputs.time }}
+            - **Run:** [#${{ github.run_number }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            ${{ steps.prev.outputs.old-url != '' && format('- **Previous APK:** [download]({0}) ⚠️ stale, does not include this commit', steps.prev.outputs.old-url) || '' }}
 
-            ${{ steps.prev.outputs.old-url != '' && format('Previous build (⚠️ stale, does not include this commit): {0}', steps.prev.outputs.old-url) || '' }}
