@@ -35,9 +35,9 @@ on:
         type: string
         default: example-app-link
       merged-only:
-        description: Only clean up when the PR was merged (false also cleans up when closed unmerged)
+        description: Only clean up when the PR was merged (false, the default, also cleans up when closed unmerged)
         type: boolean
-        default: true
+        default: false
 
 jobs:
   build:

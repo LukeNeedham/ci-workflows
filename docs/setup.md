@@ -51,7 +51,7 @@ Keep as is: `name`, the `types` list, `permissions`, `uses`.
 | `java-distribution` | `with:` | `zulu` | you need another JDK distribution |
 | `timezone` | `with:` | `Europe/Amsterdam` | you want timestamps in another timezone |
 | `comment-header` | `with:` | `example-app-link` | one PR needs more than one APK comment (give each a different id) |
-| `merged-only` | `with:` | `true` | you also want abandoned (closed, unmerged) PRs cleaned up: set `false` |
+| `merged-only` | `with:` | `false` | you want builds of abandoned (closed, unmerged) PRs kept: set `true` |
 
 ### Other jobs in the same file
 
