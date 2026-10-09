@@ -69,7 +69,7 @@ jobs:
           message: |
             ⏳ **New build in progress** ([run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}))
 
-            * **Triggered by:** PR Commit `${{ github.sha }}`
+            * **Triggered by:** PR Commit `${{ github.event.pull_request.head.sha || github.sha }}`
             * **Started at:** ${{ steps.prev.outputs.time }}
 
             ${{ steps.prev.outputs.old-url != '' && format('Previous build (⚠️ stale, does not include this commit): {0}', steps.prev.outputs.old-url) || '' }}
@@ -121,7 +121,7 @@ jobs:
             App apk at:
             https://github.com/${{ github.repository }}/releases/download/${{ steps.meta.outputs.tag }}/${{ steps.meta.outputs.apk-name }}
 
-            * **Triggered by:** PR Commit `${{ github.sha }}`
+            * **Triggered by:** PR Commit `${{ github.event.pull_request.head.sha || github.sha }}`
             * **Built at:** ${{ steps.meta.outputs.time }}
 
       # Don't leave the comment claiming a build is in progress if the job dies
@@ -133,6 +133,6 @@ jobs:
           message: |
             ❌ **Build ${{ job.status == 'cancelled' && 'cancelled' || 'failed' }}** ([run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}))
 
-            * **Triggered by:** PR Commit `${{ github.sha }}`
+            * **Triggered by:** PR Commit `${{ github.event.pull_request.head.sha || github.sha }}`
 
             ${{ steps.prev.outputs.old-url != '' && format('Previous build (⚠️ stale, does not include this commit): {0}', steps.prev.outputs.old-url) || '' }}
