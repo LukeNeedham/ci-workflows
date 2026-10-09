@@ -1,17 +1,8 @@
 name: Android PR Cleanup
 
-# Reusable workflow: deletes the pre-releases (and their tags) created by android_pr_build.yml for
-# a pull request's branch once the PR is merged.
-#
-# Caller example:
-#   on:
-#     pull_request:
-#       types: [closed]
-#   permissions:
-#     contents: write
-#   jobs:
-#     cleanup:
-#       uses: LukeNeedham/ci-workflows/.github/workflows/android_pr_cleanup.yml@main
+# Building block of android_pr.yml: deletes the pre-releases (and their tags) created by
+# android_pr_build.yml for a pull request's branch once the PR is closed. Call android_pr.yml
+# instead of this file; that is where the input default lives, so the input here is required.
 
 on:
   workflow_call:
@@ -19,12 +10,17 @@ on:
       merged-only:
         description: Only delete when the PR was merged (false also deletes when closed unmerged)
         type: boolean
-        default: true
+        required: true
 
 jobs:
   cleanup:
     if: github.event_name == 'pull_request' && (github.event.pull_request.merged == true || !inputs.merged-only)
     runs-on: ubuntu-latest
+    # Same group as the build job: closing the PR cancels a build still running for it, so that
+    # build cannot publish a release after this cleanup has already run.
+    concurrency:
+      group: android-pr-build-${{ github.repository }}-${{ github.event.pull_request.number || github.ref }}
+      cancel-in-progress: true
     steps:
       - name: Delete PR build releases
         shell: bash

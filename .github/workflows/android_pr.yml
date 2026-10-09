@@ -1,0 +1,69 @@
+name: Android PR
+
+# Reusable workflow: the whole PR flow in one call. Builds and comments on the PR while it is open,
+# and cleans up its build releases when it is closed. It simply picks android_pr_build.yml or
+# android_pr_cleanup.yml from the event, so a project needs one caller job instead of two.
+#
+# Caller example:
+#   on:
+#     workflow_dispatch: {}
+#     pull_request:
+#       types: [opened, reopened, synchronize, closed]
+#       branches: [main]
+#   permissions:
+#     contents: write
+#     pull-requests: write
+#   jobs:
+#     android:
+#       uses: LukeNeedham/ci-workflows/.github/workflows/android_pr.yml@main
+
+on:
+  workflow_call:
+    # The defaults for the whole PR flow live here and only here: they are passed on explicitly to
+    # android_pr_build.yml and android_pr_cleanup.yml, whose inputs are all required.
+    inputs:
+      gradle-task:
+        description: Gradle task that produces the APK
+        type: string
+        default: assembleDebug
+      apk-path:
+        description: Path to the built APK, relative to the repo root
+        type: string
+        default: composeApp/build/outputs/apk/debug/composeApp-debug.apk
+      java-version:
+        type: string
+        default: '17'
+      java-distribution:
+        type: string
+        default: zulu
+      timezone:
+        description: Timezone used for the timestamps
+        type: string
+        default: Europe/Amsterdam
+      comment-header:
+        description: Sticky comment id
+        type: string
+        default: example-app-link
+      merged-only:
+        description: Only clean up when the PR was merged (false also cleans up when closed unmerged)
+        type: boolean
+        default: true
+
+jobs:
+  build:
+    # Everything except a PR being closed
+    if: github.event_name != 'pull_request' || github.event.action != 'closed'
+    uses: LukeNeedham/ci-workflows/.github/workflows/android_pr_build.yml@main
+    with:
+      gradle-task: ${{ inputs.gradle-task }}
+      apk-path: ${{ inputs.apk-path }}
+      java-version: ${{ inputs.java-version }}
+      java-distribution: ${{ inputs.java-distribution }}
+      timezone: ${{ inputs.timezone }}
+      comment-header: ${{ inputs.comment-header }}
+
+  cleanup:
+    if: github.event_name == 'pull_request' && github.event.action == 'closed'
+    uses: LukeNeedham/ci-workflows/.github/workflows/android_pr_cleanup.yml@main
+    with:
+      merged-only: ${{ inputs.merged-only }}
