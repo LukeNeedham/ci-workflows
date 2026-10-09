@@ -5,8 +5,7 @@ caller files are below, ready to copy. Parts you must or may change per project 
 `CONFIGURE`; everything else should be copied as is.
 
 For what each workflow does, its inputs and the PR comment it posts, see the
-[README](../README.md). [FlagTutor](https://github.com/LukeNeedham/FlagTutor/tree/main/.github/workflows)
-is a working example.
+[README](../README.md).
 
 ## What lives where
 
@@ -57,7 +56,8 @@ jobs:
     uses: LukeNeedham/ci-workflows/.github/workflows/android_pr.yml@main
     with:
       # CONFIGURE: path to the APK your build produces, relative to the repo root.
-      # The default below is FlagTutor's. It is wrong for most projects.
+      # The workflows' default is composeApp/build/outputs/apk/debug/composeApp-debug.apk, which only
+      # fits a project with a `composeApp` module.
       apk-path: app/build/outputs/apk/debug/app-debug.apk
 
       # CONFIGURE (optional): delete a PR's builds when it is closed without merging too.
@@ -79,7 +79,7 @@ Keep as is: `name`, the `types` list, `permissions`, `uses`.
 | Setting | Where | Default | Change it when |
 |---|---|---|---|
 | `branches` | `on.pull_request` | `main` | your PRs target a different branch |
-| `apk-path` | `with:` | `composeApp/build/outputs/apk/debug/composeApp-debug.apk` | **almost always**: it is the path to the APK your build writes. Find it by running the build locally |
+| `apk-path` | `with:` | `composeApp/build/outputs/apk/debug/composeApp-debug.apk` | **unless your APK is built at the default path**: it is the path to the APK your build writes. Find it by running the build locally |
 | `gradle-task` | `with:` | `assembleDebug` | you want another variant (for example `assembleStaging`); update `apk-path` to match |
 | `java-version` | `with:` | `17` | your Gradle build needs another JDK |
 | `java-distribution` | `with:` | `zulu` | you need another JDK distribution |
@@ -89,9 +89,8 @@ Keep as is: `name`, the `types` list, `permissions`, `uses`.
 
 ### Other jobs in the same file
 
-Project-specific jobs can sit next to `android:` in the same `jobs:` block. FlagTutor, for example,
-has an opt-in iOS build there that only runs on a manual dispatch. They are not part of the shared
-workflows and are not affected by them.
+Project-specific jobs can sit next to `android:` in the same `jobs:` block. They are not part of
+the shared workflows and are not affected by them.
 
 ## 2. Sweep all pre-releases (optional)
 
@@ -138,8 +137,7 @@ Assuming the project already builds an APK on pull requests with its own workflo
    - the JDK version and distribution → `java-version`, `java-distribution`
    - the branch(es) it triggers on → `branches`
 2. **Replace the old build workflow** with the file from section 1, filled in with those values.
-   Keep any jobs in it that are specific to the project (such as an iOS build) in the same `jobs:`
-   block.
+   Keep any jobs in it that the shared workflows do not cover in the same `jobs:` block.
 3. **Delete the old cleanup workflow**, if there is one: the cleanup now runs from the same file.
    Make sure the project has exactly one workflow reacting to PR closes, otherwise releases are
    deleted twice.

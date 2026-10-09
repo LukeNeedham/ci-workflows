@@ -1,6 +1,6 @@
 # ci-workflows
 
-Shared GitHub Actions workflows for Android projects. A project keeps only thin "caller" workflows;
+Shared GitHub Actions workflows for Android projects (Android only for now). A project keeps only thin "caller" workflows;
 the real logic lives here, so a fix made once reaches every project.
 
 | Workflow | What it does | Runs when |
@@ -21,8 +21,7 @@ a project calls them with `uses:`.
 ## Setting up a project
 
 **See [docs/setup.md](docs/setup.md)** for the caller files to copy, which parts to configure per
-project, and how to migrate an existing project. [FlagTutor](https://github.com/LukeNeedham/FlagTutor/tree/main/.github/workflows)
-is a working example.
+project, and how to migrate an existing project.
 
 In short: a project keeps small caller files that own the **triggers** (`on:`), the **permissions**
 and the **settings** (`with:`); the steps live here. A reusable workflow cannot decide when it
@@ -43,7 +42,7 @@ Inputs (all optional; the defaults live here and only here):
 | `java-distribution` | `zulu` | JDK distribution |
 | `timezone` | `Europe/Amsterdam` | Timezone for the timestamps in the comment and release |
 | `comment-header` | `example-app-link` | Id of the sticky comment. Change it only if a PR needs several separate APK comments |
-| `merged-only` | `true` | `true`: only clean up when the PR was merged. `false`: also when it was closed without merging (FlagTutor uses this) |
+| `merged-only` | `true` | `true`: only clean up when the PR was merged. `false`: also when it was closed without merging |
 
 `closed` has to be among the caller's `pull_request` types: that is the event that triggers the
 cleanup. Everything else (`opened`, `reopened`, `synchronize`) runs the build. A manual run
