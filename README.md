@@ -36,5 +36,30 @@ Inputs: `gradle-task`, `apk-path`, `java-version`, `java-distribution`, `timezon
 `@main` always runs the latest version. Pin to a tag (e.g. `@v1`) for stability: a bad push to `main`
 would otherwise break every project at once.
 
+## `android_pr_cleanup.yml`
+
+Deletes the pre-releases and tags created by `android_pr_build.yml` for the PR's branch when the PR
+merges. Add a second caller (or extend the first):
+
+```yaml
+name: On Pull Request Closed
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    uses: LukeNeedham/ci-workflows/.github/workflows/android_pr_cleanup.yml@main
+    # with:
+    #   merged-only: false   # also clean up when closed without merging
+```
+
+Releases are matched by tag `<branch>-<run>-<attempt>` (the scheme `android_pr_build.yml` uses) and
+must be pre-releases, so other releases are never touched.
+
 Notes: the repo must be public (or have Actions access sharing enabled) for other repos to call it;
 `on:` triggers and `permissions:` always stay in the caller.
