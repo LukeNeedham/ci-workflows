@@ -106,6 +106,10 @@ from manual runs.
   specific check name, update it after switching.
 - **Input defaults.** They are defined once, in `android_pr.yml`. The build workflow takes every
   input as required, so calling it directly means passing all of them.
+- **Gradle caching.** The build uses `gradle/actions/setup-gradle` and `--build-cache`, so build
+  outputs are cached as well as dependencies. Runs for a PR into the default branch only read the
+  cache; it is written by runs on the default branch, such as a manual run there. If nothing runs on
+  the default branch, the cache stays empty and builds are not sped up.
 - **Versions.** `@main` always runs the latest version, so a fix here reaches every project
   immediately, and so does a mistake. To get stability, call a tag (`@v1`) instead and move the tag
   forward deliberately.

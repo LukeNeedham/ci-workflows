@@ -83,11 +83,17 @@ jobs:
         with:
           java-version: ${{ inputs.java-version }}
           distribution: ${{ inputs.java-distribution }}
-          cache: gradle
+
+      # Caches build outputs as well as downloaded dependencies. PR builds only read the cache, so
+      # PR branches do not fill it; runs on the default branch (such as a manual run there) write it.
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: ${{ github.event_name == 'pull_request' && github.base_ref == github.event.repository.default_branch }}
 
       - name: Build APK
         shell: bash
-        run: ./gradlew ${{ inputs.gradle-task }}
+        run: ./gradlew ${{ inputs.gradle-task }} --no-daemon --build-cache
 
       - name: Compute build metadata
         id: meta
