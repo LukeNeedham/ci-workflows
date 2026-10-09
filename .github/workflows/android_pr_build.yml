@@ -1,0 +1,93 @@
+name: Android PR Build
+
+# Reusable workflow: builds an Android APK, publishes it as a pre-release asset and posts/updates
+# a sticky PR comment with the download link.
+#
+# Caller example:
+#   jobs:
+#     build:
+#       uses: LukeNeedham/ci-workflows/.github/workflows/android_pr_build.yml@main
+#       secrets: inherit
+#
+# The caller's `permissions:` cap what this workflow can do, so the caller must grant:
+#   contents: write, pull-requests: write
+
+on:
+  workflow_call:
+    inputs:
+      gradle-task:
+        description: Gradle task that produces the APK
+        type: string
+        default: assembleDebug
+      apk-path:
+        description: Path to the built APK, relative to the repo root
+        type: string
+        default: composeApp/build/outputs/apk/debug/composeApp-debug.apk
+      java-version:
+        type: string
+        default: '17'
+      java-distribution:
+        type: string
+        default: zulu
+      timezone:
+        description: Timezone used for the "Built at" timestamp
+        type: string
+        default: Europe/Amsterdam
+      comment-header:
+        description: Sticky comment id; change it if a PR needs several distinct APK comments
+        type: string
+        default: example-app-link
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ inputs.java-version }}
+          distribution: ${{ inputs.java-distribution }}
+          cache: gradle
+
+      - name: Build APK
+        shell: bash
+        run: ./gradlew ${{ inputs.gradle-task }}
+
+      - name: Compute build metadata
+        id: meta
+        shell: bash
+        env:
+          TZ_NAME: ${{ inputs.timezone }}
+          APK_PATH: ${{ inputs.apk-path }}
+          RAW_BRANCH: ${{ github.head_ref || github.ref_name }}
+        run: |
+          echo "time=$(TZ="$TZ_NAME" date +'%d/%m/%Y %H:%M:%S')" >> "$GITHUB_OUTPUT"
+          echo "apk-name=$(basename "$APK_PATH")" >> "$GITHUB_OUTPUT"
+          # Slashes/special characters -> dashes, lowercase, plus run identifiers for uniqueness
+          CLEAN_BRANCH=$(echo "$RAW_BRANCH" | sed 's/[^A-Za-z0-9._-]/-/g' | tr '[:upper:]' '[:lower:]')
+          echo "tag=${CLEAN_BRANCH}-${{ github.run_number }}-${{ github.run_attempt }}" >> "$GITHUB_OUTPUT"
+
+      - name: Create release and upload APK
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: ${{ inputs.apk-path }}
+          tag: ${{ steps.meta.outputs.tag }}
+          name: "PR Build: ${{ github.head_ref || github.ref_name }}"
+          body: "Debug build generated automatically from branch: ${{ github.head_ref || github.ref_name }} at ${{ steps.meta.outputs.time }}"
+          prerelease: true
+          draft: false
+
+      # Skipped on manual dispatches, which have no PR to comment on
+      - name: Post APK link on PR
+        if: github.event_name == 'pull_request'
+        uses: marocchino/sticky-pull-request-comment@v3
+        with:
+          header: ${{ inputs.comment-header }}
+          message: |
+            App apk at:
+            https://github.com/${{ github.repository }}/releases/download/${{ steps.meta.outputs.tag }}/${{ steps.meta.outputs.apk-name }}
+
+            * **Triggered by:** PR Commit `${{ github.sha }}`
+            * **Built at:** ${{ steps.meta.outputs.time }}

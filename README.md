@@ -1,0 +1,40 @@
+# ci-workflows
+
+Shared GitHub Actions workflows, reused across projects via `workflow_call`.
+
+## `android_pr_build.yml`
+
+Builds the APK, publishes it as a pre-release asset, and posts/updates a sticky PR comment with the
+download link.
+
+Use it from a project with a thin caller at `.github/workflows/trigger_on_pull_request.yml`:
+
+```yaml
+name: On Pull Request
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch: {}
+
+permissions:
+  contents: write       # create releases
+  pull-requests: write  # sticky comment
+
+jobs:
+  build:
+    uses: LukeNeedham/ci-workflows/.github/workflows/android_pr_build.yml@main
+    secrets: inherit
+    # with:
+    #   gradle-task: assembleDebug
+    #   apk-path: composeApp/build/outputs/apk/debug/composeApp-debug.apk
+```
+
+Inputs: `gradle-task`, `apk-path`, `java-version`, `java-distribution`, `timezone`, `comment-header`
+(all optional; defaults match FlagTutor).
+
+`@main` always runs the latest version. Pin to a tag (e.g. `@v1`) for stability: a bad push to `main`
+would otherwise break every project at once.
+
+Notes: the repo must be public (or have Actions access sharing enabled) for other repos to call it;
+`on:` triggers and `permissions:` always stay in the caller.
