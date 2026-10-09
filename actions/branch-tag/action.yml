@@ -1,0 +1,30 @@
+name: Branch release tag
+description: Builds the unique release tag for a PR build (<clean-branch>-<run>-<attempt>).
+
+inputs:
+  branch:
+    description: Branch name
+    required: true
+  run-number:
+    required: true
+  run-attempt:
+    required: true
+
+outputs:
+  tag:
+    description: The release tag
+    value: ${{ steps.tag.outputs.tag }}
+
+runs:
+  using: composite
+  steps:
+    - id: tag
+      shell: bash
+      env:
+        BRANCH: ${{ inputs.branch }}
+        RUN_NUMBER: ${{ inputs.run-number }}
+        RUN_ATTEMPT: ${{ inputs.run-attempt }}
+      run: |
+        TAG=$(python3 "${{ github.action_path }}/branch_tag.py" tag \
+          --branch "$BRANCH" --run-number "$RUN_NUMBER" --run-attempt "$RUN_ATTEMPT")
+        echo "tag=$TAG" >> "$GITHUB_OUTPUT"

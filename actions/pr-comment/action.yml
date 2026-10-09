@@ -1,0 +1,49 @@
+name: PR build comment
+description: Posts/updates the sticky PR comment for an APK build, keeping the previous link flagged as stale.
+
+inputs:
+  state:
+    description: in-progress | success | failed | cancelled
+    required: true
+  header:
+    description: Sticky comment id
+    default: example-app-link
+  sha:
+    description: Commit the build is for
+    required: true
+  apk-url:
+    description: Download link (state success)
+    default: ''
+  timezone:
+    default: Europe/Amsterdam
+  pr-number:
+    default: ${{ github.event.pull_request.number }}
+  token:
+    default: ${{ github.token }}
+
+runs:
+  using: composite
+  steps:
+    - id: message
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        STATE: ${{ inputs.state }}
+        HEADER: ${{ inputs.header }}
+        SHA: ${{ inputs.sha }}
+        APK_URL: ${{ inputs.apk-url }}
+        TZ_NAME: ${{ inputs.timezone }}
+        PR_NUMBER: ${{ inputs.pr-number }}
+        RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        REPO: ${{ github.repository }}
+      run: |
+        python3 "${{ github.action_path }}/pr_comment.py" \
+          --state "$STATE" --header "$HEADER" --sha "$SHA" --run-url "$RUN_URL" \
+          --timezone "$TZ_NAME" --apk-url "$APK_URL" --repo "$REPO" --pr-number "$PR_NUMBER" \
+          --output "$RUNNER_TEMP/pr_comment.md"
+
+    - uses: marocchino/sticky-pull-request-comment@v3
+      with:
+        header: ${{ inputs.header }}
+        path: ${{ runner.temp }}/pr_comment.md
+        GITHUB_TOKEN: ${{ inputs.token }}
