@@ -42,6 +42,38 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+      # Runs first so the PR shows a new build is coming as soon as the job starts. The previous
+      # APK link is kept but flagged as stale. Skipped on manual dispatches (no PR to comment on).
+      - name: Mark previous build as stale
+        id: prev
+        if: github.event_name == 'pull_request'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          TZ_NAME: ${{ inputs.timezone }}
+          HEADER: ${{ inputs.comment-header }}
+        run: |
+          echo "time=$(TZ="$TZ_NAME" date +'%d/%m/%Y %H:%M:%S')" >> "$GITHUB_OUTPUT"
+          # The sticky comment action embeds this marker in the comment it manages
+          OLD_BODY=$(gh api --paginate "repos/${{ github.repository }}/issues/${PR_NUMBER}/comments" \
+            --jq ".[] | select(.body | contains(\"Sticky Pull Request Comment${HEADER} \")) | .body" || true)
+          OLD_URL=$(echo "$OLD_BODY" | grep -oE 'https://github\.com/[^ )]+/releases/download/[^ )]+\.apk' | head -n 1 || true)
+          echo "old-url=$OLD_URL" >> "$GITHUB_OUTPUT"
+
+      - name: Post build in progress on PR
+        if: github.event_name == 'pull_request'
+        uses: marocchino/sticky-pull-request-comment@v3
+        with:
+          header: ${{ inputs.comment-header }}
+          message: |
+            ⏳ **New build in progress** ([run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}))
+
+            * **Triggered by:** PR Commit `${{ github.sha }}`
+            * **Started at:** ${{ steps.prev.outputs.time }}
+
+            ${{ steps.prev.outputs.old-url != '' && format('Previous build (⚠️ stale, does not include this commit): {0}', steps.prev.outputs.old-url) || '' }}
+
       - uses: actions/checkout@v4
 
       - name: Set up JDK
@@ -91,3 +123,16 @@ jobs:
 
             * **Triggered by:** PR Commit `${{ github.sha }}`
             * **Built at:** ${{ steps.meta.outputs.time }}
+
+      # Don't leave the comment claiming a build is in progress if the job dies
+      - name: Post build failed on PR
+        if: github.event_name == 'pull_request' && (failure() || cancelled())
+        uses: marocchino/sticky-pull-request-comment@v3
+        with:
+          header: ${{ inputs.comment-header }}
+          message: |
+            ❌ **Build ${{ cancelled() && 'cancelled' || 'failed' }}** ([run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}))
+
+            * **Triggered by:** PR Commit `${{ github.sha }}`
+
+            ${{ steps.prev.outputs.old-url != '' && format('Previous build (⚠️ stale, does not include this commit): {0}', steps.prev.outputs.old-url) || '' }}
