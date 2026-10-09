@@ -34,43 +34,9 @@ Everything else is shared, so a fix here reaches every project.
 Builds the APK on every PR push, comments the download link, and deletes the PR's builds when it
 closes.
 
-**File:** `.github/workflows/trigger_on_pull_request.yml`
-
-```yaml
-name: On Pull Request
-
-on:
-  workflow_dispatch: {}
-  pull_request:
-    # `closed` runs the release cleanup, the other types run the build. Keep all four.
-    types: [opened, reopened, synchronize, closed]
-    branches:
-      - main   # CONFIGURE: the branch(es) your PRs target
-
-permissions:
-  contents: write       # create the release that holds the APK, and delete it again
-  pull-requests: write  # post the sticky comment
-
-jobs:
-  android:
-    uses: LukeNeedham/ci-workflows/.github/workflows/android_pr.yml@main
-    with:
-      # CONFIGURE: path to the APK your build produces, relative to the repo root.
-      # The workflows' default is composeApp/build/outputs/apk/debug/composeApp-debug.apk, which only
-      # fits a project with a `composeApp` module.
-      apk-path: app/build/outputs/apk/debug/app-debug.apk
-
-      # CONFIGURE (optional): delete a PR's builds when it is closed without merging too.
-      # `true` (the default) only cleans up merged PRs.
-      merged-only: false
-
-      # CONFIGURE (optional): the rest are only needed if your project differs. Defaults shown.
-      # gradle-task: assembleDebug
-      # java-version: '17'
-      # java-distribution: zulu
-      # timezone: Europe/Amsterdam       # used for the timestamps in the comment and release
-      # comment-header: example-app-link # change only if a PR needs several APK comments
-```
+**File:** [`examples/trigger_on_pull_request.yml`](../examples/trigger_on_pull_request.yml): copy it to
+`.github/workflows/trigger_on_pull_request.yml` in your project. Lines marked `CONFIGURE` are the
+ones to adjust.
 
 Keep as is: `name`, the `types` list, `permissions`, `uses`.
 
@@ -79,7 +45,7 @@ Keep as is: `name`, the `types` list, `permissions`, `uses`.
 | Setting | Where | Default | Change it when |
 |---|---|---|---|
 | `branches` | `on.pull_request` | `main` | your PRs target a different branch |
-| `apk-path` | `with:` | `composeApp/build/outputs/apk/debug/composeApp-debug.apk` | **unless your APK is built at the default path**: it is the path to the APK your build writes. Find it by running the build locally |
+| `apk-path` | `with:` | **none, required** | always: it is the path to the APK your build writes. Find it by running the build locally |
 | `gradle-task` | `with:` | `assembleDebug` | you want another variant (for example `assembleStaging`); update `apk-path` to match |
 | `java-version` | `with:` | `17` | your Gradle build needs another JDK |
 | `java-distribution` | `with:` | `zulu` | you need another JDK distribution |
@@ -98,21 +64,8 @@ A manual button that deletes **every** pre-release and tag in the repo. Useful o
 (to clear old builds the cleanup never saw) and for builds from manual runs, which have no PR to
 clean them up.
 
-**File:** `.github/workflows/delete_prereleases.yml`
-
-```yaml
-name: Delete Pre-releases
-
-on:
-  workflow_dispatch:
-
-permissions:
-  contents: write       # delete releases and tags
-
-jobs:
-  delete-prereleases:
-    uses: LukeNeedham/ci-workflows/.github/workflows/delete_prereleases.yml@main
-```
+**File:** [`examples/delete_prereleases.yml`](../examples/delete_prereleases.yml): copy it to
+`.github/workflows/delete_prereleases.yml` in your project.
 
 Nothing to configure. Run it from the *Actions* tab. It only deletes pre-releases, never full
 releases, but it deletes **all** of them, whoever made them. If the repo publishes real releases
@@ -120,9 +73,9 @@ that are marked as pre-release (for example betas), do not add this file.
 
 ## Setting up a new project
 
-1. Create `.github/workflows/trigger_on_pull_request.yml` from section 1 and set `apk-path` (and
-   anything else marked `CONFIGURE`).
-2. Optionally create `.github/workflows/delete_prereleases.yml` from section 2.
+1. Copy `examples/trigger_on_pull_request.yml` to `.github/workflows/trigger_on_pull_request.yml`
+   and set `apk-path` (and anything else marked `CONFIGURE`).
+2. Optionally copy `examples/delete_prereleases.yml` to `.github/workflows/delete_prereleases.yml`.
 3. Commit both on a branch and open a PR to the target branch.
 4. [Check it works](#check-that-it-works).
 

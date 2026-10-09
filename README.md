@@ -32,12 +32,12 @@ moved here.
 
 ### `android_pr.yml`
 
-Inputs (all optional; the defaults live here and only here):
+Inputs (the defaults live here and only here; `apk-path` is the one required input):
 
 | Input | Default | Meaning |
 |---|---|---|
 | `gradle-task` | `assembleDebug` | Gradle task that produces the APK |
-| `apk-path` | `composeApp/build/outputs/apk/debug/composeApp-debug.apk` | APK location relative to the repo root |
+| `apk-path` | **required** | APK location relative to the repo root |
 | `java-version` | `17` | JDK version |
 | `java-distribution` | `zulu` | JDK distribution |
 | `timezone` | `Europe/Amsterdam` | Timezone for the timestamps in the comment and release |
