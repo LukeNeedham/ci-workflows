@@ -98,7 +98,7 @@ named after the repository, e.g. `Android-Dock.apk`). Secrets: `RELEASE_KEYSTORE
 
 It tags the commit first (the Gradle script reads the version from the tag), builds the signed
 release APK, checks the signature with `apksigner`, and publishes a normal release marked latest,
-titled `<version> (alpha)`. If a later step fails, the tag is removed again. Releases are not
+titled `<version>`. If a later step fails, the tag is removed again. Releases are not
 pre-releases, so the PR cleanup and `delete_prereleases.yml` never touch them, and
 `https://github.com/<owner>/<repo>/releases/latest/download/<asset>` is a fixed link to the newest.
 

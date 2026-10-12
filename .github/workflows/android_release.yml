@@ -125,7 +125,7 @@ jobs:
           cp "$APK_PATH" "$ASSET_NAME"
           if [ -n "$NOTES" ]; then notes=(--notes "$NOTES"); else notes=(--generate-notes); fi
           gh release create "$VERSION" "$ASSET_NAME" \
-            --title "$VERSION (alpha)" \
+            --title "$VERSION" \
             --latest \
             "${notes[@]}"
 
