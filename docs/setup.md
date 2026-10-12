@@ -70,6 +70,29 @@ Nothing to configure. Run it from the *Actions* tab. It only deletes pre-release
 releases, but it deletes **all** of them, whoever made them. If the repo publishes real releases
 that are marked as pre-release (for example betas), do not add this file.
 
+## 3. Permanent releases (optional)
+
+A manual button that publishes a signed release with a fixed download link, for testers. The version
+comes from a git tag (`0.3.0`, no `v`), which the workflow creates.
+
+1. **In the app's `build.gradle.kts`**, right after the `plugins {}` block, add:
+   ```kotlin
+   apply(from = "https://raw.githubusercontent.com/LukeNeedham/ci-workflows/main/gradle/android-release.gradle")
+   ```
+   and remove the app's own `versionCode`, `versionName` and release signing config; the script
+   sets them. Builds then need network to fetch the script the first time, and
+   `--refresh-dependencies` picks up a changed script on a machine that cached the old one.
+2. **Copy** [`examples/release.yml`](../examples/release.yml) to `.github/workflows/release.yml`.
+3. **Make a signing key** and add four repo secrets (*Settings → Secrets and variables → Actions*):
+   `RELEASE_KEYSTORE_BASE64` (the keystore, base64 on one line), `RELEASE_KEYSTORE_PASSWORD`,
+   `RELEASE_KEY_ALIAS`, `RELEASE_KEY_PASSWORD`. Keep a copy of the key somewhere safe: an app signed
+   with a new key cannot update the old one, so testers would have to reinstall.
+4. **Run it**: *Actions → Release → Run workflow* on the default branch, with a version.
+
+Release builds are signed with a different key from the debug builds on pull requests, so a tester
+moving from a PR build to a release uninstalls once. The tester link is
+`https://github.com/<owner>/<repo>/releases/latest/download/<RepoName>.apk`.
+
 ## Setting up a new project
 
 1. Copy `examples/trigger_on_pull_request.yml` to `.github/workflows/trigger_on_pull_request.yml`

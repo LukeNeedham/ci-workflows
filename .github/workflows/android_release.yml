@@ -1,0 +1,136 @@
+name: Android Release
+
+# Reusable workflow: publishes a permanent, signed release build with the APK attached. It tags the
+# commit with the version, builds the release APK, checks it is signed, and publishes a normal
+# (not pre-release) release, so android_pr_cleanup.yml and delete_prereleases.yml leave it alone and
+# /releases/latest/download/<asset> always points at the newest.
+#
+# The app's version name and code are read from that tag by gradle/android-release.gradle, which
+# the project must apply. The same script reads the signing key from the environment variables this
+# workflow sets from the secrets below.
+#
+# Caller example: examples/release.yml
+# The caller must grant `contents: write` and pass the secrets (`secrets: inherit` does it).
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: 'Version as major.minor.patch, e.g. 0.3.0. Becomes the tag, with no v prefix'
+        type: string
+        required: true
+      notes:
+        description: Release notes. Empty lists the merged PRs
+        type: string
+        default: ''
+      gradle-task:
+        description: Gradle task that produces the signed APK
+        type: string
+        default: assembleRelease
+      apk-path:
+        description: Path to the built APK, relative to the repo root (depends on the project)
+        type: string
+        default: app/build/outputs/apk/release/app-release.apk
+      asset-name:
+        description: File name of the APK on the release. Empty uses the repository name, e.g. Android-Dock.apk
+        type: string
+        default: ''
+      java-version:
+        type: string
+        default: '17'
+      java-distribution:
+        type: string
+        default: zulu
+    secrets:
+      RELEASE_KEYSTORE_BASE64:
+        description: The keystore file, base64 encoded on one line
+        required: true
+      RELEASE_KEYSTORE_PASSWORD:
+        required: true
+      RELEASE_KEY_ALIAS:
+        required: true
+      RELEASE_KEY_PASSWORD:
+        required: true
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check the version
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Version must look like 0.3.0, got '$VERSION'"
+            exit 1
+          fi
+          if git ls-remote --exit-code --tags origin "refs/tags/$VERSION" > /dev/null; then
+            echo "::error::Tag $VERSION already exists. Pick a new version."
+            exit 1
+          fi
+
+      # The Gradle build takes the version name and code from the tag on the commit it builds, so
+      # the commit is tagged first. The tag is removed again if anything below fails.
+      - name: Tag this commit
+        id: tag
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          git tag "$VERSION"
+          git push origin "refs/tags/$VERSION"
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: ${{ inputs.java-distribution }}
+          java-version: ${{ inputs.java-version }}
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Restore the signing key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "::error::Secret RELEASE_KEYSTORE_BASE64 is not set"
+            exit 1
+          fi
+          echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.keystore"
+          echo "RELEASE_KEYSTORE_FILE=$RUNNER_TEMP/release.keystore" >> "$GITHUB_ENV"
+
+      - name: Build the release APK
+        env:
+          RELEASE_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+          GRADLE_TASK: ${{ inputs.gradle-task }}
+        run: ./gradlew "$GRADLE_TASK" --no-daemon
+
+      - name: Check the APK is signed
+        env:
+          APK_PATH: ${{ inputs.apk-path }}
+        run: |
+          apksigner="$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)apksigner"
+          "$apksigner" verify --print-certs "$APK_PATH"
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+          NOTES: ${{ inputs.notes }}
+          APK_PATH: ${{ inputs.apk-path }}
+          ASSET_NAME: ${{ inputs.asset-name || format('{0}.apk', github.event.repository.name) }}
+        run: |
+          cp "$APK_PATH" "$ASSET_NAME"
+          if [ -n "$NOTES" ]; then notes=(--notes "$NOTES"); else notes=(--generate-notes); fi
+          gh release create "$VERSION" "$ASSET_NAME" \
+            --title "$VERSION (alpha)" \
+            --latest \
+            "${notes[@]}"
+
+      - name: Remove the tag if the release failed
+        if: failure() && steps.tag.outcome == 'success'
+        env:
+          VERSION: ${{ inputs.version }}
+        run: git push origin --delete "refs/tags/$VERSION"
