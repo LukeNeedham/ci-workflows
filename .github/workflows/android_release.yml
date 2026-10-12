@@ -5,7 +5,7 @@ name: Android Release
 # (not pre-release) release, so android_pr_cleanup.yml and delete_prereleases.yml leave it alone and
 # /releases/latest/download/<asset> always points at the newest.
 #
-# The app's version name and code are read from that tag by gradle/android-release.gradle.kts, which
+# The app's version name and code are read from that tag by gradle/android-release.gradle, which
 # the project must apply. The same script reads the signing key from the environment variables this
 # workflow sets from the secrets below.
 #

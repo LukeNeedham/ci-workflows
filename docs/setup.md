@@ -77,7 +77,7 @@ comes from a git tag (`0.3.0`, no `v`), which the workflow creates.
 
 1. **In the app's `build.gradle.kts`**, right after the `plugins {}` block, add:
    ```kotlin
-   apply(from = "https://raw.githubusercontent.com/LukeNeedham/ci-workflows/main/gradle/android-release.gradle.kts")
+   apply(from = "https://raw.githubusercontent.com/LukeNeedham/ci-workflows/main/gradle/android-release.gradle")
    ```
    and remove the app's own `versionCode`, `versionName` and release signing config; the script
    sets them. Builds then need network to fetch the script the first time, and

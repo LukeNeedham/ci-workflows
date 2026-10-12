@@ -19,7 +19,7 @@ none). `delete_prereleases.yml` is a separate manual job.
 These are [reusable workflows](https://docs.github.com/en/actions/using-workflows/reusing-workflows):
 a project calls them with `uses:`.
 
-A matching Gradle script, [`gradle/android-release.gradle.kts`](gradle/android-release.gradle.kts),
+A matching Gradle script, [`gradle/android-release.gradle`](gradle/android-release.gradle),
 reads the app's version from the git tag and sets up release signing. A project applies it by URL
 from `main`, like the workflows.
 
@@ -102,9 +102,9 @@ titled `<version> (alpha)`. If a later step fails, the tag is removed again. Rel
 pre-releases, so the PR cleanup and `delete_prereleases.yml` never touch them, and
 `https://github.com/<owner>/<repo>/releases/latest/download/<asset>` is a fixed link to the newest.
 
-### `gradle/android-release.gradle.kts`
+### `gradle/android-release.gradle`
 
-A script plugin for the app module. It sets `versionName` and `versionCode` from the git tags (a
+A Groovy script plugin for the app module (Groovy because a Kotlin script applied by URL cannot see the Android Gradle Plugin's types). It sets `versionName` and `versionCode` from the git tags (a
 tagged commit gives its tag; otherwise `git describe`, e.g. `0.3.0-5-gabc1234`, or `0.0.0-dev`
 where no tags are fetched, as on the shallow PR builds; the code is `major*10000 + minor*100 +
 patch` of the nearest tag, 1 with none) and configures the `release` signing config from the
