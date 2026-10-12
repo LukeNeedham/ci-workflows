@@ -8,6 +8,7 @@ the real logic lives here, so a fix made once reaches every project.
 | [`android_pr.yml`](.github/workflows/android_pr.yml) | **The whole PR flow in one call**: runs the build while the PR is open and the cleanup when it closes | PR opened, pushed to, or closed |
 | [`android_pr_build.yml`](.github/workflows/android_pr_build.yml) | *Building block.* Builds the debug APK, publishes it as a pre-release, keeps one sticky PR comment up to date | PR opened or pushed to |
 | [`android_pr_cleanup.yml`](.github/workflows/android_pr_cleanup.yml) | *Building block.* Deletes the PR's build pre-releases and tags | PR closed |
+| [`android_release.yml`](.github/workflows/android_release.yml) | Publishes a **permanent, signed release** (tag + APK) | Run by hand, from the caller |
 | [`delete_prereleases.yml`](.github/workflows/delete_prereleases.yml) | Deletes **all** pre-releases and tags in the repo | Run by hand |
 
 `android_pr.yml` just chooses between the build and the cleanup workflow from the event. It is the
@@ -17,6 +18,10 @@ none). `delete_prereleases.yml` is a separate manual job.
 
 These are [reusable workflows](https://docs.github.com/en/actions/using-workflows/reusing-workflows):
 a project calls them with `uses:`.
+
+A matching Gradle script, [`gradle/android-release.gradle.kts`](gradle/android-release.gradle.kts),
+reads the app's version from the git tag and sets up release signing. A project applies it by URL
+from `main`, like the workflows.
 
 ## Setting up a project
 
@@ -81,6 +86,30 @@ asset. The APK link in the comment points at that asset.
 tag scheme above and deletes them with their tags. This is not configurable. It only touches **pre-releases**, so real releases are never
 deleted. Builds from a manual run have no PR, so nothing ever cleans them up; use
 `delete_prereleases.yml` for those.
+
+### `android_release.yml`
+
+Publishes a permanent release from a manual run. Inputs: `version` (required, `major.minor.patch`,
+used as the tag with no `v`), `notes` (empty lists the merged PRs), and `gradle-task`, `apk-path`,
+`asset-name`, `java-version`, `java-distribution` (defaults suit a standard app module; the asset is
+named after the repository, e.g. `Android-Dock.apk`). Secrets: `RELEASE_KEYSTORE_BASE64`,
+`RELEASE_KEYSTORE_PASSWORD`, `RELEASE_KEY_ALIAS`, `RELEASE_KEY_PASSWORD`; pass them with
+`secrets: inherit`.
+
+It tags the commit first (the Gradle script reads the version from the tag), builds the signed
+release APK, checks the signature with `apksigner`, and publishes a normal release marked latest,
+titled `<version> (alpha)`. If a later step fails, the tag is removed again. Releases are not
+pre-releases, so the PR cleanup and `delete_prereleases.yml` never touch them, and
+`https://github.com/<owner>/<repo>/releases/latest/download/<asset>` is a fixed link to the newest.
+
+### `gradle/android-release.gradle.kts`
+
+A script plugin for the app module. It sets `versionName` and `versionCode` from the git tags (a
+tagged commit gives its tag; otherwise `git describe`, e.g. `0.3.0-5-gabc1234`, or `0.0.0-dev`
+where no tags are fetched, as on the shallow PR builds; the code is `major*10000 + minor*100 +
+patch` of the nearest tag, 1 with none) and configures the `release` signing config from the
+`RELEASE_KEYSTORE_FILE`, `RELEASE_KEYSTORE_PASSWORD`, `RELEASE_KEY_ALIAS` and `RELEASE_KEY_PASSWORD`
+environment variables when they are set. Without them the release APK is left unsigned.
 
 ### `delete_prereleases.yml`
 

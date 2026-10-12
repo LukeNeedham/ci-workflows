@@ -1,0 +1,36 @@
+# Copy to .github/workflows/release.yml in your project. Nothing to configure for a standard
+# Android app (app module, assembleRelease). Run it from the Actions tab.
+# Needs the Gradle script applied in the app (see docs/setup.md) and four repo secrets:
+#   RELEASE_KEYSTORE_BASE64, RELEASE_KEYSTORE_PASSWORD, RELEASE_KEY_ALIAS, RELEASE_KEY_PASSWORD
+# Setup guide: https://github.com/LukeNeedham/ci-workflows/blob/main/docs/setup.md
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version, as major.minor.patch (e.g. 0.3.0)'
+        required: true
+        type: string
+      notes:
+        description: 'Release notes (leave empty to list the merged PRs)'
+        required: false
+        type: string
+        default: ''
+
+permissions:
+  contents: write       # create the tag and the release
+
+jobs:
+  release:
+    uses: LukeNeedham/ci-workflows/.github/workflows/android_release.yml@main
+    with:
+      version: ${{ inputs.version }}
+      notes: ${{ inputs.notes }}
+      # CONFIGURE (optional): only needed if your project differs. Defaults shown.
+      # gradle-task: assembleRelease
+      # apk-path: app/build/outputs/apk/release/app-release.apk
+      # asset-name: ''   # empty = <repository name>.apk
+      # java-version: '17'
+      # java-distribution: zulu
+    secrets: inherit
