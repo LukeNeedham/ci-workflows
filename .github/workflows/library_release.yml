@@ -1,0 +1,107 @@
+name: Library Release
+
+# Publishes the shared library in common/ as a static Maven repository on the gh-pages branch, which
+# GitHub Pages serves at https://<owner>.github.io/<repo>/maven. Apps add that URL as a repository.
+# Versions are immutable: publishing one that already exists fails.
+#
+# One-time setup: Settings > Pages > Source: "Deploy from a branch", branch gh-pages, folder /(root).
+# Run by hand, with the version as major.minor.patch. It also tags the commit as common-<version>
+# and makes a GitHub release for it.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version as major.minor.patch, e.g. 0.1.0'
+        type: string
+        required: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: library-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    # macOS so the iOS targets are built on a Mac, as Kotlin recommends for publishing them.
+    runs-on: macos-latest
+    steps:
+      - name: Check the version
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::The version must be major.minor.patch, but it is '$VERSION'"
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+
+      - name: Make sure the gh-pages branch exists
+        run: |
+          if ! git ls-remote --exit-code --heads origin gh-pages > /dev/null; then
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git switch --orphan gh-pages
+            touch .nojekyll
+            git add .nojekyll
+            git commit -m 'Start the Maven repository'
+            git push origin gh-pages
+            git switch -
+          fi
+
+      - uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: pages
+
+      - name: Refuse to overwrite a published version
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          if [ -d "pages/maven/com/lukeneedham/common/$VERSION" ]; then
+            echo "::error::Version $VERSION is already published. Pick a new one."
+            exit 1
+          fi
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Test
+        run: ./gradlew :common:testDebugUnitTest
+
+      - name: Publish into the repository checkout
+        env:
+          VERSION: ${{ inputs.version }}
+        run: >
+          ./gradlew
+          :common:publishAllPublicationsToStaticRepoRepository
+          -PlibraryVersion="$VERSION"
+          -PstaticRepoDir="$GITHUB_WORKSPACE/pages/maven"
+
+      - name: Push the repository
+        env:
+          VERSION: ${{ inputs.version }}
+        working-directory: pages
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          touch .nojekyll
+          git add -A
+          git commit -m "Publish common $VERSION"
+          git push origin HEAD:gh-pages
+
+      - name: Tag it and make the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+        run: >
+          gh release create "common-$VERSION"
+          --target "$GITHUB_SHA"
+          --title "common $VERSION"
+          --generate-notes
