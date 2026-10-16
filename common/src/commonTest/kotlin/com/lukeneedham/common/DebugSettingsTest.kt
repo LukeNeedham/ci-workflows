@@ -3,6 +3,8 @@ package com.lukeneedham.common
 import com.lukeneedham.common.debug.AnimationSpeed
 import com.lukeneedham.common.debug.DebugSettings
 import com.lukeneedham.common.debug.scale
+import com.lukeneedham.common.ui.AppliedDebugSettings
+import com.lukeneedham.common.ui.applied
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -36,5 +38,12 @@ class DebugSettingsTest {
         assertEquals(600, AnimationSpeed.X0_5.scale(300))
         assertEquals(1200, AnimationSpeed.X0_25.scale(300))
         assertEquals(150, AnimationSpeed.X2.scale(300))
+    }
+
+    @Test fun savedSettingsApplyOnlyWhileDebugging() {
+        val settings = DebugSettings(store)
+        settings.selectAnimationSpeed(AnimationSpeed.X0_5)
+        assertEquals(AppliedDebugSettings(animationSpeed = AnimationSpeed.X0_5), settings.applied(enabled = true))
+        assertEquals(AppliedDebugSettings(), settings.applied(enabled = false))
     }
 }
