@@ -383,6 +383,7 @@ Release**. A version is never overwritten, so an app's build is the same tomorro
 | `checkAarMetadata` fails, asking for a higher `compileSdk` | Raise `compileSdk` to the number it names (36) |
 | Kotlin: `Class 'X' was compiled with an incompatible version of Kotlin` or an unreadable klib | The app's Kotlin is older than 2.2. Upgrade Kotlin |
 | The Logs page is empty although the app logs | Check the lines go through `Logger`, not `Log`/`println`. Also check `minLogLevel` is not above the level you log at |
+| Unit tests fail with `UninitializedPropertyAccessException` in `CommonInitProvider` | Fixed in 0.2.1: use `common` 0.2.1 or newer. In plain JVM unit tests the library now keeps logs in memory |
 | Crashes are not saved | `DebugKit.init` runs too late, or never. It must run before the crash. A crash during `Application` construction itself cannot be caught |
 | Crashes are saved twice | The old handler is still installed. Remove it |
 | The animation speed does not change anything | `ProvideDebugSettings` is missing at the root, `enabled` is `false`, or the app's animations use fixed numbers. Every duration must go through `scale(...)` |

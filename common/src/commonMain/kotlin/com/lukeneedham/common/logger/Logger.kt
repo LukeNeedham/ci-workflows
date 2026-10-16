@@ -27,8 +27,16 @@ object Logger {
 
     private fun log(level: LogLevel, tag: String?, message: String, throwable: Throwable?) {
         if (level < DebugKit.config.minLogLevel) return
-        platformLog(level, tag ?: DEFAULT_TAG, message, throwable)
-        DebugKit.logs.log(level, tag, message, throwable)
+        // Logging must never throw into the caller, whatever the platform log or the storage does
+        // (for example `android.util.Log` is not available in plain JVM unit tests).
+        try {
+            platformLog(level, tag ?: DEFAULT_TAG, message, throwable)
+        } catch (_: Throwable) {
+        }
+        try {
+            DebugKit.logs.log(level, tag, message, throwable)
+        } catch (_: Throwable) {
+        }
     }
 
     private const val DEFAULT_TAG = "App"
