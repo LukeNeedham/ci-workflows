@@ -23,6 +23,11 @@ A matching Gradle script, [`gradle/android-release.gradle`](gradle/android-relea
 reads the app's version from the git tag and sets up release signing. A project applies it by URL
 from `main`, like the workflows.
 
+## The shared library
+
+This repo also holds a Kotlin Multiplatform library, [`common/`](common), with the logger, crash
+handler and debug pages that the apps share. See **[docs/library.md](docs/library.md)**.
+
 ## Setting up a project
 
 **See [docs/setup.md](docs/setup.md)** for the caller files to copy, which parts to configure per

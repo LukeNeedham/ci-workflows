@@ -1,0 +1,37 @@
+name: Library CI
+
+# Builds and tests the shared Kotlin Multiplatform library in common/ on every PR that touches it.
+# Ubuntu is enough: Kotlin compiles the iOS targets to klibs on any host. Linking an iOS framework
+# is the app's job, so it is not checked here.
+
+on:
+  pull_request:
+    paths:
+      - 'common/**'
+      - 'gradle/**'
+      - '*.gradle.kts'
+      - 'gradle.properties'
+      - '.github/workflows/library_ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Test, and compile every target
+        run: >
+          ./gradlew
+          :common:testDebugUnitTest
+          :common:compileKotlinWasmJs
+          :common:compileKotlinIosArm64
+          :common:compileKotlinIosSimulatorArm64
+          :common:compileKotlinIosX64
