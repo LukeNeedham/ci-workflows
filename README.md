@@ -26,7 +26,8 @@ from `main`, like the workflows.
 ## The shared library
 
 This repo also holds a Kotlin Multiplatform library, [`common/`](common), with the logger, crash
-handler and debug pages that the apps share. See **[docs/library.md](docs/library.md)**.
+handler and debug pages that the apps share. See **[docs/library.md](docs/library.md)** for what it
+does, and **[docs/using-the-library.md](docs/using-the-library.md)** to add it to a new or existing app.
 
 ## Setting up a project
 

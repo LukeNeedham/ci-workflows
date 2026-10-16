@@ -17,67 +17,13 @@ on the web), and the pages do not navigate by themselves, so any app can adopt i
 
 ## Using it in an app
 
-Add the repository and the dependency:
+**See [using-the-library.md](using-the-library.md)** for the step-by-step: adding it to a new app and
+to an existing one, wiring the pages into the app's navigation (Navigation 3, Voyager or anything
+else), removing the old logger and crash handler, and a checklist to verify it works.
 
-```kotlin
-// settings.gradle.kts
-dependencyResolutionManagement {
-    repositories {
-        google()
-        mavenCentral()
-        maven("https://lukeneedham.github.io/ci-workflows/maven")
-    }
-}
-
-// build.gradle.kts of the module: commonMain.dependencies in a KMP module, or just dependencies
-// in a plain Android one (Gradle picks the Android variant itself).
-implementation("com.lukeneedham:common:0.1.0")
-```
-
-Start it as early as possible, once:
-
-```kotlin
-// Android: Application.onCreate. iOS and web: wherever the app starts.
-DebugKit.init(DebugKitConfig(enabled = BuildConfig.DEBUG))
-```
-
-`enabled` switches on the debug UI (the button, and the saved debug settings taking effect). The
-logger and the crash handler work either way, so crashes in release builds are still saved.
-
-Wire the pages into the app's own navigation, and apply the animation speed:
-
-```kotlin
-ProvideAnimationSpeed {                        // once, near the root
-    AppNavigation(...)
-    Box(Modifier.fillMaxSize()) {
-        DebugButton(onClick = { navigate(Debug) }, modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp))
-    }
-}
-
-// the three pages, each given a back action:
-DebugPage(onBack = ..., onOpenLogs = { navigate(Logs) }, onOpenCrashes = { navigate(Crashes) }) {
-    // optional: the app's own debug tools go here
-}
-LogsPage(onBack = ...)
-CrashesPage(onBack = ...)
-```
-
-Take every animation duration through the speed, never from a raw number, so the setting reaches all
-of them:
-
-```kotlin
-tween(durationMillis = LocalAnimationSpeed.current.scale(300))
-```
-
-Outside debugging `ProvideAnimationSpeed` always provides 1x, so a speed saved while debugging
-cannot slow down a release build.
-
-Logging:
-
-```kotlin
-Logger.i("Loaded 12 flags", tag = "Flags")
-Logger.e("Could not load", throwable, tag = "Flags")
-```
+In short, the five steps are: add the repository, add the dependency, call `DebugKit.init(...)`
+once and early, wrap the UI in `ProvideAnimationSpeed` (and place a `DebugButton`), and add the
+three pages to the navigation. Then log with `Logger.i(...)`, `Logger.e(...)` and so on.
 
 ## How the pieces work
 
