@@ -20,7 +20,7 @@ is in [library.md](library.md); this page is the step-by-step.
 |---|---|
 | A published version of the library | Run **Library Release** once (see [library.md](library.md#releasing)) and turn on GitHub Pages for the `gh-pages` branch. The examples below use `0.1.0`: use the version you released |
 | Jetpack Compose with Material 3 | The pages are composables. A View-based app cannot show them |
-| Android `minSdk` 24 or higher | The library's own minimum. A lower app `minSdk` fails the manifest merge (VideoDiary is on 21, so it must be raised first) |
+| Android `minSdk` 23 or higher | Jetpack Compose 1.10, which the library is built on, needs 23; the library's own code needs less. A lower app `minSdk` fails the manifest merge (VideoDiary is on 21, so it must be raised first) |
 | Kotlin 2.2 or newer | The library is compiled with 2.2.21, and a compiler more than a minor version older may not be able to read it. This matters most for Kotlin Multiplatform apps and their klibs |
 | `compileSdk` 36 | The library is built against 36 and brings Compose 1.10. If AGP stops with a `checkAarMetadata` error, raise `compileSdk` to the number it names |
 
@@ -74,7 +74,7 @@ In `app/build.gradle.kts`:
 ```kotlin
 android {
     compileSdk = 36
-    defaultConfig { minSdk = 24 }
+    defaultConfig { minSdk = 23 }
     buildFeatures { buildConfig = true }   // for BuildConfig.DEBUG, used below
 }
 
@@ -142,7 +142,7 @@ initDebugKit(isDebugBuild)                    // however your web build says it 
 Do steps 1 and 2 of [A new app](#a-new-app), and call `DebugKit.init` from the app's start-up.
 If the app already has an `Application` class, add the call at the top of its `onCreate()`.
 
-**Raise `minSdk` to 24 and `compileSdk` to 36 if the app is below.** Do that on its own first and
+**Raise `minSdk` to 23 and `compileSdk` to 36 if the app is below.** Do that on its own first and
 check the app still builds and runs, so a Compose upgrade is not mixed with the library.
 
 ### 2. Remove the old crash handler
@@ -198,7 +198,7 @@ DebugPage(onBack = back, onOpenLogs = { ... }, onOpenCrashes = { ... }) {
 |---|---|---|
 | **Android-Dock** | `DockLog` and its calls (`DockLog.log(context, msg)` becomes `Logger.i(msg)`, no `Context` needed), `LogScreen`, `DebugScreen`, and the handler in `DockApp` (which becomes a one-line `DebugKit.init`) | It already decides `isDebuggable` from `FLAG_DEBUGGABLE`: pass that as `enabled` |
 | **FlagTutor** | `CrashRepository*`, `CrashesPage`/`CrashDetailPage`, the crash installers (iOS: in `MainViewController`), `DebugPage`, and `AnimationSpeed` plus its preference stores with the library's | Keep `ScaledAnimation` (see below). The animation speed saved by the old stores is not read: it starts at 1x once |
-| **VideoDiary** | `Logger`/`LoggerEngine`/`AndroidLoggerEngine`, `CrashLogDao`/`CrashLog` and the Room table behind them, `CrashLogPage`, `DebugPage`, the handler in `App` | Needs `minSdk` 24 (it is on 21) and `compileSdk` 36 (it is on 35). Drop the Room table in a later release, not the same one |
+| **VideoDiary** | `Logger`/`LoggerEngine`/`AndroidLoggerEngine`, `CrashLogDao`/`CrashLog` and the Room table behind them, `CrashLogPage`, `DebugPage`, the handler in `App` | Needs `minSdk` 23 (it is on 21) and `compileSdk` 36 (it is on 35). Drop the Room table in a later release, not the same one |
 | **PoetryBook**, **TurnThePage** | Nothing: they have none of this yet | Add the five steps |
 
 **FlagTutor's `ScaledAnimation`** reads the speed multiplier from `DebugSettings`. Feed it from the
@@ -351,7 +351,7 @@ Release**. A version is never overwritten, so an app's build is the same tomorro
 | Symptom | Cause and fix |
 |---|---|
 | `Could not find com.lukeneedham:common:0.1.0` | The version has not been released yet, GitHub Pages is not turned on for the `gh-pages` branch, or the `maven(...)` repository is missing from `dependencyResolutionManagement`. Open `https://lukeneedham.github.io/ci-workflows/maven/com/lukeneedham/common/maven-metadata.xml` in a browser: it should list the versions |
-| `uses-sdk:minSdkVersion 21 cannot be smaller than version 24 declared in library` | Raise the app's `minSdk` to 24 |
+| `uses-sdk:minSdkVersion 21 cannot be smaller than version 23 declared in library` | Raise the app's `minSdk` to 23 |
 | `checkAarMetadata` fails, asking for a higher `compileSdk` | Raise `compileSdk` to the number it names (36) |
 | Kotlin: `Class 'X' was compiled with an incompatible version of Kotlin` or an unreadable klib | The app's Kotlin is older than 2.2. Upgrade Kotlin |
 | The Logs page is empty although the app logs | Check the lines go through `Logger`, not `Log`/`println`. Also check `minLogLevel` is not above the level you log at |
