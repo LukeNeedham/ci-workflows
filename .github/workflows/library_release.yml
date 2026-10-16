@@ -49,7 +49,9 @@ jobs:
             git add .nojekyll
             git commit -m 'Start the Maven repository'
             git push origin gh-pages
-            git switch -
+            # Back to the commit being released. `git switch -` does not work here: the checkout
+            # action leaves no previous branch to return to.
+            git switch --detach "$GITHUB_SHA"
           fi
 
       - uses: actions/checkout@v4
