@@ -12,7 +12,7 @@ import kotlinx.serialization.json.Json
  * Settings that only make sense while debugging, saved to disk so they survive a restart.
  *
  * Read them in a composable and the UI follows changes. Whether they apply at all is up to the app:
- * see [com.lukeneedham.common.ui.ProvideAnimationSpeed], which ignores them unless debugging is enabled.
+ * see [com.lukeneedham.common.ui.ProvideDebugSettings], which ignores them unless debugging is enabled.
  */
 class DebugSettings internal constructor(private val store: FileStore) {
 

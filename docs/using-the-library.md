@@ -8,6 +8,7 @@ is in [library.md](library.md); this page is the step-by-step.
 - [The five steps, in short](#the-five-steps-in-short)
 - [A new app](#a-new-app)
 - [An existing app](#an-existing-app)
+- [Always wrap the UI in `ProvideDebugSettings`](#always-wrap-the-ui-in-providedebugsettings)
 - [Wiring the pages into your navigation](#wiring-the-pages-into-your-navigation)
 - [Turning it off in release builds](#turning-it-off-in-release-builds)
 - [Check that it works](#check-that-it-works)
@@ -34,7 +35,7 @@ Every app, new or existing, does the same five things:
 1. **Add the repository** to `settings.gradle.kts`.
 2. **Add the dependency** to the app module.
 3. **Call `DebugKit.init(...)` once, as early as possible** (before anything can crash or log).
-4. **Wrap the UI in `ProvideAnimationSpeed`**, and place a `DebugButton`.
+4. **Wrap the UI in `ProvideDebugSettings`**, and place a `DebugButton`. Every app does this, even one that reads no debug setting yet (see [Always wrap the UI](#always-wrap-the-ui-in-providedebugsettings)).
 5. **Add the three pages** (`DebugPage`, `LogsPage`, `CrashesPage`) to your navigation.
 
 Then use `Logger` instead of `Log`/`println`.
@@ -205,7 +206,7 @@ DebugPage(onBack = back, onOpenLogs = { ... }, onOpenCrashes = { ... }) {
 library instead, and keep every duration going through it:
 
 ```kotlin
-ProvideAnimationSpeed {
+ProvideDebugSettings {
     val speed = LocalAnimationSpeed.current
     val scaledAnimation = remember(speed) { ScaledAnimation(speed.multiplier) }
     CompositionLocalProvider(LocalScaledAnimation provides scaledAnimation) {
@@ -216,6 +217,33 @@ ProvideAnimationSpeed {
 
 Apps with no such class can read the speed directly where they build an animation:
 `tween(durationMillis = LocalAnimationSpeed.current.scale(300))`.
+
+## Always wrap the UI in `ProvideDebugSettings`
+
+`ProvideDebugSettings` is the single place where the library hands composition locals to the app.
+It provides `LocalDebugSettings` (every debug setting that applies to the UI, as one value) and a
+local for each setting that has its own, today `LocalAnimationSpeed`.
+
+**Every app wraps its content in it once, near the root, including apps that read no setting yet.**
+An app with no animation to scale today may need another debug setting tomorrow. If the app is
+already wrapped, a setting added to the library later reaches every screen with a library version
+bump and nothing else, instead of a change to every consuming app.
+
+```kotlin
+setContent {
+    ProvideDebugSettings {
+        AppTheme { AppNavigation() }
+    }
+}
+```
+
+It goes outside the app's own theme and navigation, so everything below can read the locals. Outside
+debugging (`enabled = false`) it provides the neutral defaults, so a setting saved while debugging
+never changes a release build.
+
+**For the library's maintainers:** any composition local that the library offers to an app must be
+provided inside `ProvideDebugSettings`, and nowhere else, so that an app only ever makes this one
+call. The steps for adding one are in the KDoc of `ProvideDebugSettings`.
 
 ## Wiring the pages into your navigation
 
@@ -357,5 +385,5 @@ Release**. A version is never overwritten, so an app's build is the same tomorro
 | The Logs page is empty although the app logs | Check the lines go through `Logger`, not `Log`/`println`. Also check `minLogLevel` is not above the level you log at |
 | Crashes are not saved | `DebugKit.init` runs too late, or never. It must run before the crash. A crash during `Application` construction itself cannot be caught |
 | Crashes are saved twice | The old handler is still installed. Remove it |
-| The animation speed does not change anything | `ProvideAnimationSpeed` is missing at the root, `enabled` is `false`, or the app's animations use fixed numbers. Every duration must go through `scale(...)` |
+| The animation speed does not change anything | `ProvideDebugSettings` is missing at the root, `enabled` is `false`, or the app's animations use fixed numbers. Every duration must go through `scale(...)` |
 | Logs or crashes are blank in a minified build | The library has not been tested with R8. Check **Logs** and **Crashes** in a minified build before relying on it. If serialization breaks there, add a `-keep` rule for `com.lukeneedham.common.logger.LogEntry` and `com.lukeneedham.common.crash.CrashEntry` |
