@@ -1,0 +1,262 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "url": "../../common/0.1.0/common-0.1.0.module",
+    "group": "com.lukeneedham",
+    "module": "common",
+    "version": "0.1.0",
+    "attributes": {
+      "org.gradle.status": "release"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.14.3"
+    }
+  },
+  "variants": [
+    {
+      "name": "iosSimulatorArm64ApiElements-published",
+      "attributes": {
+        "artifactType": "org.jetbrains.kotlin.klib",
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-api",
+        "org.jetbrains.kotlin.native.target": "ios_simulator_arm64",
+        "org.jetbrains.kotlin.platform.type": "native"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.2.21"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.runtime",
+          "module": "runtime",
+          "version": {
+            "requires": "1.10.3"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.foundation",
+          "module": "foundation",
+          "version": {
+            "requires": "1.10.3"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.material3",
+          "module": "material3",
+          "version": {
+            "requires": "1.9.0"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui",
+          "version": {
+            "requires": "1.10.3"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlinx",
+          "module": "kotlinx-serialization-json",
+          "version": {
+            "requires": "1.7.3"
+          }
+        },
+        {
+          "group": "com.squareup.okio",
+          "module": "okio",
+          "version": {
+            "requires": "3.16.4"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "common-iosSimulatorArm64Main-0.1.0.klib",
+          "url": "common-iossimulatorarm64-0.1.0.klib",
+          "size": 111909,
+          "sha512": "0922bd39ac9058956e59242cd9758e49fdce52593e6b3ad0c739a5d77752decc292b2f7f900fddd8f7ba84a648f236810b1452604e32e2a002e6bc07f3446959",
+          "sha256": "7c5499f1c76df6a645420b81ae2953770d2af52b35ec668c3debd9bafa272f39",
+          "sha1": "31ef74af8572534aec89744b2c8c6ce576a87a44",
+          "md5": "e10620e131114245b8e5cb0a5efee9da"
+        }
+      ]
+    },
+    {
+      "name": "iosSimulatorArm64SourcesElements-published",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-runtime",
+        "org.jetbrains.kotlin.native.target": "ios_simulator_arm64",
+        "org.jetbrains.kotlin.platform.type": "native"
+      },
+      "files": [
+        {
+          "name": "common-iossimulatorarm64-0.1.0-sources.jar",
+          "url": "common-iossimulatorarm64-0.1.0-sources.jar",
+          "size": 18514,
+          "sha512": "9851728f92f8fdba1dac6c39ebea9aed525110856c16798cea9a06a2cc735cab2c0ce49fcf2347522105ba7f08e62b4933e399a7248d1c84a33d84a04022409f",
+          "sha256": "640fc35c9a6ba341a04f8fb8e8eb0b0d2b48fb825c50321a70e1a639ecf4b6e4",
+          "sha1": "fa6ae03c547037ec2c4f3953be5640aa6eeda073",
+          "md5": "44128a8902721cba47da88c104ed992e"
+        }
+      ]
+    },
+    {
+      "name": "iosSimulatorArm64ResourcesElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.libraryelements": "kotlin-multiplatformresources",
+        "org.gradle.usage": "kotlin-multiplatformresources",
+        "org.jetbrains.kotlin.native.target": "ios_simulator_arm64",
+        "org.jetbrains.kotlin.platform.type": "native"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.2.21"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.runtime",
+          "module": "runtime",
+          "version": {
+            "requires": "1.10.3"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.foundation",
+          "module": "foundation",
+          "version": {
+            "requires": "1.10.3"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.material3",
+          "module": "material3",
+          "version": {
+            "requires": "1.9.0"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui",
+          "version": {
+            "requires": "1.10.3"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlinx",
+          "module": "kotlinx-serialization-json",
+          "version": {
+            "requires": "1.7.3"
+          }
+        },
+        {
+          "group": "com.squareup.okio",
+          "module": "okio",
+          "version": {
+            "requires": "3.16.4"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "common-0.1.0.kotlin_resources.zip",
+          "url": "common-iossimulatorarm64-0.1.0-kotlin_resources.kotlin_resources.zip",
+          "size": 332,
+          "sha512": "0570d861f997f151742208c3830bf0f682efa9bc591b780c74b65262d084fe18cd5472f2d8b81ac38c64b13f5a71c4a8ff598c1720b91fc8d6e402378e26d731",
+          "sha256": "608d46fb3a5800129da2647da21beffcf06ca74cc48f25563afe3eb727ceda68",
+          "sha1": "02f0b706fc6216edd41c8daf17ba6bfea469a91f",
+          "md5": "a857de3c0b9bf2492ab380349b44e48a"
+        }
+      ]
+    },
+    {
+      "name": "iosSimulatorArm64MetadataElements-published",
+      "attributes": {
+        "artifactType": "org.jetbrains.kotlin.klib",
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-metadata",
+        "org.jetbrains.kotlin.native.target": "ios_simulator_arm64",
+        "org.jetbrains.kotlin.platform.type": "native"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.2.21"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.runtime",
+          "module": "runtime",
+          "version": {
+            "requires": "1.10.3"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.foundation",
+          "module": "foundation",
+          "version": {
+            "requires": "1.10.3"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.material3",
+          "module": "material3",
+          "version": {
+            "requires": "1.9.0"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui",
+          "version": {
+            "requires": "1.10.3"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlinx",
+          "module": "kotlinx-serialization-json",
+          "version": {
+            "requires": "1.7.3"
+          }
+        },
+        {
+          "group": "com.squareup.okio",
+          "module": "okio",
+          "version": {
+            "requires": "3.16.4"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "common-iossimulatorarm64-0.1.0-metadata.jar",
+          "url": "common-iossimulatorarm64-0.1.0-metadata.jar",
+          "size": 3810,
+          "sha512": "11c57585c64dfad28d59c47a31bcebf7e9c774e663b22a825795b08aaa5bd3658f44e89e76cce56601ca08e31833a34ae1249e4b0c44439349b2c6edd1c082b3",
+          "sha256": "6c9985a31beb54899235695ff9c07032c93f4dc67770d48ddf83a6a7e4473588",
+          "sha1": "dbb5249feb1643f1c0e84de5657a3fc0c0e1bb7c",
+          "md5": "c90f78fbb06c5b424d23043dd6536f94"
+        }
+      ]
+    }
+  ]
+}
