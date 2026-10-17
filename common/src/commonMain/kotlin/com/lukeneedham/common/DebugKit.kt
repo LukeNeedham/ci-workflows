@@ -5,6 +5,9 @@ import com.lukeneedham.common.crash.CrashRepository
 import com.lukeneedham.common.crash.installCrashHook
 import com.lukeneedham.common.debug.DebugSettings
 import com.lukeneedham.common.logger.LogLevel
+import com.lukeneedham.common.logger.LogSink
+import com.lukeneedham.common.logger.NoOpLogSink
+import com.lukeneedham.common.logger.PersistentLogSink
 import com.lukeneedham.common.logger.LogRepository
 import com.lukeneedham.common.storage.createDefaultFileStore
 
@@ -33,16 +36,27 @@ object DebugKit {
 
     val enabled: Boolean get() = config.enabled
 
-    private var crashHookInstalled = false
+    private var initialized = false
 
     /**
-     * Applies [config] and starts capturing crashes. A crash is written to disk and then the
-     * platform carries on and crashes the app as normal. Safe to call more than once.
+     * Where [com.lukeneedham.common.logger.Logger] writes. A no-op until [init] swaps in the real
+     * logger, so nothing logs, touches storage or needs an application context before the app starts.
+     */
+    internal var logSink: LogSink = NoOpLogSink
+        private set
+
+    /**
+     * Applies [config], turns on the real logger and starts capturing crashes. A crash is written to
+     * disk and then the platform carries on and crashes the app as normal. Safe to call more than once.
+     *
+     * Call it first thing in `Application.onCreate`: [com.lukeneedham.common.logger.Logger] drops
+     * everything logged before it.
      */
     fun init(config: DebugKitConfig = DebugKitConfig()) {
         this.config = config
-        if (crashHookInstalled) return
-        crashHookInstalled = true
+        if (initialized) return
+        initialized = true
+        logSink = PersistentLogSink(logs)
         installCrashHook { thread, type, message, stackTrace ->
             try {
                 logs.log(LogLevel.Error, "Crash", "Uncaught $type: $message", null)

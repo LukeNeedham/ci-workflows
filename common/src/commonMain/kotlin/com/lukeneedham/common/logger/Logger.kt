@@ -6,7 +6,10 @@ import com.lukeneedham.common.DebugKit
  * Logs to the platform's own log (Logcat, the console) and to a file on disk, so the logs can be
  * read back later from the Logs page, even after the app has been restarted or has crashed.
  *
- * Call [com.lukeneedham.common.DebugKit.init] first to configure it. It works without, with defaults.
+ * **Does nothing until [com.lukeneedham.common.DebugKit.init] has run**, so call that first thing in
+ * `Application.onCreate`. That keeps it safe anywhere the app has not started, such as plain JVM unit
+ * tests, where there is no application context and `android.util.Log` is a stub: calls there are
+ * silently dropped, and [entries] is empty.
  */
 object Logger {
 
@@ -20,26 +23,19 @@ object Logger {
     fun e(message: String, throwable: Throwable? = null, tag: String? = null) =
         log(LogLevel.Error, tag, message, throwable)
 
-    /** Everything on disk, oldest first. */
-    fun entries(): List<LogEntry> = DebugKit.logs.entries()
+    /** Everything on disk, oldest first. Empty until [com.lukeneedham.common.DebugKit.init] has run. */
+    fun entries(): List<LogEntry> = DebugKit.logSink.entries()
 
-    fun clear() = DebugKit.logs.clear()
+    fun clear() = DebugKit.logSink.clear()
 
     private fun log(level: LogLevel, tag: String?, message: String, throwable: Throwable?) {
         if (level < DebugKit.config.minLogLevel) return
-        // Logging must never throw into the caller, whatever the platform log or the storage does
-        // (for example `android.util.Log` is not available in plain JVM unit tests).
+        // Logging must never throw into the caller.
         try {
-            platformLog(level, tag ?: DEFAULT_TAG, message, throwable)
-        } catch (_: Throwable) {
-        }
-        try {
-            DebugKit.logs.log(level, tag, message, throwable)
+            DebugKit.logSink.log(level, tag, message, throwable)
         } catch (_: Throwable) {
         }
     }
-
-    private const val DEFAULT_TAG = "App"
 }
 
 /** Writes to the platform's own log. */

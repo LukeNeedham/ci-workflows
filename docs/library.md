@@ -32,9 +32,15 @@ three pages to the navigation. Then log with `Logger.i(...)`, `Logger.e(...)` an
   its oldest half is dropped. Crashes are in `crashes.jsonl` (newest 20). Debug settings are in
   `debug_settings.json`. On Android they live in `filesDir/common`, on iOS in Application Support,
   on the web in `localStorage` under keys starting `common:`.
-- **Without an application context** (plain JVM unit tests, where no content provider runs), the file
-  store keeps everything in memory and `Logger` swallows failures of the platform log, so calling it
-  never throws. In a running app the context is always set before `Application.onCreate`.
+- **The logger is a no-op until `DebugKit.init` runs.** `Logger` writes to a sink that does nothing and
+  needs nothing (no application context, no `android.util.Log`, no files), and `DebugKit.init` swaps in
+  the real one. So code that runs without the app having started, such as plain JVM unit tests,
+  can call `Logger` freely: the calls are dropped and `Logger.entries()` is empty. The cost is that
+  anything logged before `init` is lost, so call it first thing in `Application.onCreate`.
+- **Storage without an application context.** In a running app the context is set before
+  `Application.onCreate`. Where `init` runs without it (a Robolectric test that starts the app's
+  `Application`, say) the file store keeps things in memory until the context is known, so that
+  does not throw either.
 - **Logging is synchronous.** Each call appends to the file on the calling thread. That is fine for
   a debug log; do not log inside a tight loop.
 - **The crash handler** chains to the handler that was installed before it, so Android's own crash

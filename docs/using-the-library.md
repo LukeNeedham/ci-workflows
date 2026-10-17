@@ -178,8 +178,10 @@ DebugKit.init(
 )
 ```
 
-Log calls made before `DebugKit.init` still work, but the log file's size limit is then fixed at
-its default. So call `init` before anything else logs.
+`Logger` does nothing until `DebugKit.init` has run, so lines logged before it are dropped. Call `init`
+first thing in `Application.onCreate`, before anything else logs. The same goes for plain JVM unit tests,
+which never start the app: there `Logger` is a harmless no-op that needs no Android context, so tests
+of code that logs need no setup.
 
 ### 4. Replace the old debug pages
 
@@ -382,8 +384,8 @@ Release**. A version is never overwritten, so an app's build is the same tomorro
 | `uses-sdk:minSdkVersion 21 cannot be smaller than version 23 declared in library` | Raise the app's `minSdk` to 23 |
 | `checkAarMetadata` fails, asking for a higher `compileSdk` | Raise `compileSdk` to the number it names (36) |
 | Kotlin: `Class 'X' was compiled with an incompatible version of Kotlin` or an unreadable klib | The app's Kotlin is older than 2.2. Upgrade Kotlin |
-| The Logs page is empty although the app logs | Check the lines go through `Logger`, not `Log`/`println`. Also check `minLogLevel` is not above the level you log at |
-| Unit tests fail with `UninitializedPropertyAccessException` in `CommonInitProvider` | Fixed in 0.2.1: use `common` 0.2.1 or newer. In plain JVM unit tests the library now keeps logs in memory |
+| The Logs page is empty although the app logs | Check `DebugKit.init` runs before the lines are logged (earlier calls are dropped), and that the lines go through `Logger`, not `Log`/`println`. Also check `minLogLevel` is not above the level you log at |
+| Unit tests fail with `UninitializedPropertyAccessException` in `CommonInitProvider` | Fixed in 0.2.1 (use that or newer). From 0.3.0, `Logger` is also a no-op until `DebugKit.init` runs, so plain JVM unit tests never reach the context or `android.util.Log` |
 | Crashes are not saved | `DebugKit.init` runs too late, or never. It must run before the crash. A crash during `Application` construction itself cannot be caught |
 | Crashes are saved twice | The old handler is still installed. Remove it |
 | The animation speed does not change anything | `ProvideDebugSettings` is missing at the root, `enabled` is `false`, or the app's animations use fixed numbers. Every duration must go through `scale(...)` |

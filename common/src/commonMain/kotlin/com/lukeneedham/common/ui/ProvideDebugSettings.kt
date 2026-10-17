@@ -58,7 +58,8 @@ val LocalAnimationSpeed = compositionLocalOf { AnimationSpeed.X1 }
  */
 @Composable
 fun ProvideDebugSettings(content: @Composable () -> Unit) {
-    val applied = DebugKit.settings.applied(DebugKit.enabled)
+    // Not enabled (including before DebugKit.init): do not even open the settings store.
+    val applied = if (DebugKit.enabled) DebugKit.settings.applied(enabled = true) else AppliedDebugSettings()
     CompositionLocalProvider(
         LocalDebugSettings provides applied,
         LocalAnimationSpeed provides applied.animationSpeed,
