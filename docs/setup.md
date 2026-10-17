@@ -151,4 +151,4 @@ On the PR you opened:
 | The release step fails with "no files found" | `apk-path` is wrong. Build locally and use the real path, relative to the repo root |
 | Releases are not deleted when the PR closes | `closed` is missing from the caller's `types` list |
 | The PR waits forever for a check | Branch protection still requires the old check name (see migration step 4) |
-| An old PR's builds are still listed | They predate the cleanup: run *Delete Pre-releases* |
+| Old PR builds are still listed | They predate the cleanup: run *Delete Pre-releases* |

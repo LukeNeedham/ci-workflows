@@ -32,6 +32,7 @@ kotlin {
             implementation(libs.compose.runtime)
             implementation(libs.compose.foundation)
             implementation(libs.compose.material3)
+            implementation(libs.compose.components.resources)
             implementation(libs.compose.ui)
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.okio)
@@ -41,6 +42,11 @@ kotlin {
             implementation(libs.okio.fakefilesystem)
         }
     }
+}
+
+compose.resources {
+    packageOfResClass = "com.lukeneedham.common.resources"
+    publicResClass = false
 }
 
 android {

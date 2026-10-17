@@ -29,6 +29,12 @@ This repo also holds a Kotlin Multiplatform library, [`common/`](common), with t
 handler and debug pages that the apps share. See **[docs/library.md](docs/library.md)** for what it
 does, and **[docs/using-the-library.md](docs/using-the-library.md)** to add it to a new or existing app.
 
+## Consuming apps and the Claude skill
+
+[docs/consuming-apps.md](docs/consuming-apps.md) lists every project that uses this repo (workflows, library or skill), so "all consuming
+apps" is unambiguous. [docs/skill.md](docs/skill.md) explains the Claude skill that carries these
+conventions into each app's repo.
+
 ## Starting a new app
 
 **See [docs/new-app.md](docs/new-app.md)** for the full checklist: project setup, the committed debug

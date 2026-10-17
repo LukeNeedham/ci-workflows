@@ -14,6 +14,9 @@ then follow it, and tell the user about anything you skipped and why.
 
 ## Before you write code
 
+> This guide is also available as a Claude skill, `lukeneedham-conventions`, which each app keeps a copy
+> of (see [skill.md](skill.md)).
+
 - **Ask for what you do not know**, in one go: app name, package name (`com.lukeneedham.<app>`), what
   the app does, and anything unusual (orientation, minimum Android version, login).
 - **The repo.** Claude cannot create GitHub repos (the integration gets a 403). Ask the user to create
@@ -93,10 +96,12 @@ details. In short, for a new app:
    `<app>-app-link`.
 2. Copy [`examples/delete_prereleases.yml`](../examples/delete_prereleases.yml) to
    `.github/workflows/delete_prereleases.yml`.
-3. Optional, when the user wants installable releases: the release workflow
+3. Give the app the shared Claude skill and the `CLAUDE.md` line that keeps it current
+   ([skill.md](skill.md#adding-it-to-an-app)), and add the app to [consuming-apps.md](consuming-apps.md).
+4. Optional, when the user wants installable releases: the release workflow
    ([setup.md](setup.md#3-permanent-releases-optional)). It needs a release key and four repo secrets
    that only the user can add.
-4. `ci-workflows` is a public repo, so don't worry about access.
+5. `ci-workflows` is a public repo, so don't worry about access.
 
 Open a PR: CI then builds the debug APK and comments the download link on the PR. **Paste that link
 into the chat as soon as it appears.** If the build fails, read the log, fix it, push.
@@ -135,8 +140,12 @@ Defaults for a normal app. If the user asks for something else, do that instead.
 - **Coroutines and Flow** for async work; `viewModelScope` for work tied to a screen.
 - **Layers.** UI (composables + ViewModels) → domain/data (repositories). Keep Android types out of
   the lower layer so it can be unit-tested on the JVM.
-- **Dependencies.** Plain constructor injection, wired by hand at the app's entry point, until the
-  app is big enough to need a DI framework. Ask before adding one.
+- **Dependency injection: Koin.** Use [Koin](https://insert-koin.io) for DI in every app. Declare
+  modules with `module { }` (`singleOf`, `viewModelOf`, `factoryOf`), start it in `Application.onCreate`
+  with `startKoin { androidContext(this@App); modules(...) }`, and get ViewModels in composables with
+  `koinViewModel()` (`koin-androidx-compose`). Classes take their dependencies as constructor
+  parameters and never call Koin themselves, so they stay unit-testable. Check the current Koin version
+  and the BOM (`koin-bom`) before adding it.
 - **Tests.** Unit tests for ViewModels and repositories (JUnit, `kotlinx-coroutines-test`).
 
 ## 5. The shared library
@@ -156,6 +165,6 @@ activity, and skip the rest. Say which sections you skipped and why.
 - [ ] Package is `com.lukeneedham.<app>`; versions match this repo
 - [ ] `app/debug.keystore` committed and used by the `debug` signing config
 - [ ] `trigger_on_pull_request.yml` (and `delete_prereleases.yml`) copied and configured
-- [ ] Single activity, Compose, Navigation 3, MVVM, or a stated reason for each departure
+- [ ] Single activity, Compose, Navigation 3, MVVM, Koin for DI, or a stated reason for each departure
 - [ ] Shared library added, UI wrapped in `ProvideDebugSettings`
 - [ ] PR opened, CI green, APK link pasted to the user
