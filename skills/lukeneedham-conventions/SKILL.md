@@ -3,8 +3,8 @@ name: lukeneedham-conventions
 description: Luke Needham's conventions for Android apps - project setup, debug keystore, CI workflows, architecture (single activity, Compose, Navigation 3, MVVM, Koin DI) and the shared `common` debug library. Use when starting an app, adding a feature, screen, dependency or CI change, or touching logging, crashes or debug pages.
 ---
 
-<!-- Synced from LukeNeedham/ci-workflows (skills/lukeneedham-conventions). Do not edit here: change it
-     in that repo and the sync workflow opens a PR. -->
+<!-- Copied from LukeNeedham/ci-workflows (skills/lukeneedham-conventions). Do not edit here: change it
+     in that repo. -->
 
 # Luke's app conventions
 
@@ -12,6 +12,11 @@ The full, current guides are in the public repo `LukeNeedham/ci-workflows` under
 `new-app.md` (read first when starting an app), `setup.md` (CI workflows), `library.md` and
 `using-the-library.md` (shared library), `consuming-apps.md` (which apps use it). If you can reach
 GitHub, read the relevant page there; otherwise the rules below are enough.
+
+## Keep this skill current
+Before starting any work in an app, compare this folder with `skills/lukeneedham-conventions` on `main` of
+`LukeNeedham/ci-workflows` (public). If it differs, copy the shared folder over this one and include that
+in the PR for the work you were asked to do, saying so in the description. Never open a PR just for this.
 
 ## Project
 - Kotlin only, Gradle Kotlin DSL, version catalog (`gradle/libs.versions.toml`), Gradle wrapper.
@@ -25,6 +30,7 @@ GitHub, read the relevant page there; otherwise the rules below are enough.
 - Callers `trigger_on_pull_request.yml` and `delete_prereleases.yml` come from
   `LukeNeedham/ci-workflows/examples/`; the logic is in the shared reusable workflows there.
 - `apk-path` is `app/build/outputs/apk/debug/app-debug.apk`; `comment-header` is `<app>-app-link`.
+- Debug mode always comes from `BuildConfig.DEBUG` (the build config field).
 - Open a PR for completed work. When the APK build comment appears on the PR, paste the download link into the chat.
 
 ## Architecture

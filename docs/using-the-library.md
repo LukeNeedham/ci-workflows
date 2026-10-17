@@ -314,7 +314,7 @@ Pages should be unreachable in release too, so gate the navigation to them like 
 
 | Platform | A debug flag |
 |---|---|
-| Android | `BuildConfig.DEBUG` (turn on `buildFeatures { buildConfig = true }`), or `(applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0`  |
+| Android | `BuildConfig.DEBUG`, always from the build config field (turn on `buildFeatures { buildConfig = true }`). |
 | iOS | `Platform.isDebugBinary` from `kotlin.native`, with `@OptIn(ExperimentalNativeApi::class)` |
 | Web | whatever the page sets, e.g. FlagTutor's `globalThis.appDebug === true` |
 

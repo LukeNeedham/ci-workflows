@@ -8,3 +8,5 @@
   consuming this repo (workflows, library or skill) must be added to that list.
 - When you change a convention in `docs/`, update `skills/lukeneedham-conventions/SKILL.md` too
   ([`docs/skill.md`](docs/skill.md)).
+- Apps get the skill (and updates to it) as part of the next piece of work done on them, never in a PR of
+  their own: see [`docs/skill.md`](docs/skill.md).

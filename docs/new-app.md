@@ -96,8 +96,8 @@ details. In short, for a new app:
    `<app>-app-link`.
 2. Copy [`examples/delete_prereleases.yml`](../examples/delete_prereleases.yml) to
    `.github/workflows/delete_prereleases.yml`.
-3. Copy [`examples/sync_skill.yml`](../examples/sync_skill.yml) so the app gets the shared Claude skill
-   ([skill.md](skill.md)), and add the app to [consuming-apps.md](consuming-apps.md).
+3. Give the app the shared Claude skill and the `CLAUDE.md` line that keeps it current
+   ([skill.md](skill.md#adding-it-to-an-app)), and add the app to [consuming-apps.md](consuming-apps.md).
 4. Optional, when the user wants installable releases: the release workflow
    ([setup.md](setup.md#3-permanent-releases-optional)). It needs a release key and four repo secrets
    that only the user can add.

@@ -14,7 +14,7 @@ library tick.
 | StickerBoard | [`LukeNeedham/Stickerboard`](https://github.com/LukeNeedham/Stickerboard) | yes | yes | |
 | Krillion wrapper | [`LukeNeedham/krillion-wrapper`](https://github.com/LukeNeedham/krillion-wrapper) | yes | not yet (may be added later) | |
 
-The Skill column is filled in as each app gets `sync_skill.yml` ([skill.md](skill.md)); none have it yet.
+The Skill column is filled in as each app gets the skill ([skill.md](skill.md)), the next time Claude works on it; none have it yet.
 
 ## Keeping this list complete
 
