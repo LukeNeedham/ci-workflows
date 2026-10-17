@@ -1,0 +1,50 @@
+# Reusable workflow: copies the shared Claude skill from this repo into the caller's
+# .claude/skills/ and opens a PR when it changed. See docs/skill.md.
+name: Sync Claude skill
+
+on:
+  workflow_call:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Check out the app
+        uses: actions/checkout@v4
+
+      - name: Check out the shared skill
+        uses: actions/checkout@v4
+        with:
+          repository: LukeNeedham/ci-workflows
+          ref: main
+          path: .ci-workflows-src
+
+      - name: Copy the skill
+        run: |
+          rm -rf .claude/skills/lukeneedham-conventions
+          mkdir -p .claude/skills
+          cp -r .ci-workflows-src/skills/lukeneedham-conventions .claude/skills/
+          rm -rf .ci-workflows-src
+
+      - name: Open a PR if it changed
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ -z "$(git status --porcelain .claude/skills)" ]; then
+            echo "Skill is up to date"
+            exit 0
+          fi
+          branch=sync-claude-skill
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B "$branch"
+          git add .claude/skills
+          git commit -m "Sync Claude skill from ci-workflows"
+          git push --force origin "$branch"
+          if [ -z "$(gh pr list --head "$branch" --state open --json number --jq '.[0].number')" ]; then
+            gh pr create --head "$branch" --title "Sync Claude skill from ci-workflows" \
+              --body "Updates .claude/skills/lukeneedham-conventions from LukeNeedham/ci-workflows."
+          fi

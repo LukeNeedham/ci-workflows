@@ -1,0 +1,18 @@
+# Copy to .github/workflows/sync_skill.yml in your project. Nothing to configure.
+# Keeps .claude/skills/lukeneedham-conventions in sync with the shared skill in ci-workflows.
+# Needs: Settings > Actions > General > "Allow GitHub Actions to create and approve pull requests".
+# Guide: https://github.com/LukeNeedham/ci-workflows/blob/main/docs/skill.md
+name: Sync Claude skill
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    uses: LukeNeedham/ci-workflows/.github/workflows/sync_skill.yml@main
