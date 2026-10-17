@@ -22,6 +22,9 @@ Everything else is shared, so a fix here reaches every project.
 
 - The Gradle project must be able to build an Android debug APK from the command line, with a
   Gradle wrapper (`./gradlew`) in the repo root.
+- The app must sign its debug builds with a **committed debug keystore**, or each CI build gets a
+  random key and cannot be installed over the previous one. See
+  [new-app.md](new-app.md#2-debug-keystore).
 - If this repo is private, the project's repo must be allowed to use its workflows:
   *Settings → Actions → General → Access* in this repo. (Not needed while it is public.)
 - Workflows must be allowed to write. The callers below request `contents: write` and

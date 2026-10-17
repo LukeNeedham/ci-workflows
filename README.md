@@ -29,6 +29,12 @@ This repo also holds a Kotlin Multiplatform library, [`common/`](common), with t
 handler and debug pages that the apps share. See **[docs/library.md](docs/library.md)** for what it
 does, and **[docs/using-the-library.md](docs/using-the-library.md)** to add it to a new or existing app.
 
+## Starting a new app
+
+**See [docs/new-app.md](docs/new-app.md)** for the full checklist: project setup, the committed debug
+keystore, these CI workflows, and the standard architecture (single activity, Compose, Navigation 3,
+MVVM). Read it first when starting any new app.
+
 ## Setting up a project
 
 **See [docs/setup.md](docs/setup.md)** for the caller files to copy, which parts to configure per
