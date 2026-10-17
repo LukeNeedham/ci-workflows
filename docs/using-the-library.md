@@ -1,12 +1,13 @@
 # Using the shared library in an app
 
 How to add [`common/`](../common) (logger, crash handler, logs/crashes/debug pages, debug button,
-animation speed) to an app. What the library is and how it works
+animation speed) to a **new** app and to an **existing** one. What the library is and how it works
 is in [library.md](library.md); this page is the step-by-step.
 
 - [Before you start](#before-you-start)
 - [The five steps, in short](#the-five-steps-in-short)
-- [Adding it to an app](#adding-it-to-an-app)
+- [A new app](#a-new-app)
+- [An existing app](#an-existing-app)
 - [Always wrap the UI in `ProvideDebugSettings`](#always-wrap-the-ui-in-providedebugsettings)
 - [Wiring the pages into your navigation](#wiring-the-pages-into-your-navigation)
 - [Turning it off in release builds](#turning-it-off-in-release-builds)
@@ -29,31 +30,17 @@ Compose, Gradle upgrades it to match, so test the app's screens after adding the
 
 ## The five steps, in short
 
-Every app does the same five things:
+Every app, new or existing, does the same five things:
 
 1. **Add the repository** to `settings.gradle.kts`.
 2. **Add the dependency** to the app module.
 3. **Call `DebugKit.init(...)` once, as early as possible** (before anything can crash or log).
-4. **Wrap the UI in `ProvideDebugSettings`**, and place a `DebugButton`. Every app does this, even one that reads no debug setting yet (see [Always wrap the UI](#always-wrap-the-ui-in-providedebugsettings)).
+4. **Wrap the UI in `ProvideDebugSettings`**, and place a `DebugButton`. Every app, new or existing, does this, even one that reads no debug setting yet (see [Always wrap the UI](#always-wrap-the-ui-in-providedebugsettings)).
 5. **Add the three pages** (`DebugPage`, `LogsPage`, `CrashesPage`) to your navigation.
 
-Then use `Logger` instead of `Log`/`println`. `Logger` has four levels (`d`, `i`, `w`, `e`), and
-`tag` names the origin. To keep a rule such as "debug logs only in debug builds", set `minLogLevel`:
+Then use `Logger` instead of `Log`/`println`.
 
-```kotlin
-DebugKit.init(
-    DebugKitConfig(
-        enabled = BuildConfig.DEBUG,
-        minLogLevel = if (BuildConfig.DEBUG) LogLevel.Debug else LogLevel.Info,
-    ),
-)
-```
-
-`Logger` does nothing until `DebugKit.init` has run, so lines logged before it are dropped: call `init`
-first thing in `Application.onCreate`. Plain JVM unit tests never start the app; there `Logger` is a
-harmless no-op that needs no Android context.
-
-## Adding it to an app
+## A new app
 
 ### 1. The repository and the dependency
 
@@ -148,6 +135,75 @@ initDebugKit(Platform.isDebugBinary)          // @OptIn(ExperimentalNativeApi::c
 // Web: the top of main(), before ComposeViewport { ... }
 initDebugKit(isDebugBuild)                    // however your web build says it is a debug build
 ```
+
+## An existing app
+
+### 1. Add it, and make it start
+
+Do steps 1 and 2 of [A new app](#a-new-app), and call `DebugKit.init` from the app's start-up.
+If the app already has an `Application` class, add the call at the top of its `onCreate()`.
+
+**Raise `minSdk` to 23 and `compileSdk` to 36 if the app is below.** Do that on its own first and
+check the app still builds and runs, so a Compose upgrade is not mixed with the library.
+
+### 2. Remove the old crash handler
+
+Only one crash handler should be installed. The library's chains to whatever was installed before
+it, so two handlers still work, but every crash is then saved twice, in two places. Delete the old
+one and its storage once the new one runs. Old saved crashes are not migrated: they stay in the old
+store and the new Crashes page starts empty.
+
+### 3. Replace the old logger
+
+`Logger` has four levels. If the app has its own logger, replace the calls, using `tag` where you
+used an origin or tag:
+
+| Old | New |
+|---|---|
+| `Logger.debug(msg)` | `Logger.d(msg)` |
+| `Logger.warning(msg, throwable)` | `Logger.w(msg, throwable)` |
+| `Logger.error(msg, throwable)` | `Logger.e(msg, throwable)` |
+| `Log.i(tag, msg)` | `Logger.i(msg, tag = tag)` |
+| `println(msg)` (Kotlin Multiplatform) | `Logger.i(msg)` |
+
+`Logger` also prints to Logcat or the console, so nothing is lost there. To keep a rule such as
+"debug logs only in debug builds", set `minLogLevel`:
+
+```kotlin
+DebugKit.init(
+    DebugKitConfig(
+        enabled = BuildConfig.DEBUG,
+        minLogLevel = if (BuildConfig.DEBUG) LogLevel.Debug else LogLevel.Info,
+    ),
+)
+```
+
+`Logger` does nothing until `DebugKit.init` has run, so lines logged before it are dropped. Call `init`
+first thing in `Application.onCreate`, before anything else logs. The same goes for plain JVM unit tests,
+which never start the app: there `Logger` is a harmless no-op that needs no Android context, so tests
+of code that logs need no setup.
+
+### 4. Replace the old debug pages
+
+Delete the app's own logs and crashes pages, and point their navigation entries at the library's.
+
+The library's `DebugPage` shows only the library's own things (animation speed, and links to Logs and
+Crashes). It has no slot for anything else, so **an app with debug tools of its own keeps its own debug
+page for them, and gives it a button that opens the library's page** (a countries overview, say):
+
+```kotlin
+// the app's own debug page, which stays the entry point
+@Composable
+fun AppDebugPage(onBack: () -> Unit, onOpenSdkDebug: () -> Unit, onOpenCountries: () -> Unit) {
+    // ... the app's own scaffold and tools ...
+    OutlinedButton(onClick = onOpenSdkDebug) { Text("SDK debug") }   // opens the library's DebugPage
+    OutlinedButton(onClick = onOpenCountries) { Text("Countries") }
+}
+```
+
+So there are four routes: the app's debug page, and under it the library's `DebugPage`, `LogsPage` and
+`CrashesPage`. An app with no debug tools of its own has no page of its own and opens the library's
+`DebugPage` directly.
 
 ## Always wrap the UI in `ProvideDebugSettings`
 

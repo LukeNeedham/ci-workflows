@@ -45,5 +45,6 @@ GitHub, read the relevant page there; otherwise the rules below are enough.
 - Apps with their own debug tools keep their own debug page, with a button that opens the library's `DebugPage`.
 
 ## Updating
-"Update all consuming apps" means every app in `docs/consuming-apps.md` of `ci-workflows`: bump `common`
-in each, one PR per app.
+"Update all consuming apps" means every app with a library tick in `docs/consuming-apps.md` of
+`ci-workflows`: bump `common` in each, one PR per app. Whenever a project starts using workflows, the
+library or this skill, add it to that list.

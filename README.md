@@ -31,7 +31,7 @@ does, and **[docs/using-the-library.md](docs/using-the-library.md)** to add it t
 
 ## Consuming apps and the Claude skill
 
-[docs/consuming-apps.md](docs/consuming-apps.md) lists the five apps that use this repo, so "all consuming
+[docs/consuming-apps.md](docs/consuming-apps.md) lists every project that uses this repo (workflows, library or skill), so "all consuming
 apps" is unambiguous. [docs/skill.md](docs/skill.md) explains the Claude skill that carries these
 conventions into each app's repo.
 
@@ -44,7 +44,7 @@ MVVM). Read it first when starting any new app.
 ## Setting up a project
 
 **See [docs/setup.md](docs/setup.md)** for the caller files to copy, which parts to configure per
-project.
+project, and how to migrate an existing project.
 
 In short: a project keeps small caller files that own the **triggers** (`on:`), the **permissions**
 and the **settings** (`with:`); the steps live here. A reusable workflow cannot decide when it

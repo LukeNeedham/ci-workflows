@@ -1,6 +1,6 @@
 # Setting up a project
 
-How to start using these workflows in a project. The
+How to start using these workflows in a new project, or move an existing project over to them. The
 caller files are below, ready to copy. Parts you must or may change per project are marked
 `CONFIGURE`; everything else should be copied as is.
 
@@ -62,7 +62,8 @@ the shared workflows and are not affected by them.
 
 ## 2. Sweep all pre-releases (optional)
 
-A manual button that deletes **every** pre-release and tag in the repo. Useful for builds from manual runs, which have no PR to
+A manual button that deletes **every** pre-release and tag in the repo. Useful once when migrating
+(to clear old builds the cleanup never saw) and for builds from manual runs, which have no PR to
 clean them up.
 
 **File:** [`examples/delete_prereleases.yml`](../examples/delete_prereleases.yml): copy it to
@@ -103,6 +104,31 @@ moving from a PR build to a release uninstalls once. The tester link is
 3. Commit both on a branch and open a PR to the target branch.
 4. [Check it works](#check-that-it-works).
 
+## Migrating an existing project
+
+Assuming the project already builds an APK on pull requests with its own workflow(s).
+
+1. **Collect the project's current settings** from the old workflow, because they become the
+   `with:` values:
+   - the Gradle task it runs → `gradle-task`
+   - where the APK ends up → `apk-path`
+   - the JDK version and distribution → `java-version`, `java-distribution`
+   - the branch(es) it triggers on → `branches`
+2. **Replace the old build workflow** with the file from section 1, filled in with those values.
+   Keep any jobs in it that the shared workflows do not cover in the same `jobs:` block.
+3. **Delete the old cleanup workflow**, if there is one: the cleanup now runs from the same file.
+   Make sure the project has exactly one workflow reacting to PR closes, otherwise releases are
+   deleted twice.
+4. **Check branch protection.** The checks are now named `<caller job> / build / build` (caller
+   job / shared wrapper job / build job), so `android / build / build` with the file above. If a
+   rule requires the old check name, update it, or PRs will wait for a check that no longer exists.
+5. **Replace the manual delete workflow**, if the project has one, with section 2.
+6. **Open a PR** and [check it works](#check-that-it-works).
+7. **Clear the old releases** once it works: run *Delete Pre-releases* (section 2) to remove builds
+   made by the old workflow, which the new cleanup does not know about.
+
+To roll back, restore the old workflow files from git. Nothing else is changed in the repo.
+
 ## Check that it works
 
 On the PR you opened:
@@ -124,5 +150,5 @@ On the PR you opened:
 | No comment appears on the PR | The caller is missing `pull-requests: write`, or the PR comes from a fork (forks get a read-only token) |
 | The release step fails with "no files found" | `apk-path` is wrong. Build locally and use the real path, relative to the repo root |
 | Releases are not deleted when the PR closes | `closed` is missing from the caller's `types` list |
-| The PR waits forever for a check | Branch protection requires a check name that no longer exists. The checks are named `<caller job> / build / build`, e.g. `android / build / build` |
+| The PR waits forever for a check | Branch protection still requires the old check name (see migration step 4) |
 | Old PR builds are still listed | They predate the cleanup: run *Delete Pre-releases* |
