@@ -9,6 +9,9 @@ import android.net.Uri
 /** Holds the application context. Content providers are created before `Application.onCreate`. */
 internal object AppContext {
     lateinit var app: Context
+
+    /** False until [CommonInitProvider] has run, which it has not in plain JVM unit tests. */
+    val isInitialized: Boolean get() = ::app.isInitialized
 }
 
 class CommonInitProvider : ContentProvider() {
