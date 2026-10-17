@@ -16,8 +16,6 @@ library tick.
 
 The Skill column is filled in as each app gets `sync_skill.yml` ([skill.md](skill.md)); none have it yet.
 
-TurnThePage does **not** consume anything from this repo.
-
 ## Keeping this list complete
 
 **Whenever a project starts consuming this repo in any way (workflows, library or skill), add it here
