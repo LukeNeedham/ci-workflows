@@ -96,6 +96,7 @@ details. In short, for a new app:
 3. Optional, when the user wants installable releases: the release workflow
    ([setup.md](setup.md#3-permanent-releases-optional)). It needs a release key and four repo secrets
    that only the user can add.
+4. `ci-workflows` is a public repo, so don't worry about access.
 
 Open a PR: CI then builds the debug APK and comments the download link on the PR. **Paste that link
 into the chat as soon as it appears.** If the build fails, read the log, fix it, push.
