@@ -3,7 +3,6 @@ package com.lukeneedham.common.ui
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -22,10 +21,13 @@ import com.lukeneedham.common.DebugKit
 import com.lukeneedham.common.debug.AnimationSpeed
 
 /**
- * The debug hub: the debug settings, and links to the logs and crashes pages.
+ * The library's debug page: the debug settings, and links to the logs and crashes pages. It shows only
+ * the library's own things and has no slot for anything else.
  *
  * It does not navigate itself: the app wires [onOpenLogs] and [onOpenCrashes] to its own navigation.
- * Put the app's own debug tools in [extraContent].
+ *
+ * An app with debug tools of its own makes its own debug page for them, and gives that page a button
+ * that opens this one. An app with none can open this page directly.
  */
 @Composable
 fun DebugPage(
@@ -33,7 +35,6 @@ fun DebugPage(
     onOpenLogs: () -> Unit,
     onOpenCrashes: () -> Unit,
     modifier: Modifier = Modifier,
-    extraContent: @Composable ColumnScope.() -> Unit = {},
 ) {
     val settings = DebugKit.settings
     DebugScaffold(title = "Debug", onBack = onBack, modifier = modifier) { padding ->
@@ -61,7 +62,6 @@ fun DebugPage(
             HorizontalDivider()
             OutlinedButton(onClick = onOpenLogs, modifier = Modifier.fillMaxWidth()) { Text("Logs") }
             OutlinedButton(onClick = onOpenCrashes, modifier = Modifier.fillMaxWidth()) { Text("Crashes") }
-            extraContent()
         }
     }
 }
