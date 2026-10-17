@@ -211,24 +211,24 @@ So there are four routes: the app's debug page, and under it the library's `Debu
 | App | Replace | Keep / note |
 |---|---|---|
 | **Android-Dock** | `DockLog` and its calls (`DockLog.log(context, msg)` becomes `Logger.i(msg)`, no `Context` needed), `LogScreen`, `DebugScreen`, and the handler in `DockApp` (which becomes a one-line `DebugKit.init`) | It already decides `isDebuggable` from `FLAG_DEBUGGABLE`: pass that as `enabled` |
-| **FlagTutor** | `CrashRepository*`, `CrashesPage`/`CrashDetailPage`, the crash installers (iOS: in `MainViewController`), `DebugPage`, and `AnimationSpeed` plus its preference stores with the library's | Keep `ScaledAnimation` (see below). The animation speed saved by the old stores is not read: it starts at 1x once |
+| **FlagTutor** | `CrashRepository*`, `CrashesPage`/`CrashDetailPage`, the crash installers (iOS: in `MainViewController`), `DebugPage`, and `AnimationSpeed` plus its preference stores with the library's | Replace `ScaledAnimation` too, with plain duration constants (see below). The animation speed saved by the old stores is not read: it starts at 1x once |
 | **VideoDiary** | `Logger`/`LoggerEngine`/`AndroidLoggerEngine`, `CrashLogDao`/`CrashLog` and the Room table behind them, `CrashLogPage`, `DebugPage`, the handler in `App` | Needs `minSdk` 23 (it is on 21) and `compileSdk` 36 (it is on 35). Drop the Room table in a later release, not the same one |
 | **PoetryBook**, **TurnThePage** | Nothing: they have none of this yet | Add the five steps |
 
-**FlagTutor's `ScaledAnimation`** reads the speed multiplier from `DebugSettings`. Feed it from the
-library instead, and keep every duration going through it:
+**FlagTutor's `ScaledAnimation`** only duplicates the library: it divides each duration by the speed, which
+is what `AnimationSpeed.scale()` already does, and it adds a second composition local on top of
+`ProvideDebugSettings`. Do not keep an animation wrapper of your own. If the app wants a list of the
+durations it may use, keep them as plain constants and pass each one through the library where an
+animation is built:
 
 ```kotlin
-ProvideDebugSettings {
-    val speed = LocalAnimationSpeed.current
-    val scaledAnimation = remember(speed) { ScaledAnimation(speed.multiplier) }
-    CompositionLocalProvider(LocalScaledAnimation provides scaledAnimation) {
-        AppNavigation()
-    }
-}
+object AnimationDurations { const val MEDIUM = 300 }
+
+val speed = LocalAnimationSpeed.current          // provided by ProvideDebugSettings
+tween(durationMillis = speed.scale(AnimationDurations.MEDIUM))
 ```
 
-Apps with no such class can read the speed directly where they build an animation:
+An app with no such list can pass the number directly:
 `tween(durationMillis = LocalAnimationSpeed.current.scale(300))`.
 
 ## Always wrap the UI in `ProvideDebugSettings`
