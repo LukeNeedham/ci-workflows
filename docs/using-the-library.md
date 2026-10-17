@@ -185,15 +185,26 @@ of code that logs need no setup.
 
 ### 4. Replace the old debug pages
 
-Delete the app's own logs, crashes and debug pages and point their navigation entries at the
-library's. Keep anything specific to the app (FlagTutor's countries overview, say) by passing it to
-`DebugPage` as `extraContent`:
+Delete the app's own logs and crashes pages, and point their navigation entries at the library's.
+
+The library's `DebugPage` shows only the library's own things (animation speed, and links to Logs and
+Crashes). It has no slot for anything else, so **an app with debug tools of its own keeps its own debug
+page for them, and gives it a button that opens the library's page** (FlagTutor's countries overview,
+say):
 
 ```kotlin
-DebugPage(onBack = back, onOpenLogs = { ... }, onOpenCrashes = { ... }) {
-    OutlinedButton(onClick = onOpenCountries, modifier = Modifier.fillMaxWidth()) { Text("Countries") }
+// the app's own debug page, which stays the entry point
+@Composable
+fun AppDebugPage(onBack: () -> Unit, onOpenSdkDebug: () -> Unit, onOpenCountries: () -> Unit) {
+    // ... the app's own scaffold and tools ...
+    OutlinedButton(onClick = onOpenSdkDebug) { Text("SDK debug") }   // opens the library's DebugPage
+    OutlinedButton(onClick = onOpenCountries) { Text("Countries") }
 }
 ```
+
+So there are four routes: the app's debug page, and under it the library's `DebugPage`, `LogsPage` and
+`CrashesPage`. An app with no debug tools of its own has no page of its own and opens the library's
+`DebugPage` directly.
 
 ### What to change in each of your apps
 
@@ -348,14 +359,11 @@ routes.
 
 ## Check that it works
 
-Add a throwaway "crash" button to the debug page, then go through this once per platform:
+Add a throwaway "crash" button somewhere reachable in a debug build (the app's own debug page is the
+natural place; the library's page has no slot for one), then go through this once per platform:
 
 ```kotlin
-DebugPage(...) {
-    OutlinedButton(onClick = { error("Test crash") }, modifier = Modifier.fillMaxWidth()) {
-        Text("Crash the app")
-    }
-}
+OutlinedButton(onClick = { error("Test crash") }) { Text("Crash the app") }
 ```
 
 1. Put a `Logger.i("hello from the app")` somewhere that runs at launch.
