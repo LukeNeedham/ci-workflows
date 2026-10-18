@@ -65,7 +65,10 @@ Inputs (the defaults live here and only here; `apk-path` is the one required inp
 | `java-distribution` | `zulu` | JDK distribution |
 | `timezone` | `Europe/Amsterdam` | Timezone for the timestamps in the comment and release |
 | `comment-header` | `example-app-link` | Id of the sticky comment. Change it only if a PR needs several separate APK comments |
+| `detekt-task` | `detekt` | Gradle task that runs Detekt. The `detekt` job fails if the project has no such task ([app-conventions.md](docs/app-conventions.md#detekt)) |
 | `tools-ref` | `main` | Branch or tag of this repo to fetch `scripts/` from. Leave it; set it to a branch only to test a script change |
+
+The `detekt` job runs the Detekt task on every PR push, alongside the build.
 
 The `app-icon` job renders `app-icon.png` (a 512x512 circle on a transparent background) from the app's
 adaptive launcher icon on every PR and commits it to the PR branch when it differs

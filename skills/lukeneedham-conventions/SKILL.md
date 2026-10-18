@@ -1,6 +1,6 @@
 ---
 name: lukeneedham-conventions
-description: Luke Needham's conventions for Android apps - project setup, debug keystore, CI workflows, architecture (single activity, Compose, Navigation 3, MVVM, Koin DI, Coil 3 images) and the shared `common` debug library. Use when starting an app, adding a feature, screen, dependency or CI change, or touching logging, crashes or debug pages.
+description: Luke Needham's conventions for Android apps - project setup, debug keystore, CI workflows, architecture (single activity, Compose, Navigation 3, MVVM, Koin DI, Coil 3 images, own AppTheme, Detekt) and the shared `common` debug library. Use when starting an app, adding a feature, screen, dependency or CI change, or touching logging, crashes or debug pages.
 ---
 
 <!-- Copied from LukeNeedham/ci-workflows (skills/lukeneedham-conventions). Do not edit here: change it
@@ -9,7 +9,7 @@ description: Luke Needham's conventions for Android apps - project setup, debug 
 # Luke's app conventions
 
 The full, current guides are in the public repo `LukeNeedham/ci-workflows` under `docs/`:
-`new-app.md` (read first when starting an app), `setup.md` (CI workflows), `app-icon.md`, `library.md` and
+`new-app.md` (read first when starting an app), `setup.md` (CI workflows), `app-icon.md`, `app-conventions.md` (libraries and code patterns), `library.md` and
 `using-the-library.md` (shared library), `consuming-apps.md` (which apps use it). If you can reach
 GitHub, read the relevant page there; otherwise the rules below are enough.
 
@@ -45,7 +45,7 @@ in the PR for the work you were asked to do, saying so in the description. Never
   `scripts/render_app_icon.py` from `main` of `LukeNeedham/ci-workflows` and run it from the repo root.
 
 ## Architecture
-- Single activity (`ComponentActivity`), Jetpack Compose + Material 3, no XML, no fragments.
+- Single activity (`ComponentActivity`), Jetpack Compose, no XML, no fragments.
 - Navigation 3 (`NavKey` destinations that are `@Serializable`, back stack owned by the app).
 - MVVM with unidirectional data flow: a `ViewModel` exposes one immutable `UiState` `StateFlow`; composables
   use `collectAsStateWithLifecycle()` and send events up as function calls; no logic in composables.
@@ -55,6 +55,22 @@ in the PR for the work you were asked to do, saying so in the description. Never
 - **Coil 3 for image loading** (`io.coil-kt.coil3:coil-compose`, not Coil 2.x, Glide or Picasso): `AsyncImage`
   for files, URIs and URLs. Add `coil-network-okhttp` only if the app loads images over the network.
 - Unit tests for ViewModels and repositories (JUnit, `kotlinx-coroutines-test`).
+
+## Libraries and code patterns (details: `docs/app-conventions.md`)
+- Libraries: `kotlinx.serialization`, Room (structured data), DataStore (settings, never `SharedPreferences`),
+  Ktor client with the OkHttp engine (networking), `kotlinx-datetime`, Media3 (audio/video), Detekt.
+- **All text in `strings.xml`**, none hard-coded (including content descriptions).
+- **Own `AppTheme`**, a hand-made composition local holding colours and typefaces. Never read `MaterialTheme`
+  in the app; always `AppTheme.current`. No fixed text-style scale: set font size and line height inline in
+  the composable, take only the typeface from the theme. Only the shared library's pages get a `MaterialTheme`
+  built from the app theme.
+- **One composable per file with its `@Preview`** (fake `UiState`, wrapped in `AppTheme`), and a preview for
+  every composable; trivial ones can sit next to their parent and skip both.
+- **One-off events** go through a `Channel` exposed as a `Flow` (`receiveAsFlow()`), never in `UiState`.
+- **Touch targets** at least 48dp by 48dp for anything clickable: `Modifier.minimumInteractiveComponentSize()`.
+- **Detekt** with `config/detekt/detekt.yml`; the shared PR workflow runs it as a `detekt` job and fails if
+  the project has no `detekt` task.
+- **Release builds are minified** (`isMinifyEnabled = true`, `isShrinkResources = true`) with keep rules.
 
 ## Shared library (`com.lukeneedham:common`)
 - Repository `https://lukeneedham.github.io/ci-workflows/maven` (group `com.lukeneedham` only); version in `libs.versions.toml`.

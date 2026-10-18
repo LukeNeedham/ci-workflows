@@ -54,6 +54,13 @@ Keep as is: `name`, the `types` list, `permissions`, `uses`.
 | `java-distribution` | `with:` | `zulu` | you need another JDK distribution |
 | `timezone` | `with:` | `Europe/Amsterdam` | you want timestamps in another timezone |
 | `comment-header` | `with:` | `example-app-link` | one PR needs more than one APK comment (give each a different id) |
+| `detekt-task` | `with:` | `detekt` | your Detekt Gradle task has another name |
+
+### Detekt
+
+The same workflow also runs a `detekt` job on every PR push, next to the build. The project must apply
+the Detekt Gradle plugin ([app-conventions.md](app-conventions.md#detekt)); without a `detekt` task the
+job fails with a message saying so. The check shows up as `android / detekt`.
 
 ### Other jobs in the same file
 

@@ -323,7 +323,7 @@ class CrashesScreen : Screen {
 **On the web**, if the app syncs routes with the browser address (FlagTutor does), register the
 three routes there too, and only when debugging is on.
 
-The pages draw with `MaterialTheme`, so they take the app's colours and typography. Each has its
+The pages draw with `MaterialTheme`. The app itself never reads `MaterialTheme` ([app-conventions.md](app-conventions.md#theme)), so wrap these pages in a `MaterialTheme` built from the app theme's colours and typefaces; they then match the app. Each has its
 own top bar with a back arrow. A variant without the bar is not provided yet.
 
 ## Turning it off in release builds

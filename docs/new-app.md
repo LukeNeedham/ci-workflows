@@ -120,7 +120,8 @@ Defaults for a normal app. If the user asks for something else, do that instead.
 
 - **Single activity.** One `MainActivity` (extending `ComponentActivity`) hosts the whole UI. Screens
   are composables, never extra activities or fragments.
-- **Jetpack Compose with Material 3.** No XML layouts.
+- **Jetpack Compose, themed by the app's own `AppTheme`** (a hand-made composition local, never
+  `MaterialTheme`; see [app-conventions.md](app-conventions.md#theme)). No XML layouts.
 - **Navigation 3** (`androidx.navigation3`) for navigation. Destinations are `@Serializable` data
   objects/classes implementing `NavKey`; the back stack is state the app owns:
 
@@ -162,6 +163,9 @@ Defaults for a normal app. If the user asks for something else, do that instead.
   `BitmapFactory` loading. Provide a `contentDescription` (or `null` if decorative), and give it a size so
   Coil can downsample. Check the current stable Coil 3 version before adding it.
 - **Tests.** Unit tests for ViewModels and repositories (JUnit, `kotlinx-coroutines-test`).
+- **More conventions** (serialization, Room, DataStore, Ktor, kotlinx-datetime, Media3, strings, theme,
+  previews, one-off events, touch targets, Detekt, minified release builds): see
+  **[app-conventions.md](app-conventions.md)** and follow it.
 
 ## 6. The shared library
 
@@ -186,6 +190,8 @@ activity, and skip the rest. Say which sections you skipped and why.
 - [ ] `trigger_on_pull_request.yml` (and `delete_prereleases.yml`) copied and configured
 - [ ] Adaptive launcher icon in place (CI then generates `app-icon.png` at the repo root on the first PR)
 - [ ] Single activity, Compose, Navigation 3, MVVM, Koin for DI, Coil 3 for images, or a stated reason for each departure
+- [ ] [app-conventions.md](app-conventions.md) followed: strings in `strings.xml`, own `AppTheme` (no `MaterialTheme`), a preview per composable, 48dp touch targets
+- [ ] Detekt plugin and `config/detekt/detekt.yml` in place (the CI `detekt` job is green); release build minified
 - [ ] Shared library added, UI wrapped in `ProvideDebugSettings`
 - [ ] Settings page exists, with the `DebugButton` (not a floating button)
 - [ ] PR opened, CI green, APK link pasted to the user
