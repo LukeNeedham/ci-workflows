@@ -76,12 +76,13 @@ adaptive launcher icon on every PR and commits it to the PR branch when it diffe
 cleanup. Everything else (`opened`, `reopened`, `synchronize`) runs the build. A manual run
 (`workflow_dispatch`) builds.
 
-**What the PR sees.** One comment, edited in place as the build progresses, always with the same
+**What the PR sees.** First a comment with the AppHub link, posted once as soon as the job starts and never
+edited (`### 📲 AppHub`, then a link to `https://www.lukeneedham.com/apphub/pr/<repo name>/<number>`, the PR's
+page in the AppHub app). Then one build comment, edited in place as the build progresses, always with the same
 layout (a heading with the state's emoji, then a bullet list):
 
 ```
 ### ⏳ Build in progress
-- AppHub: 📲 Open              (the PR's page in AppHub, https://www.lukeneedham.com/apphub/pr/<repo name>/<number>)
 - Commit: `be7d718`            (linked to the commit)
 - Started: 09/10/2026 12:56:20
 - Run: #210                    (linked to the run)
@@ -89,10 +90,10 @@ layout (a heading with the state's emoji, then a bullet list):
 
 ### ✅ Build succeeded
 - APK: 📦 Download
-- AppHub / Commit / Built / Run
+- Commit / Built / Run
 
 ### ❌ Build failed  /  ### 🚫 Build cancelled
-- AppHub / Commit / Started / Run / Previous APK (stale)
+- Commit / Started / Run / Previous APK (stale)
 ```
 
 - The comment switches to "in progress" as the first step of the job, before the build starts. The
