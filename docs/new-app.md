@@ -7,8 +7,9 @@ then follow it, and tell the user about anything you skipped and why.
 - [1. The project](#1-the-project)
 - [2. Debug keystore](#2-debug-keystore)
 - [3. CI workflows](#3-ci-workflows)
-- [4. App architecture](#4-app-architecture)
-- [5. The shared library](#5-the-shared-library)
+- [4. App icon](#4-app-icon)
+- [5. App architecture](#5-app-architecture)
+- [6. The shared library](#6-the-shared-library)
 - [Apps that are not Compose](#apps-that-are-not-compose)
 - [Done checklist](#done-checklist)
 
@@ -106,7 +107,13 @@ details. In short, for a new app:
 Open a PR: CI then builds the debug APK and comments the download link on the PR. **Paste that link
 into the chat as soon as it appears.** If the build fails, read the log, fix it, push.
 
-## 4. App architecture
+## 4. App icon
+
+Commit the app's icon as **`app-icon.png` at the repo root**: a square PNG, at least 512x512. The app hub
+reads it from there, and the PR build fails without it. Keep it in step with the launcher icon. See
+[app-icon.md](app-icon.md).
+
+## 5. App architecture
 
 Defaults for a normal app. If the user asks for something else, do that instead.
 
@@ -148,7 +155,7 @@ Defaults for a normal app. If the user asks for something else, do that instead.
   and the BOM (`koin-bom`) before adding it.
 - **Tests.** Unit tests for ViewModels and repositories (JUnit, `kotlinx-coroutines-test`).
 
-## 5. The shared library
+## 6. The shared library
 
 Every Compose app uses the shared library (`common/`): logger, crash handler, and the debug, logs
 and crashes pages. Follow **[using-the-library.md](using-the-library.md)** to add it, and use
@@ -157,7 +164,7 @@ and crashes pages. Follow **[using-the-library.md](using-the-library.md)** to ad
 ## Apps that are not Compose
 
 Some apps are too small for the above, such as the Krillion web-game wrapper: one `WebView` in one
-activity. Still do steps 1 to 3 (project, **debug keystore**, **CI workflows**), keep it to a single
+activity. Still do steps 1 to 4 (project, **debug keystore**, **CI workflows**, **app icon**), keep it to a single
 activity, and skip the rest. Say which sections you skipped and why.
 
 ## Done checklist
@@ -165,6 +172,7 @@ activity, and skip the rest. Say which sections you skipped and why.
 - [ ] Package is `com.lukeneedham.<app>`; versions match this repo
 - [ ] `app/debug.keystore` committed and used by the `debug` signing config
 - [ ] `trigger_on_pull_request.yml` (and `delete_prereleases.yml`) copied and configured
+- [ ] `app-icon.png` committed at the repo root (square PNG, 512x512 or larger)
 - [ ] Single activity, Compose, Navigation 3, MVVM, Koin for DI, or a stated reason for each departure
 - [ ] Shared library added, UI wrapped in `ProvideDebugSettings`
 - [ ] PR opened, CI green, APK link pasted to the user

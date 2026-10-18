@@ -65,6 +65,7 @@ Inputs (the defaults live here and only here; `apk-path` is the one required inp
 | `java-distribution` | `zulu` | JDK distribution |
 | `timezone` | `Europe/Amsterdam` | Timezone for the timestamps in the comment and release |
 | `comment-header` | `example-app-link` | Id of the sticky comment. Change it only if a PR needs several separate APK comments |
+| `icon-path` | `app-icon.png` | App icon PNG relative to the repo root. The `check-icon` job fails the PR if it is missing or not a square PNG of at least 512x512 ([app-icon.md](docs/app-icon.md)) |
 
 `closed` has to be among the caller's `pull_request` types: that is the event that triggers the
 cleanup. Everything else (`opened`, `reopened`, `synchronize`) runs the build. A manual run
