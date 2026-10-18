@@ -105,7 +105,7 @@ details. In short, for a new app:
 5. `ci-workflows` is a public repo, so don't worry about access.
 
 Open a PR: CI then builds the debug APK and comments on the PR with the APK link and an **AppHub** link
-(`https://lukeneedham.com/PR/<repo name>/<number>`, the PR's page in the AppHub app, where the build can
+(`https://lukeneedham.com/apphub/pr/<repo name>/<number>`, the PR's page in the AppHub app, where the build can
 be downloaded and installed). **Paste the AppHub link into the chat as soon as the comment appears**, not
 the APK link. If the build fails, read the log, fix it, push.
 

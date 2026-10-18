@@ -81,7 +81,7 @@ layout (a heading with the state's emoji, then a bullet list):
 
 ```
 ### ⏳ Build in progress
-- AppHub: 📲 Open              (the PR's page in AppHub, https://lukeneedham.com/PR/<repo name>/<number>)
+- AppHub: 📲 Open              (the PR's page in AppHub, https://lukeneedham.com/apphub/pr/<repo name>/<number>)
 - Commit: `be7d718`            (linked to the commit)
 - Started: 09/10/2026 12:56:20
 - Run: #210                    (linked to the run)
