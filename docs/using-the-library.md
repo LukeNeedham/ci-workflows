@@ -211,34 +211,30 @@ Every app, new or existing, has a **settings page**, reachable from the app's no
 settings icon in the top bar, a drawer or tab entry, whichever fits the app). **A new app always gets
 one. An existing app that has none adds one** as part of adopting the library. The page is rendered
 even when it has no other actions on it: an app with nothing to configure still has a settings page,
-and it still holds the two things below.
+and it still holds the `DebugButton`.
 
-1. **The `DebugButton`**, as a normal item on the page (a row or button in the page's column). It opens
-   the debug page, and shows nothing unless debugging is enabled. It is never a floating action button
-   or overlay on the main page.
-2. **The app's package and current version**, e.g. `com.lukeneedham.flagtutor` and `1.4.2 (17)`, shown
-   as plain text, usually at the bottom (an "About" section). Read them from the build, never hard-code
-   them: on Android `context.packageName` and `PackageManager.getPackageInfo(packageName, 0)`
-   (`versionName`, and `longVersionCode` for the build number); on other platforms from whatever the
-   platform exposes, or a build-generated constant.
+The **`DebugButton`** is a normal item on the page (a row or button in the page's column). It opens
+the debug page, and shows nothing unless debugging is enabled. It is never a floating action button
+or overlay on the main page.
 
 ```kotlin
 @Composable
 fun SettingsPage(onBack: () -> Unit, onOpenDebug: () -> Unit) {
-    val context = LocalContext.current
-    val info = context.packageManager.getPackageInfo(context.packageName, 0)
     Scaffold(topBar = { /* title "Settings" and a back arrow calling onBack */ }) { padding ->
         Column(Modifier.padding(padding).padding(16.dp)) {
             // ... the app's own settings, if it has any ...
             DebugButton(onClick = onOpenDebug)
-            Text("${context.packageName}\n${info.versionName} (${info.longVersionCode})")
         }
     }
 }
 ```
 
-If the app already has a settings page, add the two items to it. If it already has a settings entry
-that opens its own debug page, keep that, and make sure the settings page has the version info.
+**The app's package and current version are not shown on the settings page.** They are shown by the
+library's `DebugPage`, so they look the same in every consuming app and apps do not each read them
+from the build. The app does nothing for this.
+
+If the app already has a settings page, add the `DebugButton` to it. If it already has a settings
+entry that opens its own debug page, keep that.
 
 ## Always wrap the UI in `ProvideDebugSettings`
 
@@ -372,8 +368,8 @@ OutlinedButton(onClick = { error("Test crash") }) { Text("Crash the app") }
    lines from just before it.
 5. Back on Debug, choose **0.5x** animation speed, close the app from the app switcher, reopen it:
    0.5x is still selected, and animations are slower.
-6. Open **Settings**: the app's package and current version are shown, and the Debug button is there
-   (not floating over the main page).
+6. Open **Settings**: the Debug button is there (not floating over the main page). On the Debug page,
+   the app's package and current version are shown.
 7. Build a **release** build: no Debug button, no route to the pages, and animations at normal
    speed even though 0.5x was saved. (Crashes are still saved in release; there is just no page to
    read them on.)

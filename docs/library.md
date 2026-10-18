@@ -8,7 +8,7 @@ needs, so they are written once instead of copied between apps.
 | `Logger` | Logs to Logcat/the console **and** to a file on disk, so logs persist across restarts and crashes |
 | Crash handler | Catches every uncaught exception, writes it to disk with the last 50 log lines, then lets the app crash as normal |
 | `LogsPage`, `CrashesPage` | Read the saved logs and crashes back. Text is selectable, so it can be copied |
-| `DebugPage` | The library's own debug page: debug settings (animation speed, saved) and links to the logs and crashes pages. It shows only those; an app's own debug tools go on the app's own debug page, which links to this one |
+| `DebugPage` | The library's own debug page: the app's package and current version, debug settings (animation speed, saved) and links to the logs and crashes pages. It shows only those; an app's own debug tools go on the app's own debug page, which links to this one |
 | `DebugButton` | A button that opens the debug page. Shows nothing unless debugging is enabled. Always placed on the app's settings page, never as a floating button over the main page |
 | Animation speed | A debug setting (0.25x to 2x), saved to disk, that scales every animation duration |
 | `ProvideDebugSettings` | The one composable that provides every debug setting to the UI as composition locals (`LocalDebugSettings`, `LocalAnimationSpeed`, ...). **Every app wraps its content in it**, whether or not it uses a setting yet |

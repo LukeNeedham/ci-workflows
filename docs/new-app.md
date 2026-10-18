@@ -155,7 +155,7 @@ and crashes pages. Follow **[using-the-library.md](using-the-library.md)** to ad
 `Logger` rather than `Log` or `println`.
 
 **Every app has a settings page**, even with nothing else on it. It holds the library's `DebugButton`
-(never a floating button on the main page) and shows the app's package and current version. See
+(never a floating button on the main page). The app's package and version are shown by the library's debug page, not the settings page. See
 [Every app has a settings page](using-the-library.md#every-app-has-a-settings-page).
 
 ## Apps that are not Compose
@@ -171,5 +171,5 @@ activity, and skip the rest. Say which sections you skipped and why.
 - [ ] `trigger_on_pull_request.yml` (and `delete_prereleases.yml`) copied and configured
 - [ ] Single activity, Compose, Navigation 3, MVVM, Koin for DI, or a stated reason for each departure
 - [ ] Shared library added, UI wrapped in `ProvideDebugSettings`
-- [ ] Settings page exists, with the `DebugButton` (not a floating button) and the app's package and version
+- [ ] Settings page exists, with the `DebugButton` (not a floating button)
 - [ ] PR opened, CI green, APK link pasted to the user
