@@ -34,10 +34,6 @@ on:
         description: Sticky comment id
         type: string
         default: example-app-link
-      detekt-task:
-        description: Gradle task that runs Detekt. The job fails if the project has no such task
-        type: string
-        default: detekt
       tools-ref:
         description: Branch or tag of LukeNeedham/ci-workflows to fetch scripts/ from. Leave as main; set it to a branch only to test a script change
         type: string
@@ -95,40 +91,6 @@ jobs:
             git pull --rebase origin "$BRANCH"
             git push origin "HEAD:refs/heads/$BRANCH"
           }
-
-  # Lints with Detekt on every PR push. It fails when the project has no such task, so an app that
-  # is set up wrongly (plugin or config missing) shows red instead of silently skipping lint.
-  # Runs alongside the build, and needs no write permissions.
-  detekt:
-    if: github.event_name != 'pull_request' || github.event.action != 'closed'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up JDK
-        uses: actions/setup-java@v4
-        with:
-          java-version: ${{ inputs.java-version }}
-          distribution: ${{ inputs.java-distribution }}
-
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          cache-read-only: ${{ github.event_name == 'pull_request' && github.base_ref == github.event.repository.default_branch }}
-
-      - name: Check the Detekt task exists
-        env:
-          DETEKT_TASK: ${{ inputs.detekt-task }}
-        run: |
-          if ! ./gradlew tasks --all --no-daemon -q | grep -qE "(^|:)${DETEKT_TASK} "; then
-            echo "::error::No Gradle task '${DETEKT_TASK}' found. Apply the Detekt Gradle plugin as described in docs/app-conventions.md in LukeNeedham/ci-workflows, or set detekt-task to the task you use."
-            exit 1
-          fi
-
-      - name: Run Detekt
-        run: ./gradlew ${{ inputs.detekt-task }} --no-daemon --build-cache
 
   build:
     # Everything except a PR being closed

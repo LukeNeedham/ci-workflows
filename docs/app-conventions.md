@@ -10,7 +10,6 @@ else, do that instead. Check the current stable version of every library before 
 - [Composables and previews](#composables-and-previews)
 - [One-off events](#one-off-events)
 - [Touch targets](#touch-targets)
-- [Detekt](#detekt)
 - [Release builds](#release-builds)
 
 ## Libraries
@@ -25,7 +24,6 @@ else, do that instead. Check the current stable version of every library before 
 | Networking | Ktor client with the OkHttp engine (`ktor-client-okhttp`), only for apps that make network calls |
 | Date and time | `kotlinx-datetime` |
 | Audio and video | Media3 (ExoPlayer) |
-| Linting | Detekt, run in CI ([below](#detekt)) |
 
 Do not add a second library for a job in this table. Anything else not listed is the app's own choice.
 
@@ -85,25 +83,6 @@ through a `Channel` the ViewModel exposes as a `Flow` (`Channel<Event>(Channel.B
 Everything clickable is **at least 48dp high and 48dp wide**, whatever it looks like. Use
 `Modifier.minimumInteractiveComponentSize()` on the clickable element to guarantee it, rather than
 sizing the visuals up.
-
-## Detekt
-
-Every app lints with [Detekt](https://detekt.dev). CI runs it on every PR, so a project that is set
-up wrongly (no plugin, no task) fails visibly instead of silently skipping lint.
-
-- **One shared rule set**, [`config/detekt/detekt.yml`](../config/detekt/detekt.yml) in this repo, for
-  Detekt 1.23.x. Apps do **not** commit a copy: the app's Gradle build reads it from this repo (the
-  same way `gradle/android-release.gradle` is applied by URL), so a rule change here reaches every
-  app. Apps add no rules or exceptions of their own; propose the change here instead.
-- It enforces the conventions on this page as well as the usual bug and complexity rules: it forbids
-  importing `MaterialTheme`, `android.util.Log`, `SharedPreferences`, Coil 2, Glide, Picasso,
-  Retrofit, Joda, Gson and Moshi, and exempts `@Composable` functions from the size and naming rules.
-- Detekt without type resolution (the plain `detekt` task) cannot run rules such as
-  `UnsafeCallOnNullableType`; that is accepted.
-- The shared PR workflow runs `./gradlew detekt` as its own job (`detekt-task` input, default
-  `detekt`; see [setup.md](setup.md)). It also fails with a clear message when the project has no
-  such task.
-- Fix findings in the code. Do not add a baseline to hide existing ones without telling the user.
 
 ## Release builds
 

@@ -1,6 +1,6 @@
 ---
 name: lukeneedham-conventions
-description: Luke Needham's conventions for Android apps - project setup, debug keystore, CI workflows, architecture (single activity, Compose, Navigation 3, MVVM, Koin DI, Coil 3 images, own AppTheme, Detekt) and the shared `common` debug library. Use when starting an app, adding a feature, screen, dependency or CI change, or touching logging, crashes or debug pages.
+description: Luke Needham's conventions for Android apps - project setup, debug keystore, CI workflows, architecture (single activity, Compose, Navigation 3, MVVM, Koin DI, Coil 3 images, own AppTheme) and the shared `common` debug library. Use when starting an app, adding a feature, screen, dependency or CI change, or touching logging, crashes or debug pages.
 ---
 
 <!-- Copied from LukeNeedham/ci-workflows (skills/lukeneedham-conventions). Do not edit here: change it
@@ -58,7 +58,7 @@ in the PR for the work you were asked to do, saying so in the description. Never
 
 ## Libraries and code patterns (details: `docs/app-conventions.md`)
 - Libraries: `kotlinx.serialization`, Room (structured data), DataStore (settings, never `SharedPreferences`),
-  Ktor client with the OkHttp engine (networking), `kotlinx-datetime`, Media3 (audio/video), Detekt.
+  Ktor client with the OkHttp engine (networking), `kotlinx-datetime`, Media3 (audio/video).
 - **All text in `strings.xml`**, none hard-coded (including content descriptions).
 - **Own `AppTheme`**, a hand-made composition local holding colours and typefaces. Never read `MaterialTheme`
   in the app; always `AppTheme.current`. No fixed text-style scale: set font size and line height inline in
@@ -68,8 +68,6 @@ in the PR for the work you were asked to do, saying so in the description. Never
   every composable; trivial ones can sit next to their parent and skip both.
 - **One-off events** go through a `Channel` exposed as a `Flow` (`receiveAsFlow()`), never in `UiState`.
 - **Touch targets** at least 48dp by 48dp for anything clickable: `Modifier.minimumInteractiveComponentSize()`.
-- **Detekt** using the shared `config/detekt/detekt.yml` from `ci-workflows` (read from there, never copied into the app, no app-specific rules); the shared PR workflow runs it as a `detekt` job and fails if
-  the project has no `detekt` task.
 - **Release builds are minified** (`isMinifyEnabled = true`, `isShrinkResources = true`) with keep rules.
 
 ## Shared library (`com.lukeneedham:common`)
