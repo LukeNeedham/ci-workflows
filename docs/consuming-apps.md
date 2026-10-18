@@ -13,6 +13,7 @@ library tick.
 | PoetryBook | [`LukeNeedham/PoetryBook`](https://github.com/LukeNeedham/PoetryBook) | yes | yes | |
 | StickerBoard | [`LukeNeedham/Stickerboard`](https://github.com/LukeNeedham/Stickerboard) | yes | yes | |
 | Krillion wrapper | [`LukeNeedham/krillion-wrapper`](https://github.com/LukeNeedham/krillion-wrapper) | yes | not yet (may be added later) | |
+| AppHub | [`LukeNeedham/AppHub`](https://github.com/LukeNeedham/AppHub) | yes | yes | yes |
 
 The Skill column is filled in as each app gets the skill ([skill.md](skill.md)), the next time Claude works on it; none have it yet.
 
