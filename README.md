@@ -67,7 +67,8 @@ Inputs (the defaults live here and only here; `apk-path` is the one required inp
 | `comment-header` | `example-app-link` | Id of the sticky comment. Change it only if a PR needs several separate APK comments |
 
 The `check-icon` job also fails the PR if `app-icon.png` is missing from the repo root or is not a
-square PNG of at least 512x512 ([app-icon.md](docs/app-icon.md)). The path is fixed, not an input.
+512x512 circle on a transparent background ([app-icon.md](docs/app-icon.md)). The path is fixed, not an
+input.
 
 `closed` has to be among the caller's `pull_request` types: that is the event that triggers the
 cleanup. Everything else (`opened`, `reopened`, `synchronize`) runs the build. A manual run

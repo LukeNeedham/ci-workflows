@@ -34,13 +34,16 @@ in the PR for the work you were asked to do, saying so in the description. Never
 - Open a PR for completed work. When the APK build comment appears on the PR, paste the download link into the chat.
 
 ## App icon
-- Commit the icon as `app-icon.png` at the repo root: square PNG, at least 512x512. The app hub reads it
-  from `main`, and the PR build (`check-icon` job) fails without it.
-- **Keep it in step with the launcher icon, always.** The CI check only proves the file exists, not that it
-  matches. Whenever a change touches the Android launcher icon (`ic_launcher*` mipmaps or drawables, the
-  adaptive icon XML, its foreground, background or monochrome layers, or their colors), regenerate
-  `app-icon.png` from the new icon in the same PR, and say so in the PR description. Before finishing any
-  work that mentions the app's icon, check this.
+- Commit the icon as `app-icon.png` at the repo root: a 512x512 PNG drawn as a **circle on a transparent
+  background**, filled with the adaptive launcher icon's background and with its foreground centred at the
+  same size and position (the centre 72dp of the 108dp canvas, as a circular launcher mask shows it). The
+  app hub reads it from `main`, and the PR build (`check-icon` job) fails if it is missing or not that shape.
+- **Never draw it by hand; render it:** `pip install cairosvg pillow`, then from the repo root
+  `python3 .claude/skills/lukeneedham-conventions/scripts/render_app_icon.py`. Look at the result.
+- **Keep it in step with the launcher icon, always.** CI cannot check that the two match. Whenever a change
+  touches the Android launcher icon (`ic_launcher*` mipmaps or drawables, the adaptive icon XML, its
+  foreground, background or monochrome layers, or their colors), re-run the script in the same PR, and say
+  so in the PR description. Before finishing any work that mentions the app's icon, check this.
 
 ## Architecture
 - Single activity (`ComponentActivity`), Jetpack Compose + Material 3, no XML, no fragments.

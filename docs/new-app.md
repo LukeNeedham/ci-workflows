@@ -109,8 +109,9 @@ into the chat as soon as it appears.** If the build fails, read the log, fix it,
 
 ## 4. App icon
 
-Commit the app's icon as **`app-icon.png` at the repo root**: a square PNG, at least 512x512. The app hub
-reads it from there, and the PR build fails without it. Keep it in step with the launcher icon. See
+Give the app an adaptive launcher icon, then commit **`app-icon.png` at the repo root**: a 512x512 circle
+on a transparent background, rendered from that adaptive icon with the script in the skill. The app hub reads
+it from there, and the PR build fails without it. Re-render it whenever the launcher icon changes. See
 [app-icon.md](app-icon.md).
 
 ## 5. App architecture
@@ -176,7 +177,7 @@ activity, and skip the rest. Say which sections you skipped and why.
 - [ ] Package is `com.lukeneedham.<app>`; versions match this repo
 - [ ] `app/debug.keystore` committed and used by the `debug` signing config
 - [ ] `trigger_on_pull_request.yml` (and `delete_prereleases.yml`) copied and configured
-- [ ] `app-icon.png` committed at the repo root (square PNG, 512x512 or larger)
+- [ ] `app-icon.png` committed at the repo root (512x512 circle on transparent, rendered from the adaptive icon)
 - [ ] Single activity, Compose, Navigation 3, MVVM, Koin for DI, or a stated reason for each departure
 - [ ] Shared library added, UI wrapped in `ProvideDebugSettings`
 - [ ] Settings page exists, with the `DebugButton` (not a floating button)
