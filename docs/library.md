@@ -9,7 +9,7 @@ needs, so they are written once instead of copied between apps.
 | Crash handler | Catches every uncaught exception, writes it to disk with the last 50 log lines, then lets the app crash as normal |
 | `LogsPage`, `CrashesPage` | Read the saved logs and crashes back. Text is selectable, so it can be copied |
 | `DebugPage` | The library's own debug page: debug settings (animation speed, saved) and links to the logs and crashes pages. It shows only those; an app's own debug tools go on the app's own debug page, which links to this one |
-| `DebugButton` | A button that opens the debug page. Shows nothing unless debugging is enabled |
+| `DebugButton` | A button that opens the debug page. Shows nothing unless debugging is enabled. Always placed on the app's settings page, never as a floating button over the main page |
 | Animation speed | A debug setting (0.25x to 2x), saved to disk, that scales every animation duration |
 | `ProvideDebugSettings` | The one composable that provides every debug setting to the UI as composition locals (`LocalDebugSettings`, `LocalAnimationSpeed`, ...). **Every app wraps its content in it**, whether or not it uses a setting yet |
 
@@ -23,7 +23,7 @@ to an existing one, wiring the pages into the app's navigation (Navigation 3, Vo
 else), removing the old logger and crash handler, and a checklist to verify it works.
 
 In short, the five steps are: add the repository, add the dependency, call `DebugKit.init(...)`
-once and early, wrap the UI in `ProvideDebugSettings` (and place a `DebugButton`), and add the
+once and early, wrap the UI in `ProvideDebugSettings` (and place a `DebugButton` on the app's settings page, which every app has), and add the
 three pages to the navigation. Then log with `Logger.i(...)`, `Logger.e(...)` and so on.
 
 ## How the pieces work

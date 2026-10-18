@@ -46,7 +46,8 @@ in the PR for the work you were asked to do, saying so in the description. Never
 ## Shared library (`com.lukeneedham:common`)
 - Repository `https://lukeneedham.github.io/ci-workflows/maven` (group `com.lukeneedham` only); version in `libs.versions.toml`.
 - Call `DebugKit.init(DebugKitConfig(enabled = BuildConfig.DEBUG))` first thing in `Application.onCreate`.
-- Wrap the UI in `ProvideDebugSettings`, place a `DebugButton`, add `DebugPage`, `LogsPage`, `CrashesPage` to navigation.
+- Wrap the UI in `ProvideDebugSettings`, add `DebugPage`, `LogsPage`, `CrashesPage` to navigation.
+- Every app has a settings page (add one to an existing app that lacks it; fine if nothing else is on it). It holds the `DebugButton`, never a floating button on the main page, and shows the app's package and current version.
 - Use `Logger.d/i/w/e`, never `Log` or `println`. Scale animation durations with `LocalAnimationSpeed.current.scale(ms)`.
 - Apps with their own debug tools keep their own debug page, with a button that opens the library's `DebugPage`.
 

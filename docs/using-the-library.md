@@ -35,7 +35,7 @@ Every app, new or existing, does the same five things:
 1. **Add the repository** to `settings.gradle.kts`.
 2. **Add the dependency** to the app module.
 3. **Call `DebugKit.init(...)` once, as early as possible** (before anything can crash or log).
-4. **Wrap the UI in `ProvideDebugSettings`**, and place a `DebugButton`. Every app, new or existing, does this, even one that reads no debug setting yet (see [Always wrap the UI](#always-wrap-the-ui-in-providedebugsettings)).
+4. **Wrap the UI in `ProvideDebugSettings`**, and place a `DebugButton` on the app's settings page. Every app, new or existing, does this, even one that reads no debug setting yet (see [Always wrap the UI](#always-wrap-the-ui-in-providedebugsettings)). Every app needs a settings page for it ([Every app has a settings page](#every-app-has-a-settings-page)).
 5. **Add the three pages** (`DebugPage`, `LogsPage`, `CrashesPage`) to your navigation.
 
 Then use `Logger` instead of `Log`/`println`.
@@ -205,6 +205,41 @@ So there are four routes: the app's debug page, and under it the library's `Debu
 `CrashesPage`. An app with no debug tools of its own has no page of its own and opens the library's
 `DebugPage` directly.
 
+## Every app has a settings page
+
+Every app, new or existing, has a **settings page**, reachable from the app's normal navigation (a
+settings icon in the top bar, a drawer or tab entry, whichever fits the app). **A new app always gets
+one. An existing app that has none adds one** as part of adopting the library. The page is rendered
+even when it has no other actions on it: an app with nothing to configure still has a settings page,
+and it still holds the two things below.
+
+1. **The `DebugButton`**, as a normal item on the page (a row or button in the page's column). It opens
+   the debug page, and shows nothing unless debugging is enabled. It is never a floating action button
+   or overlay on the main page.
+2. **The app's package and current version**, e.g. `com.lukeneedham.flagtutor` and `1.4.2 (17)`, shown
+   as plain text, usually at the bottom (an "About" section). Read them from the build, never hard-code
+   them: on Android `context.packageName` and `PackageManager.getPackageInfo(packageName, 0)`
+   (`versionName`, and `longVersionCode` for the build number); on other platforms from whatever the
+   platform exposes, or a build-generated constant.
+
+```kotlin
+@Composable
+fun SettingsPage(onBack: () -> Unit, onOpenDebug: () -> Unit) {
+    val context = LocalContext.current
+    val info = context.packageManager.getPackageInfo(context.packageName, 0)
+    Scaffold(topBar = { /* title "Settings" and a back arrow calling onBack */ }) { padding ->
+        Column(Modifier.padding(padding).padding(16.dp)) {
+            // ... the app's own settings, if it has any ...
+            DebugButton(onClick = onOpenDebug)
+            Text("${context.packageName}\n${info.versionName} (${info.longVersionCode})")
+        }
+    }
+}
+```
+
+If the app already has a settings page, add the two items to it. If it already has a settings entry
+that opens its own debug page, keep that, and make sure the settings page has the version info.
+
 ## Always wrap the UI in `ProvideDebugSettings`
 
 `ProvideDebugSettings` is the single place where the library hands composition locals to the app.
@@ -237,20 +272,11 @@ call. The steps for adding one are in the KDoc of `ProvideDebugSettings`.
 The pages never navigate themselves: they call the lambdas you pass, so they fit any navigation
 library. Three routes are needed (Debug, Logs, Crashes), plus a way to open Debug.
 
-**Opening the debug page.** Put a `DebugButton` over your content. It draws nothing when debugging
-is off, so it can stay in the code for release builds:
-
-```kotlin
-Box(Modifier.fillMaxSize()) {
-    AppNavigation()
-    DebugButton(
-        onClick = { navigateToDebug() },
-        modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
-    )
-}
-```
-
-If the app already has a settings entry that opens its debug page (some apps already do), keep that and skip the button.
+**Opening the debug page.** Put a `DebugButton` on the app's settings page, see
+[Every app has a settings page](#every-app-has-a-settings-page). **Never place it over the main page as a
+floating action button** (or any other overlay): the debug entry point is part of settings, not of the
+app's main UI. The button draws nothing when debugging is off, so it can stay in the code for release
+builds.
 
 **Navigation 3 or a hand-written back stack** :
 
@@ -340,13 +366,15 @@ OutlinedButton(onClick = { error("Test crash") }) { Text("Crash the app") }
 ```
 
 1. Put a `Logger.i("hello from the app")` somewhere that runs at launch.
-2. Open **Debug > Logs**: the line is there, with a timestamp.
+2. Open **Settings > Debug > Logs**: the line is there, with a timestamp.
 3. Tap **Crash the app**. The app closes as it normally would on a crash.
-4. Reopen it, then **Debug > Crashes**: the crash is listed. Tap it for the stack trace and the log
+4. Reopen it, then **Settings > Debug > Crashes**: the crash is listed. Tap it for the stack trace and the log
    lines from just before it.
 5. Back on Debug, choose **0.5x** animation speed, close the app from the app switcher, reopen it:
    0.5x is still selected, and animations are slower.
-6. Build a **release** build: no Debug button, no route to the pages, and animations at normal
+6. Open **Settings**: the app's package and current version are shown, and the Debug button is there
+   (not floating over the main page).
+7. Build a **release** build: no Debug button, no route to the pages, and animations at normal
    speed even though 0.5x was saved. (Crashes are still saved in release; there is just no page to
    read them on.)
 
