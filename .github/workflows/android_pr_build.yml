@@ -1,9 +1,9 @@
 name: Android PR Build
 
 # Building block of android_pr.yml: builds an Android APK, publishes it as a pre-release asset and
-# posts/updates a sticky PR comment with the download link and the AppHub link (the PR's page in the
-# AppHub app, https://www.lukeneedham.com/apphub/pr/<repo name>/<number>). Call android_pr.yml instead of this
-# file; that is where the input defaults live, so every input here is required.
+# posts/updates a sticky PR comment with the download link, and posts the AppHub link (the PR's page in the
+# AppHub app, https://www.lukeneedham.com/apphub/pr/<repo name>/<number>) once, as a comment of its own.
+# Call android_pr.yml instead of this file; that is where the input defaults live, so every input here is required.
 #
 # The caller's `permissions:` cap what this workflow can do, so the caller must grant:
 #   contents: write, pull-requests: write
@@ -43,6 +43,20 @@ jobs:
       group: android-pr-build-${{ github.repository }}-${{ github.event.pull_request.number || github.ref }}
       cancel-in-progress: true
     steps:
+      # The AppHub link depends only on the repo name and the PR number, so it is posted as soon as the job
+      # starts and never changes. only_create leaves an existing comment alone: one comment per PR, however
+      # many pushes and re-runs. Skipped on manual dispatches (no PR to comment on).
+      - name: Post AppHub link on PR
+        if: github.event_name == 'pull_request'
+        uses: marocchino/sticky-pull-request-comment@v3
+        with:
+          header: apphub-pr-link
+          only_create: true
+          message: |
+            ### 📲 AppHub
+
+            [Open this pull request in AppHub](https://www.lukeneedham.com/apphub/pr/${{ github.event.repository.name }}/${{ github.event.pull_request.number }})
+
       # Runs first so the PR shows a new build is coming as soon as the job starts. The previous
       # APK link is kept but flagged as stale. Skipped on manual dispatches (no PR to comment on).
       - name: Mark previous build as stale
@@ -72,7 +86,6 @@ jobs:
           message: |
             ### ⏳ Build in progress
 
-            - **AppHub:** 📲 [Open](https://www.lukeneedham.com/apphub/pr/${{ github.event.repository.name }}/${{ github.event.pull_request.number }})
             - **Commit:** [`${{ steps.prev.outputs.short-sha }}`](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.event.pull_request.head.sha }})
             - **Started:** ${{ steps.prev.outputs.time }}
             - **Run:** [#${{ github.run_number }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
@@ -131,7 +144,6 @@ jobs:
             ### ✅ Build succeeded
 
             - **APK:** 📦 [Download](https://github.com/${{ github.repository }}/releases/download/${{ steps.meta.outputs.tag }}/${{ steps.meta.outputs.apk-name }})
-            - **AppHub:** 📲 [Open](https://www.lukeneedham.com/apphub/pr/${{ github.event.repository.name }}/${{ github.event.pull_request.number }})
             - **Commit:** [`${{ steps.prev.outputs.short-sha }}`](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.event.pull_request.head.sha }})
             - **Built:** ${{ steps.meta.outputs.time }}
             - **Run:** [#${{ github.run_number }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
@@ -161,7 +173,6 @@ jobs:
           message: |
             ### ${{ job.status == 'cancelled' && '🚫 Build cancelled' || '❌ Build failed' }}
 
-            - **AppHub:** 📲 [Open](https://www.lukeneedham.com/apphub/pr/${{ github.event.repository.name }}/${{ github.event.pull_request.number }})
             - **Commit:** [`${{ steps.prev.outputs.short-sha }}`](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.event.pull_request.head.sha }})
             - **Started:** ${{ steps.prev.outputs.time }}
             - **Run:** [#${{ github.run_number }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
