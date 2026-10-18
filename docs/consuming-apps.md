@@ -31,4 +31,4 @@ Remove a row only when the project stops consuming everything.
 
 For each app with a library tick, on a branch, set `common` in `gradle/libs.versions.toml` to the latest
 `common-<version>` release of this repo (see [library.md](library.md#releasing)), make any change the
-release notes need, and open a PR. Paste each PR's APK link into the chat when the build comment appears.
+release notes need, and open a PR. Paste each PR's AppHub link into the chat when the build comment appears.
