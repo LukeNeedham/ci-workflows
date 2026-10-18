@@ -122,7 +122,8 @@ Defaults for a normal app. If the user asks for something else, do that instead.
 
 - **Single activity.** One `MainActivity` (extending `ComponentActivity`) hosts the whole UI. Screens
   are composables, never extra activities or fragments.
-- **Jetpack Compose with Material 3.** No XML layouts.
+- **Jetpack Compose, themed by the app's own `AppTheme`** (a hand-made composition local, never
+  `MaterialTheme`; see [app-conventions.md](app-conventions.md#theme)). No XML layouts.
 - **Navigation 3** (`androidx.navigation3`) for navigation. Destinations are `@Serializable` data
   objects/classes implementing `NavKey`; the back stack is state the app owns:
 
@@ -156,7 +157,17 @@ Defaults for a normal app. If the user asks for something else, do that instead.
   `koinViewModel()` (`koin-androidx-compose`). Classes take their dependencies as constructor
   parameters and never call Koin themselves, so they stay unit-testable. Check the current Koin version
   and the BOM (`koin-bom`) before adding it.
+- **Image loading: Coil 3.** Use [Coil](https://coil-kt.github.io/coil/) **version 3** (group
+  `io.coil-kt.coil3`, not the older `io.coil-kt:coil-compose` 2.x) for every image that is not a bundled
+  drawable: files, content URIs, and URLs. Add `coil-compose`, plus `coil-network-okhttp` only if the app
+  loads images over the network (Coil 3 has no network layer by default). Show images with `AsyncImage`
+  (or `rememberAsyncImagePainter` when a `Painter` is needed). Do not use Glide, Picasso, or hand-rolled
+  `BitmapFactory` loading. Provide a `contentDescription` (or `null` if decorative), and give it a size so
+  Coil can downsample. Check the current stable Coil 3 version before adding it.
 - **Tests.** Unit tests for ViewModels and repositories (JUnit, `kotlinx-coroutines-test`).
+- **More conventions** (serialization, Room, DataStore, Ktor, kotlinx-datetime, Media3, strings, theme,
+  previews, one-off events, touch targets, minified release builds): see
+  **[app-conventions.md](app-conventions.md)** and follow it.
 
 ## 6. The shared library
 
@@ -180,7 +191,8 @@ activity, and skip the rest. Say which sections you skipped and why.
 - [ ] `app/debug.keystore` committed and used by the `debug` signing config
 - [ ] `trigger_on_pull_request.yml` (and `delete_prereleases.yml`) copied and configured
 - [ ] Adaptive launcher icon in place (CI then generates `app-icon.png` at the repo root on the first PR)
-- [ ] Single activity, Compose, Navigation 3, MVVM, Koin for DI, or a stated reason for each departure
+- [ ] Single activity, Compose, Navigation 3, MVVM, Koin for DI, Coil 3 for images, or a stated reason for each departure
+- [ ] [app-conventions.md](app-conventions.md) followed: strings in `strings.xml`, own `AppTheme` (no `MaterialTheme`), a preview per composable, 48dp touch targets
 - [ ] Shared library added, UI wrapped in `ProvideDebugSettings`
 - [ ] Settings page exists, with the `DebugButton` (not a floating button)
 - [ ] PR opened, CI green, AppHub link pasted to the user
