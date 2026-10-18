@@ -191,7 +191,7 @@ activity, and skip the rest. Say which sections you skipped and why.
 - [ ] Adaptive launcher icon in place (CI then generates `app-icon.png` at the repo root on the first PR)
 - [ ] Single activity, Compose, Navigation 3, MVVM, Koin for DI, Coil 3 for images, or a stated reason for each departure
 - [ ] [app-conventions.md](app-conventions.md) followed: strings in `strings.xml`, own `AppTheme` (no `MaterialTheme`), a preview per composable, 48dp touch targets
-- [ ] Detekt plugin and `config/detekt/detekt.yml` in place (the CI `detekt` job is green); release build minified
+- [ ] Detekt plugin applied, using the shared rules from this repo (no local copy) (the CI `detekt` job is green); release build minified
 - [ ] Shared library added, UI wrapped in `ProvideDebugSettings`
 - [ ] Settings page exists, with the `DebugButton` (not a floating button)
 - [ ] PR opened, CI green, APK link pasted to the user

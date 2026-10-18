@@ -91,23 +91,15 @@ sizing the visuals up.
 Every app lints with [Detekt](https://detekt.dev). CI runs it on every PR, so a project that is set
 up wrongly (no plugin, no task) fails visibly instead of silently skipping lint.
 
-- Apply the Detekt Gradle plugin (version in `libs.versions.toml`; check the current plugin id and
-  version) and configure it in the app module:
-
-  ```kotlin
-  detekt {
-      buildUponDefaultConfig = true
-      config.setFrom(rootProject.file("config/detekt/detekt.yml"))
-  }
-  ```
-- Commit `config/detekt/detekt.yml`. A starting point: composable functions are named in
-  `PascalCase`, so exclude them from the function naming rule:
-
-  ```yaml
-  naming:
-    FunctionNaming:
-      ignoreAnnotated: ['Composable']
-  ```
+- **One shared rule set**, [`config/detekt/detekt.yml`](../config/detekt/detekt.yml) in this repo, for
+  Detekt 1.23.x. Apps do **not** commit a copy: the app's Gradle build reads it from this repo (the
+  same way `gradle/android-release.gradle` is applied by URL), so a rule change here reaches every
+  app. Apps add no rules or exceptions of their own; propose the change here instead.
+- It enforces the conventions on this page as well as the usual bug and complexity rules: it forbids
+  importing `MaterialTheme`, `android.util.Log`, `SharedPreferences`, Coil 2, Glide, Picasso,
+  Retrofit, Joda, Gson and Moshi, and exempts `@Composable` functions from the size and naming rules.
+- Detekt without type resolution (the plain `detekt` task) cannot run rules such as
+  `UnsafeCallOnNullableType`; that is accepted.
 - The shared PR workflow runs `./gradlew detekt` as its own job (`detekt-task` input, default
   `detekt`; see [setup.md](setup.md)). It also fails with a clear message when the project has no
   such task.

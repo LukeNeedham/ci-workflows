@@ -68,7 +68,7 @@ in the PR for the work you were asked to do, saying so in the description. Never
   every composable; trivial ones can sit next to their parent and skip both.
 - **One-off events** go through a `Channel` exposed as a `Flow` (`receiveAsFlow()`), never in `UiState`.
 - **Touch targets** at least 48dp by 48dp for anything clickable: `Modifier.minimumInteractiveComponentSize()`.
-- **Detekt** with `config/detekt/detekt.yml`; the shared PR workflow runs it as a `detekt` job and fails if
+- **Detekt** using the shared `config/detekt/detekt.yml` from `ci-workflows` (read from there, never copied into the app, no app-specific rules); the shared PR workflow runs it as a `detekt` job and fails if
   the project has no `detekt` task.
 - **Release builds are minified** (`isMinifyEnabled = true`, `isShrinkResources = true`) with keep rules.
 

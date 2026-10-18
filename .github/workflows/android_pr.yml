@@ -123,7 +123,7 @@ jobs:
           DETEKT_TASK: ${{ inputs.detekt-task }}
         run: |
           if ! ./gradlew tasks --all --no-daemon -q | grep -qE "(^|:)${DETEKT_TASK} "; then
-            echo "::error::No Gradle task '${DETEKT_TASK}' found. Apply the Detekt Gradle plugin and commit config/detekt/detekt.yml (see docs/app-conventions.md in LukeNeedham/ci-workflows), or set detekt-task to the task you use."
+            echo "::error::No Gradle task '${DETEKT_TASK}' found. Apply the Detekt Gradle plugin as described in docs/app-conventions.md in LukeNeedham/ci-workflows, or set detekt-task to the task you use."
             exit 1
           fi
 
