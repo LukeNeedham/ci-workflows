@@ -65,10 +65,12 @@ Inputs (the defaults live here and only here; `apk-path` is the one required inp
 | `java-distribution` | `zulu` | JDK distribution |
 | `timezone` | `Europe/Amsterdam` | Timezone for the timestamps in the comment and release |
 | `comment-header` | `example-app-link` | Id of the sticky comment. Change it only if a PR needs several separate APK comments |
+| `tools-ref` | `main` | Branch or tag of this repo to fetch `scripts/` from. Leave it; set it to a branch only to test a script change |
 
-The `check-icon` job also fails the PR if `app-icon.png` is missing from the repo root or is not a
-512x512 circle on a transparent background ([app-icon.md](docs/app-icon.md)). The path is fixed, not an
-input.
+The `app-icon` job renders `app-icon.png` (a 512x512 circle on a transparent background) from the app's
+adaptive launcher icon on every PR and commits it to the PR branch when it differs
+([app-icon.md](docs/app-icon.md)). The path is fixed, not an input. It fetches
+[`scripts/render_app_icon.py`](scripts/render_app_icon.py) from this repo at run time.
 
 `closed` has to be among the caller's `pull_request` types: that is the event that triggers the
 cleanup. Everything else (`opened`, `reopened`, `synchronize`) runs the build. A manual run
@@ -174,7 +176,8 @@ Changes to `main` affect every project at once, so:
 
 1. Make the change on a branch and open a PR.
 2. To try it before merging, point a test PR in a consuming repo at the branch
-   (`...android_pr_build.yml@my-branch`), then switch it back to `@main`.
+   (`...android_pr_build.yml@my-branch`), then switch it back to `@main`. If the change is to a script in
+   `scripts/`, also pass `tools-ref: my-branch` in that caller, or the workflow fetches the script from `main`.
 3. Merge, then watch the next real run in a consuming repo.
 
 When a consuming project's CI behaves oddly, the project's own caller files are usually fine; look

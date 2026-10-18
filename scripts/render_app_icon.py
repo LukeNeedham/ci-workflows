@@ -6,8 +6,13 @@ holds the icon's background, with the foreground at the same size and position a
 icon (the visible circle is the centre 72dp of the 108dp adaptive canvas). See docs/app-icon.md in
 LukeNeedham/ci-workflows.
 
-Usage:  python3 render_app_icon.py [APP_DIR] [-o OUTPUT]
-        APP_DIR defaults to the current directory, OUTPUT to APP_DIR/app-icon.png.
+The output is only rewritten when it differs visibly from the file that is already there, so that
+different Cairo versions (which anti-alias edges slightly differently) do not churn the file.
+
+CI runs this on every PR (the app-icon job of android_pr.yml) and commits the result. To preview locally:
+        curl -fsSL https://raw.githubusercontent.com/LukeNeedham/ci-workflows/main/scripts/render_app_icon.py -o /tmp/render_app_icon.py
+        python3 /tmp/render_app_icon.py [APP_DIR] [-o OUTPUT]
+APP_DIR defaults to the current directory, OUTPUT to APP_DIR/app-icon.png.
 Needs:  pip install cairosvg pillow
 """
 import argparse
@@ -198,6 +203,26 @@ def adaptive_icon(app_dir, dirs):
     sys.exit(f"@mipmap/{name} is not an adaptive icon (no mipmap-anydpi*/{name}.xml)")
 
 
+TOLERANCE = 0.25  # mean absolute difference per channel (0-255) below which two renders count as the same
+
+
+def same_picture(png_a, png_b):
+    """True when two PNGs look the same, ignoring the colour of fully transparent pixels and tiny edge noise."""
+    from PIL import Image, ImageChops, ImageStat
+
+    def flat(data):
+        img = Image.open(io.BytesIO(data)).convert("RGBA")
+        backdrop = Image.new("RGBA", img.size, (255, 0, 255, 255))
+        backdrop.alpha_composite(img)
+        return backdrop
+
+    a, b = flat(png_a), flat(png_b)
+    if a.size != b.size:
+        return False
+    mean = ImageStat.Stat(ImageChops.difference(a, b)).mean
+    return sum(mean) / len(mean) <= TOLERANCE
+
+
 def render(app_dir):
     import cairosvg
     dirs = res_dirs(app_dir)
@@ -225,5 +250,9 @@ if __name__ == "__main__":
     args = ap.parse_args()
     app = Path(args.app_dir).resolve()
     out = Path(args.output) if args.output else app / "app-icon.png"
-    out.write_bytes(render(app))
-    print(f"Wrote {out}")
+    png = render(app)
+    if out.exists() and same_picture(out.read_bytes(), png):
+        print(f"{out} is up to date")
+    else:
+        out.write_bytes(png)
+        print(f"Wrote {out}")

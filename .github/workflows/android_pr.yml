@@ -34,80 +34,63 @@ on:
         description: Sticky comment id
         type: string
         default: example-app-link
+      tools-ref:
+        description: Branch or tag of LukeNeedham/ci-workflows to fetch scripts/ from. Leave as main; set it to a branch only to test a script change
+        type: string
+        default: main
 
 jobs:
-  # Every app exposes its icon at a fixed path so tooling such as the app hub can fetch it. Fails the
-  # PR when it is missing, or not a square RGBA PNG of at least 512x512 drawn as a circle on a
-  # transparent background. The path is fixed and cannot be overridden: it has to be the same in every
-  # app. Runs alongside the build.
-  check-icon:
+  # Every app exposes its icon at a fixed path, app-icon.png in the repo root, so tooling such as the app
+  # hub can fetch it. It is generated from the app's adaptive launcher icon, so it cannot drift: this job
+  # renders it on every PR and, when it differs, commits it to the PR branch. The path is fixed and cannot
+  # be overridden: it has to be the same in every app. Runs alongside the build.
+  # Pushes made with the workflow token do not start new workflow runs, so there is no loop; they also
+  # mean the checks do not run again on that commit (the APK does not contain app-icon.png).
+  app-icon:
     if: github.event_name != 'pull_request' || github.event.action != 'closed'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
+      # The PR's own branch, not the merge commit, so the result can be pushed back to it
       - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+          ref: ${{ github.head_ref || github.ref_name }}
 
-      - name: Check the app icon
+      - name: Render the app icon
         env:
-          ICON_PATH: app-icon.png
+          TOOLS_REF: ${{ inputs.tools-ref }}
         run: |
-          python3 - <<'PY'
-          import os, struct, sys, zlib
+          sudo apt-get install -y --no-install-recommends libcairo2 > /dev/null
+          pip install --quiet cairosvg pillow
+          curl -fsSL "https://raw.githubusercontent.com/LukeNeedham/ci-workflows/${TOOLS_REF}/scripts/render_app_icon.py" \
+            -o "$RUNNER_TEMP/render_app_icon.py"
+          python3 "$RUNNER_TEMP/render_app_icon.py" .
 
-          path = os.environ["ICON_PATH"]
-
-          def fail(message):
-              print(f"::error file={path}::{message} See https://github.com/LukeNeedham/ci-workflows/blob/main/docs/app-icon.md")
-              sys.exit(1)
-
-          if not os.path.isfile(path):
-              fail(f"The app icon '{path}' is missing. Every app commits a 512x512 PNG there.")
-          with open(path, "rb") as f:
-              data = f.read()
-          if data[:8] != b"\x89PNG\r\n\x1a\n" or data[12:16] != b"IHDR":
-              fail(f"'{path}' is not a PNG file.")
-          width, height, depth, color, _, _, interlace = struct.unpack(">IIBBBBB", data[16:29])
-          if width != height:
-              fail(f"'{path}' must be square, but is {width}x{height}.")
-          if width < 512:
-              fail(f"'{path}' must be at least 512x512, but is {width}x{height}.")
-          if (depth, color, interlace) != (8, 6, 0):
-              fail(f"'{path}' must be an 8-bit RGBA PNG that is not interlaced (it must have transparency).")
-
-          # Decode the pixels (RGBA, so 4 bytes each) to look at the corners and the centre
-          idat, pos = b"", 8
-          while pos < len(data):
-              length, kind = struct.unpack(">I4s", data[pos:pos + 8])
-              if kind == b"IDAT":
-                  idat += data[pos + 8:pos + 8 + length]
-              pos += 12 + length
-          raw = zlib.decompress(idat)
-          stride = width * 4
-          rows, prev = [], bytearray(stride)
-          for y in range(height):
-              ft, line = raw[y * (stride + 1)], bytearray(raw[y * (stride + 1) + 1:(y + 1) * (stride + 1)])
-              for i in range(stride):
-                  a = line[i - 4] if i >= 4 else 0
-                  b = prev[i]
-                  c = prev[i - 4] if i >= 4 else 0
-                  if ft == 1: line[i] = (line[i] + a) & 255
-                  elif ft == 2: line[i] = (line[i] + b) & 255
-                  elif ft == 3: line[i] = (line[i] + ((a + b) >> 1)) & 255
-                  elif ft == 4:
-                      p = a + b - c
-                      pa, pb, pc = abs(p - a), abs(p - b), abs(p - c)
-                      line[i] = (line[i] + (a if pa <= pb and pa <= pc else b if pb <= pc else c)) & 255
-              rows.append(line)
-              prev = line
-          alpha = lambda x, y: rows[y][x * 4 + 3]
-          last, mid, near = width - 1, width // 2, width // 10
-          # Just inside each corner of the square is outside a circle (but not outside a rounded square)
-          corners = [(0, 0), (last, 0), (0, last), (last, last), (near, near), (last - near, near), (near, last - near), (last - near, last - near)]
-          if any(alpha(x, y) != 0 for x, y in corners):
-              fail(f"'{path}' must be a circle with a transparent background, but its corners are not transparent.")
-          if alpha(mid, mid) != 255:
-              fail(f"'{path}' must be a circle filled with the icon, but its centre is not opaque.")
-          print(f"{path}: {width}x{height} circular PNG, ok")
-          PY
+      - name: Commit the app icon if it changed
+        env:
+          IS_PR: ${{ github.event_name == 'pull_request' }}
+          IS_FORK: ${{ github.event.pull_request.head.repo.full_name != github.repository }}
+          BRANCH: ${{ github.head_ref }}
+        run: |
+          if [ -z "$(git status --porcelain -- app-icon.png)" ]; then
+            echo "app-icon.png is up to date"
+            exit 0
+          fi
+          if [ "$IS_PR" != "true" ] || [ "$IS_FORK" = "true" ]; then
+            echo "::error file=app-icon.png::app-icon.png does not match the adaptive launcher icon, and this run cannot commit it (it only does on a PR from this repo's own branches). Run scripts/render_app_icon.py (see docs/app-icon.md) and commit the result."
+            exit 1
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app-icon.png
+          git commit -m "Regenerate app-icon.png from the adaptive launcher icon"
+          # A push to the branch since this run started makes the first push fail: rebase onto it and retry
+          git push origin "HEAD:refs/heads/$BRANCH" || {
+            git pull --rebase origin "$BRANCH"
+            git push origin "HEAD:refs/heads/$BRANCH"
+          }
 
   build:
     # Everything except a PR being closed
