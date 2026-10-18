@@ -21,5 +21,5 @@ PNG is a separate copy. **When the launcher icon changes, update `app-icon.png` 
 app already calls that workflow, so the rule reaches all of them as soon as it is on `main`. An app that
 has no icon yet fails its next PR until it adds one.
 
-If an app really must keep the icon elsewhere, pass `icon-path:` in its
-`trigger_on_pull_request.yml`; the hub then cannot find it, so avoid this.
+The path is hard-coded in the workflow and cannot be overridden, because it must be the same in every
+app.

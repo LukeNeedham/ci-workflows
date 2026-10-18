@@ -34,14 +34,11 @@ on:
         description: Sticky comment id
         type: string
         default: example-app-link
-      icon-path:
-        description: Path to the app icon PNG, relative to the repo root (see docs/app-icon.md)
-        type: string
-        default: app-icon.png
 
 jobs:
   # Every app exposes its icon at a fixed path so tooling such as the app hub can fetch it. Fails the
-  # PR when it is missing or not a square PNG of at least 512x512. Runs alongside the build.
+  # PR when it is missing or not a square PNG of at least 512x512. The path is fixed and cannot be
+  # overridden: it has to be the same in every app. Runs alongside the build.
   check-icon:
     if: github.event_name != 'pull_request' || github.event.action != 'closed'
     runs-on: ubuntu-latest
@@ -50,7 +47,7 @@ jobs:
 
       - name: Check the app icon
         env:
-          ICON_PATH: ${{ inputs.icon-path }}
+          ICON_PATH: app-icon.png
         run: |
           python3 - <<'PY'
           import os, struct, sys
