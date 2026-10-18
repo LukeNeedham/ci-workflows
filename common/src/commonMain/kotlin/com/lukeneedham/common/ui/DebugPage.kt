@@ -15,13 +15,15 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.lukeneedham.common.DebugKit
 import com.lukeneedham.common.debug.AnimationSpeed
+import com.lukeneedham.common.readAppInfo
 
 /**
- * The library's debug page: the debug settings, and links to the logs and crashes pages. It shows only
+ * The library's debug page: the app's package and current version, the debug settings, and links to the logs and crashes pages. It shows only
  * the library's own things and has no slot for anything else.
  *
  * It does not navigate itself: the app wires [onOpenLogs] and [onOpenCrashes] to its own navigation.
@@ -37,6 +39,7 @@ fun DebugPage(
     modifier: Modifier = Modifier,
 ) {
     val settings = DebugKit.settings
+    val appInfo = remember { readAppInfo() }
     DebugScaffold(title = "Debug", onBack = onBack, modifier = modifier) { padding ->
         Column(
             modifier = Modifier
@@ -46,6 +49,11 @@ fun DebugPage(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            appInfo?.let {
+                Text(it.id, style = MaterialTheme.typography.titleMedium)
+                it.version?.let { version -> Text("Version $version") }
+                HorizontalDivider()
+            }
             Text("Animation speed", style = MaterialTheme.typography.titleMedium)
             Row(
                 modifier = Modifier.horizontalScroll(rememberScrollState()),

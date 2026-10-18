@@ -161,6 +161,10 @@ Every Compose app uses the shared library (`common/`): logger, crash handler, an
 and crashes pages. Follow **[using-the-library.md](using-the-library.md)** to add it, and use
 `Logger` rather than `Log` or `println`.
 
+**Every app has a settings page**, even with nothing else on it. It holds the library's `DebugButton`
+(never a floating button on the main page). The app's package and version are shown by the library's debug page, not the settings page. See
+[Every app has a settings page](using-the-library.md#every-app-has-a-settings-page).
+
 ## Apps that are not Compose
 
 Some apps are too small for the above, such as the Krillion web-game wrapper: one `WebView` in one
@@ -175,4 +179,5 @@ activity, and skip the rest. Say which sections you skipped and why.
 - [ ] `app-icon.png` committed at the repo root (square PNG, 512x512 or larger)
 - [ ] Single activity, Compose, Navigation 3, MVVM, Koin for DI, or a stated reason for each departure
 - [ ] Shared library added, UI wrapped in `ProvideDebugSettings`
+- [ ] Settings page exists, with the `DebugButton` (not a floating button)
 - [ ] PR opened, CI green, APK link pasted to the user
