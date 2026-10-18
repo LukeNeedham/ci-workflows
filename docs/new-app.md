@@ -104,8 +104,10 @@ details. In short, for a new app:
    that only the user can add.
 5. `ci-workflows` is a public repo, so don't worry about access.
 
-Open a PR: CI then builds the debug APK and comments the download link on the PR. **Paste that link
-into the chat as soon as it appears.** If the build fails, read the log, fix it, push.
+Open a PR: CI then builds the debug APK and comments on the PR with the APK link and an **AppHub** link
+(`https://lukeneedham.com/apphub/pr/<repo name>/<number>`, the PR's page in the AppHub app, where the build can
+be downloaded and installed). **Paste the AppHub link into the chat as soon as the comment appears**, not
+the APK link. If the build fails, read the log, fix it, push.
 
 ## 4. App icon
 
@@ -181,4 +183,4 @@ activity, and skip the rest. Say which sections you skipped and why.
 - [ ] Single activity, Compose, Navigation 3, MVVM, Koin for DI, or a stated reason for each departure
 - [ ] Shared library added, UI wrapped in `ProvideDebugSettings`
 - [ ] Settings page exists, with the `DebugButton` (not a floating button)
-- [ ] PR opened, CI green, APK link pasted to the user
+- [ ] PR opened, CI green, AppHub link pasted to the user

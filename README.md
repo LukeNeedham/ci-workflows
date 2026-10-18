@@ -81,6 +81,7 @@ layout (a heading with the state's emoji, then a bullet list):
 
 ```
 ### ⏳ Build in progress
+- AppHub: 📲 Open              (the PR's page in AppHub, https://lukeneedham.com/apphub/pr/<repo name>/<number>)
 - Commit: `be7d718`            (linked to the commit)
 - Started: 09/10/2026 12:56:20
 - Run: #210                    (linked to the run)
@@ -88,10 +89,10 @@ layout (a heading with the state's emoji, then a bullet list):
 
 ### ✅ Build succeeded
 - APK: 📦 Download
-- Commit / Built / Run
+- AppHub / Commit / Built / Run
 
 ### ❌ Build failed  /  ### 🚫 Build cancelled
-- Commit / Started / Run / Previous APK (stale)
+- AppHub / Commit / Started / Run / Previous APK (stale)
 ```
 
 - The comment switches to "in progress" as the first step of the job, before the build starts. The
