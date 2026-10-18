@@ -12,7 +12,10 @@ building or unpacking the app.
   auth is needed. The repo names are in [consuming-apps.md](consuming-apps.md).
 
 The launcher icon inside the app is usually adaptive XML or vector, which the hub cannot render, so this
-PNG is a separate copy. **When the launcher icon changes, update `app-icon.png` in the same PR.**
+PNG is a separate copy. **Whenever a change touches the launcher icon (the `ic_launcher*` mipmaps or
+drawables, the adaptive icon XML, its foreground, background or monochrome layers, or their colors),
+regenerate `app-icon.png` from the new icon in the same PR.** CI cannot check that the two match, so this
+rule is in the [skill](skill.md) that every app's Claude follows.
 
 ## Enforcement
 

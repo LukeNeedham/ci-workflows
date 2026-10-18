@@ -35,7 +35,12 @@ in the PR for the work you were asked to do, saying so in the description. Never
 
 ## App icon
 - Commit the icon as `app-icon.png` at the repo root: square PNG, at least 512x512. The app hub reads it
-  from `main`, and the PR build (`check-icon` job) fails without it. Update it whenever the launcher icon changes.
+  from `main`, and the PR build (`check-icon` job) fails without it.
+- **Keep it in step with the launcher icon, always.** The CI check only proves the file exists, not that it
+  matches. Whenever a change touches the Android launcher icon (`ic_launcher*` mipmaps or drawables, the
+  adaptive icon XML, its foreground, background or monochrome layers, or their colors), regenerate
+  `app-icon.png` from the new icon in the same PR, and say so in the PR description. Before finishing any
+  work that mentions the app's icon, check this.
 
 ## Architecture
 - Single activity (`ComponentActivity`), Jetpack Compose + Material 3, no XML, no fragments.
