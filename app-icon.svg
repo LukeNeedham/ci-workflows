@@ -6,7 +6,7 @@
     </linearGradient>
   </defs>
   <circle cx="256" cy="256" r="256" fill="url(#bg)"/>
-  <!-- pipeline: three stages joined by arrows, ending in a check -->
+  <!-- pipeline: three stages joined by arrows -->
   <g fill="none" stroke="#FFFFFF" stroke-width="22" stroke-linecap="round" stroke-linejoin="round">
     <path d="M150 256H362"/>
     <path d="M150 256V176M362 256V336"/>
@@ -16,5 +16,4 @@
     <circle cx="256" cy="256" r="36"/>
     <circle cx="362" cy="336" r="36"/>
   </g>
-  <path d="M344 336l14 14 28-30" fill="none" stroke="#0F8F57" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>
