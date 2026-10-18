@@ -17,6 +17,9 @@ library tick.
 
 The Skill column is filled in as each app gets the skill ([skill.md](skill.md)), the next time Claude works on it; none have it yet.
 
+Every app in this list must have `app-icon.png` at its repo root ([app-icon.md](app-icon.md)); the app hub
+reads the icons from these repos.
+
 ## Keeping this list complete
 
 **Whenever a project starts consuming this repo in any way (workflows, library or skill), add it here

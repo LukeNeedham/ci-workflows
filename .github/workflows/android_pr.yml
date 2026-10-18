@@ -36,6 +36,42 @@ on:
         default: example-app-link
 
 jobs:
+  # Every app exposes its icon at a fixed path so tooling such as the app hub can fetch it. Fails the
+  # PR when it is missing or not a square PNG of at least 512x512. The path is fixed and cannot be
+  # overridden: it has to be the same in every app. Runs alongside the build.
+  check-icon:
+    if: github.event_name != 'pull_request' || github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check the app icon
+        env:
+          ICON_PATH: app-icon.png
+        run: |
+          python3 - <<'PY'
+          import os, struct, sys
+
+          path = os.environ["ICON_PATH"]
+
+          def fail(message):
+              print(f"::error file={path}::{message} See https://github.com/LukeNeedham/ci-workflows/blob/main/docs/app-icon.md")
+              sys.exit(1)
+
+          if not os.path.isfile(path):
+              fail(f"The app icon '{path}' is missing. Every app commits a 512x512 PNG there.")
+          with open(path, "rb") as f:
+              header = f.read(24)
+          if len(header) < 24 or header[:8] != b"\x89PNG\r\n\x1a\n" or header[12:16] != b"IHDR":
+              fail(f"'{path}' is not a PNG file.")
+          width, height = struct.unpack(">II", header[16:24])
+          if width != height:
+              fail(f"'{path}' must be square, but is {width}x{height}.")
+          if width < 512:
+              fail(f"'{path}' must be at least 512x512, but is {width}x{height}.")
+          print(f"{path}: {width}x{height} PNG, ok")
+          PY
+
   build:
     # Everything except a PR being closed
     if: github.event_name != 'pull_request' || github.event.action != 'closed'
