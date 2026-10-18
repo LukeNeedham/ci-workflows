@@ -20,12 +20,12 @@ is in [library.md](library.md); this page is the step-by-step.
 | Needs | Why |
 |---|---|
 | A published version of the library | Run **Library Release** once (see [library.md](library.md#releasing)) and turn on GitHub Pages for the `gh-pages` branch. The examples below use `0.1.0`: use the version you released |
-| Jetpack Compose with Material 3 | The pages are composables. A View-based app cannot show them |
+| Jetpack Compose | The pages are composables. A View-based app cannot show them. The pages use no Material theme and read no app theme: the app passes its own colours and typeface in as a `DebugTheme` ([below](#the-theme-of-the-pages)) |
 | Android `minSdk` 23 or higher | Jetpack Compose 1.10, which the library is built on, needs 23; the library's own code needs less. A lower app `minSdk` fails the manifest merge |
 | Kotlin 2.2 or newer | The library is compiled with 2.2.21, and a compiler more than a minor version older may not be able to read it. This matters most for Kotlin Multiplatform apps and their klibs |
 | `compileSdk` 36 | The library is built against 36 and brings Compose 1.10. If AGP stops with a `checkAarMetadata` error, raise `compileSdk` to the number it names |
 
-The library brings its own Compose Multiplatform 1.10 / Material 3 1.4. If your app is on an older
+The library brings its own Compose Multiplatform 1.10 (foundation, no Material). If your app is on an older
 Compose, Gradle upgrades it to match, so test the app's screens after adding the library.
 
 ## The five steps, in short
@@ -249,15 +249,48 @@ bump and nothing else, instead of a change to every consuming app.
 
 ```kotlin
 setContent {
-    ProvideDebugSettings {
-        AppTheme { AppNavigation() }
+    AppTheme {
+        ProvideDebugSettings(theme = AppTheme.current.toDebugTheme()) {
+            AppNavigation()
+        }
     }
 }
 ```
 
-It goes outside the app's own theme and navigation, so everything below can read the locals. Outside
-debugging (`enabled = false`) it provides the neutral defaults, so a setting saved while debugging
-never changes a release build.
+It goes inside the app's own theme (it takes the theme as a parameter) and outside the navigation, so
+everything below can read the locals. Outside debugging (`enabled = false`) it provides the neutral
+defaults, so a setting saved while debugging never changes a release build.
+
+### The theme of the pages
+
+The library does not use Material and reads no theme of the app's. The app hands it a `DebugTheme`:
+plain colours and a font family, all with defaults, so an app that passes nothing gets a plain light
+page. Pass the app's own values so the pages match the app. Keep the mapping in one function next to
+the app's theme:
+
+```kotlin
+fun AppThemeValues.toDebugTheme() = DebugTheme(
+    background = background,
+    onBackground = onBackground,
+    surface = surface,
+    onSurface = onSurface,
+    primary = primary,
+    onPrimary = onPrimary,
+    outline = outline,
+    error = error,
+    warning = warning,
+    fontFamily = fontFamily,
+)
+```
+
+| `DebugTheme` | Used for |
+|---|---|
+| `background`, `onBackground` | The page and its text, top bar and back arrow |
+| `surface`, `onSurface` | Cards (crashes) and unselected chips, and the text on them |
+| `primary`, `onPrimary` | Selected chips, the `DebugButton`, and the text buttons |
+| `outline` | Dividers and button outlines |
+| `error`, `warning` | Crash types and error log lines; warning log lines |
+| `fontFamily` | All text on the pages (log text is monospace regardless) |
 
 **For the library's maintainers:** any composition local that the library offers to an app must be
 provided inside `ProvideDebugSettings`, and nowhere else, so that an app only ever makes this one
@@ -323,7 +356,7 @@ class CrashesScreen : Screen {
 **On the web**, if the app syncs routes with the browser address (FlagTutor does), register the
 three routes there too, and only when debugging is on.
 
-The pages draw with `MaterialTheme`. The app itself never reads `MaterialTheme` ([app-conventions.md](app-conventions.md#theme)), so wrap these pages in a `MaterialTheme` built from the app theme's colours and typefaces; they then match the app. Each has its
+The pages draw with the `DebugTheme` given to `ProvideDebugSettings` ([above](#the-theme-of-the-pages)). Each has its
 own top bar with a back arrow. A variant without the bar is not provided yet.
 
 ## Turning it off in release builds

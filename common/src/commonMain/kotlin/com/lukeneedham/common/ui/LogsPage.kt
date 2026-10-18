@@ -10,10 +10,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -40,13 +36,14 @@ fun LogsPage(onBack: () -> Unit, modifier: Modifier = Modifier) {
         onBack = onBack,
         modifier = modifier,
         actions = {
-            TextButton(onClick = { entries = Logger.entries().asReversed() }) { Text("Refresh") }
-            TextButton(
+            DebugTextButton(text = "Refresh", onClick = { entries = Logger.entries().asReversed() })
+            DebugTextButton(
+                text = "Clear",
                 onClick = {
                     Logger.clear()
                     entries = emptyList()
                 },
-            ) { Text("Clear") }
+            )
         },
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
@@ -55,15 +52,11 @@ fun LogsPage(onBack: () -> Unit, modifier: Modifier = Modifier) {
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 LogLevel.entries.forEach { level ->
-                    FilterChip(
-                        selected = minLevel == level,
-                        onClick = { minLevel = level },
-                        label = { Text(level.name) },
-                    )
+                    DebugChip(label = level.name, selected = minLevel == level, onClick = { minLevel = level })
                 }
             }
             if (shown.isEmpty()) {
-                Text("No logs", modifier = Modifier.padding(16.dp), style = MaterialTheme.typography.bodyMedium)
+                DebugText("No logs", modifier = Modifier.padding(16.dp))
             } else {
                 SelectionContainer {
                     LazyColumn(
@@ -80,17 +73,20 @@ fun LogsPage(onBack: () -> Unit, modifier: Modifier = Modifier) {
 
 @Composable
 private fun LogLine(entry: LogEntry) {
-    Text(
+    DebugText(
         text = entry.format(),
         color = entry.level.color(),
-        fontFamily = FontFamily.Monospace,
         fontSize = 12.sp,
+        fontFamily = FontFamily.Monospace,
     )
 }
 
 @Composable
-private fun LogLevel.color(): Color = when (this) {
-    LogLevel.Error -> MaterialTheme.colorScheme.error
-    LogLevel.Warning -> MaterialTheme.colorScheme.tertiary
-    else -> MaterialTheme.colorScheme.onSurface
+private fun LogLevel.color(): Color {
+    val theme = LocalDebugTheme.current
+    return when (this) {
+        LogLevel.Error -> theme.error
+        LogLevel.Warning -> theme.warning
+        else -> theme.onBackground
+    }
 }

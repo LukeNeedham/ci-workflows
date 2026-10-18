@@ -9,15 +9,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.lukeneedham.common.DebugKit
 import com.lukeneedham.common.debug.AnimationSpeed
 import com.lukeneedham.common.readAppInfo
@@ -50,26 +47,26 @@ fun DebugPage(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             appInfo?.let {
-                Text(it.id, style = MaterialTheme.typography.titleMedium)
-                it.version?.let { version -> Text("Version $version") }
-                HorizontalDivider()
+                DebugText(it.id, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                it.version?.let { version -> DebugText("Version $version") }
+                DebugDivider()
             }
-            Text("Animation speed", style = MaterialTheme.typography.titleMedium)
+            DebugText("Animation speed", fontSize = 16.sp, fontWeight = FontWeight.Medium)
             Row(
                 modifier = Modifier.horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 AnimationSpeed.entries.forEach { speed ->
-                    FilterChip(
+                    DebugChip(
+                        label = speed.label,
                         selected = settings.animationSpeed == speed,
                         onClick = { settings.selectAnimationSpeed(speed) },
-                        label = { Text(speed.label) },
                     )
                 }
             }
-            HorizontalDivider()
-            OutlinedButton(onClick = onOpenLogs, modifier = Modifier.fillMaxWidth()) { Text("Logs") }
-            OutlinedButton(onClick = onOpenCrashes, modifier = Modifier.fillMaxWidth()) { Text("Crashes") }
+            DebugDivider()
+            DebugOutlinedButton(text = "Logs", onClick = onOpenLogs, modifier = Modifier.fillMaxWidth())
+            DebugOutlinedButton(text = "Crashes", onClick = onOpenCrashes, modifier = Modifier.fillMaxWidth())
         }
     }
 }

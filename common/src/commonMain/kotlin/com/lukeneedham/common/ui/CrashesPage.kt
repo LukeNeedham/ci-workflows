@@ -10,10 +10,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.selection.SelectionContainer
-import androidx.compose.material3.Card
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -21,6 +17,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.lukeneedham.common.DebugKit
@@ -37,16 +34,17 @@ fun CrashesPage(onBack: () -> Unit, modifier: Modifier = Modifier) {
         onBack = onBack,
         modifier = modifier,
         actions = {
-            TextButton(
+            DebugTextButton(
+                text = "Clear",
                 onClick = {
                     DebugKit.clearCrashes()
                     crashes = emptyList()
                 },
-            ) { Text("Clear") }
+            )
         },
     ) { padding ->
         if (crashes.isEmpty()) {
-            Text("No crashes", modifier = Modifier.padding(padding).padding(16.dp))
+            DebugText("No crashes", modifier = Modifier.padding(padding).padding(16.dp))
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize().padding(padding),
@@ -61,19 +59,20 @@ fun CrashesPage(onBack: () -> Unit, modifier: Modifier = Modifier) {
 
 @Composable
 private fun CrashCard(crash: CrashEntry) {
+    val theme = LocalDebugTheme.current
     var expanded by remember { mutableStateOf(false) }
-    Card(modifier = Modifier.fillMaxWidth().clickable { expanded = !expanded }) {
+    DebugCard(modifier = Modifier.fillMaxWidth(), onClick = { expanded = !expanded }) {
         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(formatTimestamp(crash.timeMs), style = MaterialTheme.typography.labelMedium)
-            Text(crash.type, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.error)
-            crash.message?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
+            DebugText(formatTimestamp(crash.timeMs), color = theme.onSurface, fontSize = 12.sp)
+            DebugText(crash.type, color = theme.error, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+            crash.message?.let { DebugText(it, color = theme.onSurface) }
             if (expanded) {
                 SelectionContainer {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         crash.thread?.let { Monospace("Thread: $it") }
                         Monospace(crash.stackTrace)
                         if (crash.recentLogs.isNotEmpty()) {
-                            Text("Last logs", style = MaterialTheme.typography.titleSmall)
+                            DebugText("Last logs", color = theme.onSurface, fontWeight = FontWeight.Medium)
                             Monospace(crash.recentLogs)
                         }
                     }
@@ -85,5 +84,5 @@ private fun CrashCard(crash: CrashEntry) {
 
 @Composable
 private fun Monospace(text: String) {
-    Text(text, fontFamily = FontFamily.Monospace, fontSize = 12.sp)
+    DebugText(text, color = LocalDebugTheme.current.onSurface, fontSize = 12.sp, fontFamily = FontFamily.Monospace)
 }

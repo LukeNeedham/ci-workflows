@@ -11,7 +11,8 @@ needs, so they are written once instead of copied between apps.
 | `DebugPage` | The library's own debug page: the app's package and current version (the application id and version name and code on Android, the bundle id and version on iOS, the page host on web), debug settings (animation speed, saved) and links to the logs and crashes pages. It shows only those; an app's own debug tools go on the app's own debug page, which links to this one |
 | `DebugButton` | A button that opens the debug page. Shows nothing unless debugging is enabled. Always placed on the app's settings page, never as a floating button over the main page |
 | Animation speed | A debug setting (0.25x to 2x), saved to disk, that scales every animation duration |
-| `ProvideDebugSettings` | The one composable that provides every debug setting to the UI as composition locals (`LocalDebugSettings`, `LocalAnimationSpeed`, ...). **Every app wraps its content in it**, whether or not it uses a setting yet |
+| `ProvideDebugSettings` | The one composable that provides every debug setting to the UI as composition locals (`LocalDebugSettings`, `LocalAnimationSpeed`, ...), and the `DebugTheme` the pages are drawn with. **Every app wraps its content in it**, whether or not it uses a setting yet |
+| `DebugTheme` | The colours and font family of the library's pages and button, passed by the app to `ProvideDebugSettings`. The library uses no Material and reads no app theme |
 
 There is no Room, DataStore or navigation library inside it: it keeps plain files (`localStorage`
 on the web), and the pages do not navigate by themselves, so any app can adopt it.

@@ -41,6 +41,9 @@ val LocalAnimationSpeed = compositionLocalOf { AnimationSpeed.X1 }
 /**
  * The one place where this library provides composition locals to the app.
  *
+ * [theme] is what the library's pages and [DebugButton] look like. Pass the app's own colours and
+ * typeface so they match the app; the library reads no app theme and uses no Material theme.
+ *
  * **Every app must wrap its content in this once, near the root, even if it uses no debug setting
  * yet.** An app that does not need the animation speed today may need another setting tomorrow, and
  * wrapping from the start means a new setting reaches every screen without touching the app again.
@@ -57,12 +60,13 @@ val LocalAnimationSpeed = compositionLocalOf { AnimationSpeed.X1 }
  * defaults, so a setting saved while debugging can never change a release build.
  */
 @Composable
-fun ProvideDebugSettings(content: @Composable () -> Unit) {
+fun ProvideDebugSettings(theme: DebugTheme = DebugTheme(), content: @Composable () -> Unit) {
     // Not enabled (including before DebugKit.init): do not even open the settings store.
     val applied = if (DebugKit.enabled) DebugKit.settings.applied(enabled = true) else AppliedDebugSettings()
     CompositionLocalProvider(
         LocalDebugSettings provides applied,
         LocalAnimationSpeed provides applied.animationSpeed,
+        LocalDebugTheme provides theme,
         content = content,
     )
 }
