@@ -59,9 +59,9 @@ object AppTheme {
   big text really is where you read the code.
 - If a Material 3 component is used, give it its colours explicitly from the app theme. The component
   must not fall back to `MaterialTheme` defaults.
-- **The shared library's pages are the one exception**: they draw with `MaterialTheme`
-  ([using-the-library.md](using-the-library.md)). Wrap them (and only them) in a `MaterialTheme` built
-  from the app theme's colours and typefaces, so they match the app without the app reading it.
+- **The shared library's pages** use no Material either: the app maps its theme to a `DebugTheme` and
+  passes it to `ProvideDebugSettings` ([using-the-library.md](using-the-library.md#the-theme-of-the-pages)).
+  `ProvideDebugSettings` therefore goes *inside* `AppTheme`.
 
 ## Composables and previews
 

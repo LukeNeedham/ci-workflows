@@ -62,8 +62,7 @@ in the PR for the work you were asked to do, saying so in the description. Never
 - **All text in `strings.xml`**, none hard-coded (including content descriptions).
 - **Own `AppTheme`**, a hand-made composition local holding colours and typefaces. Never read `MaterialTheme`
   in the app; always `AppTheme.current`. No fixed text-style scale: set font size and line height inline in
-  the composable, take only the typeface from the theme. Only the shared library's pages get a `MaterialTheme`
-  built from the app theme.
+  the composable, take only the typeface from the theme.
 - **One composable per file with its `@Preview`** (fake `UiState`, wrapped in `AppTheme`), and a preview for
   every composable; trivial ones can sit next to their parent and skip both.
 - **One-off events** go through a `Channel` exposed as a `Flow` (`receiveAsFlow()`), never in `UiState`.
@@ -73,7 +72,7 @@ in the PR for the work you were asked to do, saying so in the description. Never
 ## Shared library (`com.lukeneedham:common`)
 - Repository `https://lukeneedham.github.io/ci-workflows/maven` (group `com.lukeneedham` only); version in `libs.versions.toml`.
 - Call `DebugKit.init(DebugKitConfig(enabled = BuildConfig.DEBUG))` first thing in `Application.onCreate`.
-- Wrap the UI in `ProvideDebugSettings`, add `DebugPage`, `LogsPage`, `CrashesPage` to navigation.
+- Wrap the UI in `ProvideDebugSettings(theme = AppTheme.current.toDebugTheme())`, inside `AppTheme`: the library uses no Material and the app passes it a `DebugTheme` (colours + font family, mapped from `AppTheme` in one function). Add `DebugPage`, `LogsPage`, `CrashesPage` to navigation.
 - Every app has a settings page (add one to an existing app that lacks it; fine if nothing else is on it). It holds the `DebugButton`, and never a floating button on the main page. The library's `DebugPage` shows the app's package and current version.
 - Use `Logger.d/i/w/e`, never `Log` or `println`. Scale animation durations with `LocalAnimationSpeed.current.scale(ms)`.
 - Apps with their own debug tools keep their own debug page, with a button that opens the library's `DebugPage`.
