@@ -1,6 +1,6 @@
 ---
 name: lukeneedham-conventions
-description: Luke Needham's conventions for Android apps - project setup, debug keystore, CI workflows, architecture (single activity, Compose, Navigation 3, MVVM, Koin DI) and the shared `common` debug library. Use when starting an app, adding a feature, screen, dependency or CI change, or touching logging, crashes or debug pages.
+description: Luke Needham's conventions for Android apps - project setup, debug keystore, CI workflows, architecture (single activity, Compose, Navigation 3, MVVM, Koin DI, Coil 3 images) and the shared `common` debug library. Use when starting an app, adding a feature, screen, dependency or CI change, or touching logging, crashes or debug pages.
 ---
 
 <!-- Copied from LukeNeedham/ci-workflows (skills/lukeneedham-conventions). Do not edit here: change it
@@ -52,6 +52,8 @@ in the PR for the work you were asked to do, saying so in the description. Never
 - Coroutines + Flow; `viewModelScope` for screen work. UI -> domain/data layers; no Android types in the lower layer.
 - **Koin for dependency injection**: `module { }` with `singleOf` / `viewModelOf` / `factoryOf`, `startKoin`
   in `Application.onCreate`, `koinViewModel()` in composables. Constructor injection; classes never call Koin.
+- **Coil 3 for image loading** (`io.coil-kt.coil3:coil-compose`, not Coil 2.x, Glide or Picasso): `AsyncImage`
+  for files, URIs and URLs. Add `coil-network-okhttp` only if the app loads images over the network.
 - Unit tests for ViewModels and repositories (JUnit, `kotlinx-coroutines-test`).
 
 ## Shared library (`com.lukeneedham:common`)
