@@ -16,6 +16,17 @@ building or unpacking the app.
 - The only requirement on the app: it has an **adaptive launcher icon** (`android:icon` in the manifest
   points to a `mipmap-anydpi*` adaptive icon), whose layers are colours, vector drawables or images.
 
+## This repo's own icon
+
+This repo is not an Android app, so there is no adaptive icon to render from and no `app-icon` job. Its
+`app-icon.png` is rendered by hand from [`app-icon.svg`](../app-icon.svg) (both at the repo root), to the same
+spec (512x512 circle, transparent background). After editing the SVG, re-render it:
+
+```
+pip install cairosvg
+python3 -c "import cairosvg; cairosvg.svg2png(url='app-icon.svg', write_to='app-icon.png', output_width=512, output_height=512)"
+```
+
 ## How it stays in step
 
 The `app-icon` job of [`android_pr.yml`](../.github/workflows/android_pr.yml) runs on every PR, alongside
