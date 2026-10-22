@@ -97,12 +97,14 @@ details. In short, for a new app:
    `<app>-app-link`.
 2. Copy [`examples/delete_prereleases.yml`](../examples/delete_prereleases.yml) to
    `.github/workflows/delete_prereleases.yml`.
-3. Give the app the shared Claude skill and the `CLAUDE.md` line that keeps it current
+3. Copy [`examples/build_main.yml`](../examples/build_main.yml) to `.github/workflows/build_main.yml` and set
+   `apk-path` to the same value. AppHub builds `main` on demand through it, so keep the file name.
+4. Give the app the shared Claude skill and the `CLAUDE.md` line that keeps it current
    ([skill.md](skill.md#adding-it-to-an-app)), and add the app to [consuming-apps.md](consuming-apps.md).
-4. Optional, when the user wants installable releases: the release workflow
+5. Optional, when the user wants installable releases: the release workflow
    ([setup.md](setup.md#3-permanent-releases-optional)). It needs a release key and four repo secrets
    that only the user can add.
-5. `ci-workflows` is a public repo, so don't worry about access.
+6. `ci-workflows` is a public repo, so don't worry about access.
 
 Open a PR: CI first comments with an **AppHub** link (`https://www.lukeneedham.com/apphub/pr/<repo name>/<number>`,
 the PR's page in the AppHub app, where the build can be downloaded and installed), then builds the debug APK and
@@ -189,7 +191,7 @@ activity, and skip the rest. Say which sections you skipped and why.
 
 - [ ] Package is `com.lukeneedham.<app>`; versions match this repo
 - [ ] `app/debug.keystore` committed and used by the `debug` signing config
-- [ ] `trigger_on_pull_request.yml` (and `delete_prereleases.yml`) copied and configured
+- [ ] `trigger_on_pull_request.yml`, `build_main.yml` (and `delete_prereleases.yml`) copied and configured
 - [ ] Adaptive launcher icon in place (CI then generates `app-icon.png` at the repo root on the first PR)
 - [ ] Single activity, Compose, Navigation 3, MVVM, Koin for DI, Coil 3 for images, or a stated reason for each departure
 - [ ] [app-conventions.md](app-conventions.md) followed: strings in `strings.xml`, own `AppTheme` (no `MaterialTheme`), a preview per composable, 48dp touch targets

@@ -8,6 +8,7 @@ the real logic lives here, so a fix made once reaches every project.
 | [`android_pr.yml`](.github/workflows/android_pr.yml) | **The whole PR flow in one call**: runs the build while the PR is open and the cleanup when it closes | PR opened, pushed to, or closed |
 | [`android_pr_build.yml`](.github/workflows/android_pr_build.yml) | *Building block.* Builds the debug APK, publishes it as a pre-release, keeps one sticky PR comment up to date | PR opened or pushed to |
 | [`android_pr_cleanup.yml`](.github/workflows/android_pr_cleanup.yml) | *Building block.* Deletes the PR's build pre-releases and tags | PR closed |
+| [`android_main_build.yml`](.github/workflows/android_main_build.yml) | Builds the debug APK of **main on demand** and keeps it as an artifact for **one day** | Run by hand or by AppHub, from the caller |
 | [`android_release.yml`](.github/workflows/android_release.yml) | Publishes a **permanent, signed release** (tag + APK) | Run by hand, from the caller |
 | [`delete_prereleases.yml`](.github/workflows/delete_prereleases.yml) | Deletes **all** pre-releases and tags in the repo | Run by hand |
 
@@ -112,6 +113,27 @@ asset. The APK link in the comment points at that asset.
 tag scheme above and deletes them with their tags. This is not configurable. It only touches **pre-releases**, so real releases are never
 deleted. Builds from a manual run have no PR, so nothing ever cleans them up; use
 `delete_prereleases.yml` for those.
+
+### `android_main_build.yml`
+
+Builds the APK of the branch it is run on and uploads it as the artifact `apk`, kept for **1 day**. It is
+how AppHub gets a build of `main` without a PR: AppHub starts it through the API, follows the run, and
+downloads the artifact. It can also be run from the *Actions* tab.
+
+| Input | Default | Meaning |
+|---|---|---|
+| `gradle-task` | `assembleDebug` | Gradle task that produces the APK |
+| `apk-path` | **required** | APK location relative to the repo root |
+| `java-version` | `17` | JDK version |
+| `java-distribution` | `zulu` | JDK distribution |
+
+- **The caller is `build_main.yml`** ([`examples/build_main.yml`](examples/build_main.yml)): AppHub starts that
+  file by name, on `main`. It needs `workflow_dispatch` and `contents: read`.
+- **An artifact, not a release.** It expires after a day by itself, so there is no tag, no pre-release and no
+  cleanup. Artifacts, unlike release assets, can only be downloaded with a token (*Actions: read*), which AppHub
+  has. The artifact is a zip with the APK as its only file.
+- **One build at a time.** A second run on the same branch cancels the first: only the newest main is of interest.
+- Runs on the default branch write the Gradle cache that PR builds read.
 
 ### `android_release.yml`
 
