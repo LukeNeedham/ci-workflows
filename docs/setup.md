@@ -96,11 +96,26 @@ Release builds are signed with a different key from the debug builds on pull req
 moving from a PR build to a release uninstalls once. The tester link is
 `https://github.com/<owner>/<repo>/releases/latest/download/<RepoName>.apk`.
 
+## 4. Build main on demand (optional, expected by AppHub)
+
+A manual build of the default branch that keeps its APK for one day, as a workflow artifact. AppHub shows a
+*Build main* button for every repo that has it, starts the run through the API, reports its progress, and
+offers the APK to install. It can also be run from the *Actions* tab.
+
+**File:** [`examples/build_main.yml`](../examples/build_main.yml): copy it to
+`.github/workflows/build_main.yml` in your project and set `apk-path` to the same value as in section 1.
+**Keep the file name**: AppHub starts `build_main.yml` on `main`. It must be on `main` before it can be run.
+
+Starting it from AppHub needs a GitHub token with **Actions: Read and write** on the repo; downloading the
+APK needs *Actions: Read*. See the AppHub README for creating one.
+
 ## Setting up a new project
 
 1. Copy `examples/trigger_on_pull_request.yml` to `.github/workflows/trigger_on_pull_request.yml`
    and set `apk-path` (and anything else marked `CONFIGURE`).
 2. Optionally copy `examples/delete_prereleases.yml` to `.github/workflows/delete_prereleases.yml`.
+   Copy `examples/build_main.yml` to `.github/workflows/build_main.yml` and set its `apk-path` (section 4),
+   so AppHub can build main.
 3. Commit both on a branch and open a PR to the target branch.
 4. [Check it works](#check-that-it-works).
 

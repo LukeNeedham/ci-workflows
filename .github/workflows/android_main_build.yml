@@ -1,0 +1,62 @@
+name: Android Main Build
+
+# Reusable workflow: builds the debug APK of the branch it is run on (main, in practice) on demand and
+# keeps it as a workflow artifact for ONE day. It is run by hand, from the Actions tab or by AppHub, which
+# starts it through the API, follows the run, and downloads the artifact.
+#
+# Unlike a PR build it publishes no release, no tag and no comment: the artifact expires on its own, so
+# nothing needs cleaning up. The artifact is named `apk` and holds the APK as a single file.
+#
+# The caller must be named build_main.yml, because that is the file AppHub starts.
+# Caller example: examples/build_main.yml. It needs `contents: read` only.
+
+on:
+  workflow_call:
+    inputs:
+      gradle-task:
+        description: Gradle task that produces the APK
+        type: string
+        default: assembleDebug
+      apk-path:
+        description: Path to the built APK, relative to the repo root (depends on the project, so no default)
+        type: string
+        required: true
+      java-version:
+        type: string
+        default: '17'
+      java-distribution:
+        type: string
+        default: zulu
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    # A second request for the same branch replaces the running build: only the newest main is of interest
+    concurrency:
+      group: android-main-build-${{ github.repository }}-${{ github.ref }}
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ inputs.java-version }}
+          distribution: ${{ inputs.java-distribution }}
+
+      # Runs on the default branch write the Gradle cache that PR builds read
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: ${{ github.ref_name != github.event.repository.default_branch }}
+
+      - name: Build APK
+        run: ./gradlew ${{ inputs.gradle-task }} --no-daemon --build-cache
+
+      - name: Keep the APK for a day
+        uses: actions/upload-artifact@v4
+        with:
+          name: apk
+          path: ${{ inputs.apk-path }}
+          retention-days: 1
+          if-no-files-found: error

@@ -27,7 +27,7 @@ in the PR for the work you were asked to do, saying so in the description. Never
 - No Android SDK in the sandbox: you usually cannot compile locally. CI is the first build.
 
 ## CI
-- Callers `trigger_on_pull_request.yml` and `delete_prereleases.yml` come from
+- Callers `trigger_on_pull_request.yml`, `build_main.yml` (AppHub builds main through it, so keep the name) and `delete_prereleases.yml` come from
   `LukeNeedham/ci-workflows/examples/`; the logic is in the shared reusable workflows there.
 - `apk-path` is `app/build/outputs/apk/debug/app-debug.apk`; `comment-header` is `<app>-app-link`.
 - Debug mode always comes from `BuildConfig.DEBUG` (the build config field).
