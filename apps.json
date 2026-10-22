@@ -1,0 +1,10 @@
+[
+  {"name": "Android-Dock", "repo": "LukeNeedham/Android-Dock", "library": true},
+  {"name": "FlagTutor", "repo": "LukeNeedham/FlagTutor", "library": true},
+  {"name": "VideoDiary", "repo": "LukeNeedham/VideoDiary", "library": true},
+  {"name": "PoetryBook", "repo": "LukeNeedham/PoetryBook", "library": true},
+  {"name": "StickerBoard", "repo": "LukeNeedham/Stickerboard", "library": true},
+  {"name": "Krillion wrapper", "repo": "LukeNeedham/krillion-wrapper", "library": false},
+  {"name": "AppHub", "repo": "LukeNeedham/AppHub", "library": true},
+  {"name": "PicCollage", "repo": "LukeNeedham/PicCollage-Android", "library": false}
+]

@@ -99,8 +99,9 @@ details. In short, for a new app:
    `.github/workflows/delete_prereleases.yml`.
 3. Copy [`examples/build_main.yml`](../examples/build_main.yml) to `.github/workflows/build_main.yml` and set
    `apk-path` to the same value. AppHub builds `main` on demand through it, so keep the file name.
-4. Give the app the shared Claude skill and the `CLAUDE.md` line that keeps it current
-   ([skill.md](skill.md#adding-it-to-an-app)), and add the app to [consuming-apps.md](consuming-apps.md).
+4. Add the app to [`apps.json`](../apps.json) ([consuming-apps.md](consuming-apps.md)). CI then gives it the Claude
+   skill and the `CLAUDE.md` block and keeps the callers above in line, through a "Sync from ci-workflows" PR
+   ([sync.md](sync.md)): the callers are copied by hand only this once, so that the app's first PR has CI.
 5. Optional, when the user wants installable releases: the release workflow
    ([setup.md](setup.md#3-permanent-releases-optional)). It needs a release key and four repo secrets
    that only the user can add.

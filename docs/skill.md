@@ -7,34 +7,16 @@ knows the patterns without this repo being added to the session.
 
 ## How an app's copy stays current
 
-There is no scheduled job and no PR just for the skill. **Whenever Claude is asked to do work on a
-consuming app, it first checks whether the skill here has changed, and if so copies the new files into
-the app as part of that same work.** The skill update then lands in the PR the work produces.
+CI does it: [`sync_apps.yml`](../.github/workflows/sync_apps.yml) mirrors the skill into every app in
+[`apps.json`](../apps.json) and opens a PR, **Sync from ci-workflows**, where it differs (see [sync.md](sync.md)).
+Neither Claude nor the app has to remember anything, and a Claude session in an app needs no access to this repo.
 
-1. Fetch the skill from this repo's `main` (it is public): read the files under
-   `skills/lukeneedham-conventions/` with the GitHub tools, or `git clone --depth 1
-   https://github.com/LukeNeedham/ci-workflows` into a scratch directory.
-2. Compare with the app's `.claude/skills/lukeneedham-conventions/`.
-3. If they differ (or the app has none yet), replace the app's folder with the shared one, exactly.
-4. Commit it with the rest of the work, and mention in the PR description that the skill was updated.
-
-Never edit the app's copy by hand: change it here, and apps pick it up on their next piece of work.
-
-The skill itself contains this instruction, and so does the app's `CLAUDE.md` (one line, see below), so
-it is followed even in a session that has not heard of this repo.
+Never edit an app's copy by hand: change it here. The app's `CLAUDE.md` carries a managed block saying so.
 
 ## Adding it to an app
 
-When Claude first works on a consuming app that has no copy:
-
-1. Copy `skills/lukeneedham-conventions/` into the app's `.claude/skills/`.
-2. Add this line to the app's `CLAUDE.md`, creating the file if needed:
-
-   > Before starting work, check that `.claude/skills/lukeneedham-conventions` matches
-   > `skills/lukeneedham-conventions` on `main` of `LukeNeedham/ci-workflows`; if not, copy it over and
-   > include that in this work's PR. See that repo's `docs/skill.md`.
-
-3. Fill in the Skill column for the app in [consuming-apps.md](consuming-apps.md).
+Add the app to [`apps.json`](../apps.json) and run *Sync Apps*: the first PR adds the skill, the callers and the
+`CLAUDE.md` block. Set `"skill": false` for an app that should not have it.
 
 ## Changing the conventions
 

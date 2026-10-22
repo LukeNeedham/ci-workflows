@@ -10,6 +10,7 @@ the real logic lives here, so a fix made once reaches every project.
 | [`android_pr_cleanup.yml`](.github/workflows/android_pr_cleanup.yml) | *Building block.* Deletes the PR's build pre-releases and tags | PR closed |
 | [`android_main_build.yml`](.github/workflows/android_main_build.yml) | Builds the debug APK of **main on demand** and keeps it as an artifact for **one day** | Run by hand or by AppHub, from the caller |
 | [`android_release.yml`](.github/workflows/android_release.yml) | Publishes a **permanent, signed release** (tag + APK) | Run by hand, from the caller |
+| [`sync_apps.yml`](.github/workflows/sync_apps.yml) | Opens a PR in every app of [`apps.json`](apps.json) that keeps its skill, callers and `CLAUDE.md` block in line with this repo ([docs/sync.md](docs/sync.md)) | Change here, weekly, or by hand |
 | [`delete_prereleases.yml`](.github/workflows/delete_prereleases.yml) | Deletes **all** pre-releases and tags in the repo | Run by hand |
 
 `android_pr.yml` just chooses between the build and the cleanup workflow from the event. It is the
@@ -32,7 +33,7 @@ does, and **[docs/using-the-library.md](docs/using-the-library.md)** to add it t
 
 ## Consuming apps and the Claude skill
 
-[docs/consuming-apps.md](docs/consuming-apps.md) lists every project that uses this repo (workflows, library or skill), so "all consuming
+[`apps.json`](apps.json) (see [docs/consuming-apps.md](docs/consuming-apps.md)) lists every project that uses this repo (workflows, library or skill), so "all consuming
 apps" is unambiguous. [docs/skill.md](docs/skill.md) explains the Claude skill that carries these
 conventions into each app's repo.
 
