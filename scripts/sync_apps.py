@@ -166,6 +166,9 @@ def claude_block(app):
         f"  keeps one PR titled \"Sync from ci-workflows\" open when they differ. Do not edit them here and do\n"
         f"  not copy them by hand: change them in ci-workflows (settings of a caller, such as `apk-path`, are\n"
         f"  the exception and stay as they are).\n"
+        f"- **Always give the user the AppHub link when work on this app completes.** As soon as a PR is open,\n"
+        f"  paste `https://www.lukeneedham.com/apphub/pr/<repo name>/<PR number>` into the chat (CI posts the\n"
+        f"  same link as a PR comment). Do not wait for the build and do not paste the APK link instead.\n"
         f"{BLOCK_END}\n"
     )
 
