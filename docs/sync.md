@@ -11,8 +11,8 @@ Claude: nothing needs to remember to copy anything.
 | The callers | `.github/workflows/`: `trigger_on_pull_request.yml`, `build_main.yml`, `delete_prereleases.yml` | Rendered from [`examples/`](../examples), **keeping the app's own settings** (see below) |
 | A note for Claude | A block in the app's `CLAUDE.md`, between `ci-workflows:begin` and `ci-workflows:end` | Replaced each time. Also tells Claude to always paste the PR's AppHub link into the chat when work completes (`CLAUDE.md` is always loaded, unlike the skill). The old "copy the skill by hand" line is replaced by it. The rest of `CLAUDE.md` is the app's |
 
-Not synced: the app's `README.md`, which is handwritten ([readme.md](readme.md)); the sync only reports, in its run
-summary, which READMEs are missing or not in the standard format. Also not synced: `release.yml` (it needs the app's signing secrets, so an app opts in with `callers`, below), the
+Not synced: the app's `readme.yml`, which is handwritten, and its `README.md`, which the PR build generates from it
+([readme.md](readme.md)); the sync only reports, in its run summary, which apps have no valid `readme.yml`. Also not synced: `release.yml` (it needs the app's signing secrets, so an app opts in with `callers`, below), the
 library version, and anything else in the app.
 
 **An app's own settings stay.** In a caller, the `with:` settings `apk-path`, `gradle-task`, `java-version`,
@@ -72,8 +72,8 @@ same secret. It is only ever sent to `github.com` and `api.github.com`, and is m
 ```
 SYNC_TOKEN=github_pat_... python3 scripts/sync_apps.py            # every app
 python3 scripts/sync_apps.py --dry-run --apps AppHub              # clone, show the changes, push nothing
-python3 -m unittest discover -s scripts                           # the tests
-python3 scripts/check_readme.py README.md                         # is a README in the standard format
+python3 -m unittest discover -s scripts                           # the tests (needs pyyaml)
+python3 scripts/generate_readme.py path/to/app --repo owner/name  # render an app's README.md (needs pyyaml)
 ```
 
 `--dry-run` needs no token for a public repo.

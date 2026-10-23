@@ -10,7 +10,7 @@ its repo and whether it uses the library (`"library": true`). All of them get th
 by the sync, unless an entry opts out. Krillion wrapper does not use the library yet (it may be added later).
 
 Every app in this list must have `app-icon.png` at its repo root ([app-icon.md](app-icon.md)); the app hub
-reads the icons from these repos. Every app also has a handwritten `README.md` in the [standard format](readme.md).
+reads the icons from these repos. Every app also has a handwritten `readme.yml`, from which CI generates its `README.md` ([readme.md](readme.md)).
 
 ## Keeping this list complete
 

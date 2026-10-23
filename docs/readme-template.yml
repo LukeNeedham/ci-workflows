@@ -1,0 +1,39 @@
+# The data of an app's README. Copy this to readme.yml at the repo root, replace the values, delete the comments.
+# CI renders README.md from it (docs/readme.md): the layout is shared, only the content below is the app's.
+# Write it by hand. Never edit README.md: it is overwritten.
+
+name: Demo App                  # required
+tagline: One line saying what the app does.   # required
+
+description: |                  # required: what the app is and who it is for
+  A short paragraph, or two separated by a blank line.
+
+features:                       # required
+  - First feature
+  - Second feature
+
+# screenshots:                  # optional: images committed in the repo
+#   - path: docs/screenshots/home.png
+#     alt: The home screen
+
+user:
+  min-android: "8.0 (API 26)"   # required
+  steps:                        # optional: what to do after installing, such as first-run steps
+    - Open the app and grant the notification permission.
+
+# developer:
+#   notes: |                    # optional: anything extra a developer needs (a secret, a local setup step)
+#     Create `local.properties` with your API key.
+
+structure:                      # required: where things are, one bullet each
+  - "`app/`: the app module"
+
+# architecture: |               # optional: the architecture in a few lines
+#   Single activity, Compose, MVVM.
+
+# sections:                     # optional: extra sections, shown between Project structure and Contributing
+#   - title: Privacy
+#     body: |
+#       The app collects nothing.
+
+license: MIT                    # required: the license name, with a LICENSE file in the repo root. "All rights reserved" if closed
