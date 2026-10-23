@@ -5,12 +5,9 @@
 name: Demo App                  # required
 tagline: One line saying what the app does.   # required
 
-description: |                  # required: what the app is and who it is for
-  A short paragraph, or two separated by a blank line.
-
-features:                       # required
-  - First feature
-  - Second feature
+description: |                  # required: what the app is and who it is for, with a few highlights of what it can be used for
+  A short paragraph, or two separated by a blank line. Mention the main things the app does here:
+  there is no feature list.
 
 # screenshots:                  # optional: images committed in the repo
 #   - path: docs/screenshots/home.png

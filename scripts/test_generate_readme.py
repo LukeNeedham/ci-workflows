@@ -22,7 +22,7 @@ class GenerateReadmeTest(unittest.TestCase):
     def test_the_layout_is_the_standard_one(self):
         text = g.render(data(), "LukeNeedham/Demo")
         headings = [l[3:] for l in text.splitlines() if l.startswith("## ")]
-        self.assertEqual(["Description", "Features", "Getting started as a user", "Getting started as a developer",
+        self.assertEqual(["Description", "Getting started as a user", "Getting started as a developer",
                           "Project structure", "Contributing", "License"], headings)
         self.assertLess(text.index("app-icon.png"), text.index("# Demo App"))
         self.assertIn("git clone https://github.com/LukeNeedham/Demo.git", text)
@@ -36,7 +36,7 @@ class GenerateReadmeTest(unittest.TestCase):
         d["sections"] = [{"title": "Privacy", "body": "None."}]
         d["developer"] = {"notes": "Create local.properties."}
         text = g.render(d, "LukeNeedham/Demo")
-        order = [text.index(s) for s in ("## Features", "## Screenshots", "## Getting started as a user",
+        order = [text.index(s) for s in ("## Description", "## Screenshots", "## Getting started as a user",
                                          "Create local.properties.", "## Project structure", "## Privacy", "## Contributing")]
         self.assertEqual(sorted(order), order)
 
@@ -54,7 +54,7 @@ class GenerateReadmeTest(unittest.TestCase):
     def test_problems_name_what_is_missing(self):
         found = g.problems({"name": "X", "extra": 1, "user": {}})
         text = "\n".join(found)
-        for expected in ("unknown field `extra`", "`tagline` is required", "`features` must be", "`user.min-android`"):
+        for expected in ("unknown field `extra`", "`tagline` is required", "`structure` must be", "`user.min-android`"):
             self.assertIn(expected, text)
 
     def test_writing_and_check_mode(self):

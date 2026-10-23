@@ -123,7 +123,7 @@ changes. Do not create or edit it by hand. See [app-icon.md](app-icon.md).
 ## 5. README
 
 Write the app's **`readme.yml`** by hand, from [readme-template.yml](readme-template.yml): name, tagline,
-description, features, minimum Android version, structure and license. CI renders `README.md` from it in the
+description (with the highlights of what the app does; no feature list), minimum Android version, structure and license. CI renders `README.md` from it in the
 standard layout ([readme.md](readme.md)) and commits it to the PR branch, so never edit `README.md`. The icon in it
 is the CI-generated `app-icon.png`, so there is nothing to add for it.
 

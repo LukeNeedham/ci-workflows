@@ -21,8 +21,8 @@ import yaml
 SOURCE = "readme.yml"
 HEADER = f"<!-- Generated from {SOURCE} by LukeNeedham/ci-workflows (docs/readme.md). Edit {SOURCE}, not this file. -->"
 REQUIRED_TEXT = ["name", "tagline", "description", "license"]
-REQUIRED_LISTS = ["features", "structure"]
-KNOWN = {"name", "tagline", "description", "features", "screenshots", "user", "developer", "structure",
+REQUIRED_LISTS = ["structure"]
+KNOWN = {"name", "tagline", "description", "screenshots", "user", "developer", "structure",
          "architecture", "sections", "license"}
 
 
@@ -80,10 +80,6 @@ def render(data, repo):
         "## Description",
         "",
         str(data["description"]).strip(),
-        "",
-        "## Features",
-        "",
-        *[f"- {str(f).strip()}" for f in data["features"]],
         "",
     ]
     if data.get("screenshots"):
