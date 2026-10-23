@@ -11,3 +11,6 @@
 - Apps get the skill, the workflow callers and a `CLAUDE.md` block from CI (`sync_apps.yml`), as a "Sync from
   ci-workflows" PR: never copy them by hand and never edit an app's copy. See [`docs/sync.md`](docs/sync.md).
   A new caller or a change to one in `examples/` reaches the apps this way too.
+- **AppHub link**: whenever work on an app completes (a PR is open), always paste the PR's AppHub link
+  (`https://www.lukeneedham.com/apphub/pr/<repo name>/<number>`, also posted by CI as a PR comment) into the chat
+  straight away. This rule reaches the apps through the managed `CLAUDE.md` block of `sync_apps.py`.

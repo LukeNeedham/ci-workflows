@@ -9,7 +9,7 @@ Claude: nothing needs to remember to copy anything.
 |---|---|---|
 | The Claude skill | `.claude/skills/lukeneedham-conventions/` | Mirrored exactly: files that no longer exist here are deleted |
 | The callers | `.github/workflows/`: `trigger_on_pull_request.yml`, `build_main.yml`, `delete_prereleases.yml` | Rendered from [`examples/`](../examples), **keeping the app's own settings** (see below) |
-| A note for Claude | A block in the app's `CLAUDE.md`, between `ci-workflows:begin` and `ci-workflows:end` | Replaced each time. The old "copy the skill by hand" line is replaced by it. The rest of `CLAUDE.md` is the app's |
+| A note for Claude | A block in the app's `CLAUDE.md`, between `ci-workflows:begin` and `ci-workflows:end` | Replaced each time. Also tells Claude to always paste the PR's AppHub link into the chat when work completes (`CLAUDE.md` is always loaded, unlike the skill). The old "copy the skill by hand" line is replaced by it. The rest of `CLAUDE.md` is the app's |
 
 Not synced: `release.yml` (it needs the app's signing secrets, so an app opts in with `callers`, below), the
 library version, and anything else in the app.
