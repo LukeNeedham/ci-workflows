@@ -8,25 +8,29 @@ name: Android Main Build
 # nothing needs cleaning up. The artifact is named `apk` and holds the APK as a single file.
 #
 # The caller must be named build_main.yml, because that is the file AppHub starts.
-# Caller example: examples/build_main.yml. It needs `contents: read` only.
+# Caller example: examples/build_main.yml. It needs `contents: read` only and has no settings: they are in apps.json.
 
 on:
   workflow_call:
+    # The settings come from apps.json (docs/app-config.md). These inputs are only still accepted so that a
+    # caller that has not been synced yet keeps working: they are ignored and will be removed.
     inputs:
       gradle-task:
-        description: Gradle task that produces the APK
+        description: Deprecated and ignored. Set it in apps.json
         type: string
-        default: assembleDebug
+        default: ''
       apk-path:
-        description: Path to the built APK, relative to the repo root (depends on the project, so no default)
+        description: Deprecated and ignored. Set it in apps.json
         type: string
-        required: true
+        default: ''
       java-version:
+        description: Deprecated and ignored. Set it in apps.json
         type: string
-        default: '17'
+        default: ''
       java-distribution:
+        description: Deprecated and ignored. Set it in apps.json
         type: string
-        default: zulu
+        default: ''
 
 jobs:
   build:
@@ -36,13 +40,16 @@ jobs:
       group: android-main-build-${{ github.repository }}-${{ github.ref }}
       cancel-in-progress: true
     steps:
+      - id: config
+        uses: LukeNeedham/ci-workflows/.github/actions/app-config@main
+
       - uses: actions/checkout@v4
 
       - name: Set up JDK
         uses: actions/setup-java@v4
         with:
-          java-version: ${{ inputs.java-version }}
-          distribution: ${{ inputs.java-distribution }}
+          java-version: ${{ steps.config.outputs.java-version }}
+          distribution: ${{ steps.config.outputs.java-distribution }}
 
       # Runs on the default branch write the Gradle cache that PR builds read
       - name: Set up Gradle
@@ -51,12 +58,12 @@ jobs:
           cache-read-only: ${{ github.ref_name != github.event.repository.default_branch }}
 
       - name: Build APK
-        run: ./gradlew ${{ inputs.gradle-task }} --no-daemon --build-cache
+        run: ./gradlew ${{ steps.config.outputs.gradle-task }} --no-daemon --build-cache
 
       - name: Keep the APK for a day
         uses: actions/upload-artifact@v4
         with:
           name: apk
-          path: ${{ inputs.apk-path }}
+          path: ${{ steps.config.outputs.apk-path }}
           retention-days: 1
           if-no-files-found: error

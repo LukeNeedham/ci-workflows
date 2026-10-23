@@ -9,7 +9,7 @@ name: Android Release
 # the project must apply. The same script reads the signing key from the environment variables this
 # workflow sets from the secrets below.
 #
-# Caller example: examples/release.yml
+# Caller example: examples/release.yml. It has no settings besides the version and notes: they are in apps.json.
 # The caller must grant `contents: write` and pass the secrets (`secrets: inherit` does it).
 
 on:
@@ -23,24 +23,29 @@ on:
         description: Release notes. Empty lists the merged PRs
         type: string
         default: ''
+      # The build settings come from apps.json (docs/app-config.md): release-gradle-task, release-apk-path,
+      # asset-name, java-version and java-distribution. These inputs are only still accepted so that a caller
+      # that has not been synced yet keeps working: they are ignored and will be removed.
       gradle-task:
-        description: Gradle task that produces the signed APK
+        description: Deprecated and ignored. Set it in apps.json
         type: string
-        default: assembleRelease
+        default: ''
       apk-path:
-        description: Path to the built APK, relative to the repo root (depends on the project)
+        description: Deprecated and ignored. Set it in apps.json
         type: string
-        default: app/build/outputs/apk/release/app-release.apk
+        default: ''
       asset-name:
-        description: File name of the APK on the release. Empty uses the repository name, e.g. Android-Dock.apk
+        description: Deprecated and ignored. Set it in apps.json
         type: string
         default: ''
       java-version:
+        description: Deprecated and ignored. Set it in apps.json
         type: string
-        default: '17'
+        default: ''
       java-distribution:
+        description: Deprecated and ignored. Set it in apps.json
         type: string
-        default: zulu
+        default: ''
     secrets:
       RELEASE_KEYSTORE_BASE64:
         description: The keystore file, base64 encoded on one line
@@ -56,6 +61,9 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
+      - id: config
+        uses: LukeNeedham/ci-workflows/.github/actions/app-config@main
+
       - uses: actions/checkout@v4
 
       - name: Check the version
@@ -83,8 +91,8 @@ jobs:
 
       - uses: actions/setup-java@v4
         with:
-          distribution: ${{ inputs.java-distribution }}
-          java-version: ${{ inputs.java-version }}
+          distribution: ${{ steps.config.outputs.java-distribution }}
+          java-version: ${{ steps.config.outputs.java-version }}
 
       - uses: gradle/actions/setup-gradle@v4
 
@@ -104,12 +112,12 @@ jobs:
           RELEASE_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
           RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
           RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
-          GRADLE_TASK: ${{ inputs.gradle-task }}
+          GRADLE_TASK: ${{ steps.config.outputs.release-gradle-task }}
         run: ./gradlew "$GRADLE_TASK" --no-daemon
 
       - name: Check the APK is signed
         env:
-          APK_PATH: ${{ inputs.apk-path }}
+          APK_PATH: ${{ steps.config.outputs.release-apk-path }}
         run: |
           apksigner="$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)apksigner"
           "$apksigner" verify --print-certs "$APK_PATH"
@@ -119,8 +127,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ inputs.version }}
           NOTES: ${{ inputs.notes }}
-          APK_PATH: ${{ inputs.apk-path }}
-          ASSET_NAME: ${{ inputs.asset-name || format('{0}.apk', github.event.repository.name) }}
+          APK_PATH: ${{ steps.config.outputs.release-apk-path }}
+          ASSET_NAME: ${{ steps.config.outputs.asset-name || format('{0}.apk', github.event.repository.name) }}
         run: |
           cp "$APK_PATH" "$ASSET_NAME"
           if [ -n "$NOTES" ]; then notes=(--notes "$NOTES"); else notes=(--generate-notes); fi

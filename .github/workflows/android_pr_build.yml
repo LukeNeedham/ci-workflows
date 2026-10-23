@@ -3,7 +3,8 @@ name: Android PR Build
 # Building block of android_pr.yml: builds an Android APK, publishes it as a pre-release asset and
 # posts/updates a sticky PR comment with the download link, and posts the AppHub link (the PR's page in the
 # AppHub app, https://www.lukeneedham.com/apphub/pr/<repo name>/<number>) once, as a comment of its own.
-# Call android_pr.yml instead of this file; that is where the input defaults live, so every input here is required.
+# Call android_pr.yml instead of this file; its config job looks the settings up in apps.json and passes them
+# on, so every input here is required.
 #
 # The caller's `permissions:` cap what this workflow can do, so the caller must grant:
 #   contents: write, pull-requests: write

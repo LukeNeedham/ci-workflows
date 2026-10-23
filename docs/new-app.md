@@ -92,16 +92,17 @@ Every app uses the shared workflows in this repo. Follow **[setup.md](setup.md)*
 details. In short, for a new app:
 
 1. Copy [`examples/trigger_on_pull_request.yml`](../examples/trigger_on_pull_request.yml) to
-   `.github/workflows/trigger_on_pull_request.yml`. Set `apk-path` to
-   `app/build/outputs/apk/debug/app-debug.apk` and give `comment-header` a unique id such as
-   `<app>-app-link`.
+   `.github/workflows/trigger_on_pull_request.yml`, unchanged. The callers have no settings.
 2. Copy [`examples/delete_prereleases.yml`](../examples/delete_prereleases.yml) to
-   `.github/workflows/delete_prereleases.yml`.
-3. Copy [`examples/build_main.yml`](../examples/build_main.yml) to `.github/workflows/build_main.yml` and set
-   `apk-path` to the same value. AppHub builds `main` on demand through it, so keep the file name.
-4. Add the app to [`apps.json`](../apps.json) ([consuming-apps.md](consuming-apps.md)). CI then gives it the Claude
-   skill and the `CLAUDE.md` block and keeps the callers above in line, through a "Sync from ci-workflows" PR
-   ([sync.md](sync.md)): the callers are copied by hand only this once, so that the app's first PR has CI.
+   `.github/workflows/delete_prereleases.yml`, unchanged.
+3. Copy [`examples/build_main.yml`](../examples/build_main.yml) to `.github/workflows/build_main.yml`, unchanged.
+   AppHub builds `main` on demand through it, so keep the file name.
+4. Add the app to [`apps.json`](../apps.json) ([consuming-apps.md](consuming-apps.md)), **in the same change as
+   the callers**. Its entry holds the app's settings ([app-config.md](app-config.md)); the defaults (`apk-path`
+   `app/build/outputs/apk/debug/app-debug.apk`, branch `main`, comment id `<app>-app-link`) suit a standard app, so
+   a plain entry is enough. CI then gives it the Claude skill and the `CLAUDE.md` block and keeps the callers above
+   in line, through a "Sync from ci-workflows" PR ([sync.md](sync.md)): the callers are copied by hand only this
+   once, so that the app's first PR has CI.
 5. Optional, when the user wants installable releases: the release workflow
    ([setup.md](setup.md#3-permanent-releases-optional)). It needs a release key and four repo secrets
    that only the user can add.

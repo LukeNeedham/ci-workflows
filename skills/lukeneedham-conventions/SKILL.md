@@ -16,8 +16,8 @@ GitHub, read the relevant page there; otherwise the rules below are enough.
 ## Keep this skill current
 CI keeps this folder, and the callers in `.github/workflows/`, in line with `LukeNeedham/ci-workflows`: it
 opens a PR called "Sync from ci-workflows" in the app when they differ. Do not copy them by hand and do not
-edit them in an app; change them in `ci-workflows`. Settings of a caller, such as `apk-path`, are the
-app's own.
+edit them in an app; change them in `ci-workflows`. The callers hold no settings: the app's settings
+(`apk-path`, `branches` and so on) are its entry in `apps.json` in `ci-workflows`, so change them there.
 
 ## Project
 - Kotlin only, Gradle Kotlin DSL, version catalog (`gradle/libs.versions.toml`), Gradle wrapper.
@@ -30,7 +30,8 @@ app's own.
 ## CI
 - Callers `trigger_on_pull_request.yml`, `build_main.yml` (AppHub builds main through it, so keep the name) and `delete_prereleases.yml` come from
   `LukeNeedham/ci-workflows/examples/`; the logic is in the shared reusable workflows there.
-- `apk-path` is `app/build/outputs/apk/debug/app-debug.apk`; `comment-header` is `<app>-app-link`.
+- The defaults are `apk-path` `app/build/outputs/apk/debug/app-debug.apk`, branch `main` and `comment-header` `<app>-app-link`; a new app needs only its entry in `ci-workflows`' `apps.json`.
+- A PR that changes only `.claude/skills/` does not build (no APK, no AppHub link comment from CI).
 - Debug mode always comes from `BuildConfig.DEBUG` (the build config field).
 - Open a PR for completed work. Paste the PR's **AppHub link** (`https://www.lukeneedham.com/apphub/pr/<repo name>/<number>`, also in CI's AppHub comment) into the chat as soon as the PR is open, without waiting for the build, and not the APK download link.
 

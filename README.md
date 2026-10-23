@@ -45,11 +45,11 @@ MVVM). Read it first when starting any new app.
 
 ## Setting up a project
 
-**See [docs/setup.md](docs/setup.md)** for the caller files to copy, which parts to configure per
-project, and how to migrate an existing project.
+**See [docs/setup.md](docs/setup.md)** for the caller files to copy (they need no editing), how a project's settings
+are set in [`apps.json`](apps.json) ([docs/app-config.md](docs/app-config.md)), and how to migrate an existing project.
 
-In short: a project keeps small caller files that own the **triggers** (`on:`), the **permissions**
-and the **settings** (`with:`); the steps live here. A reusable workflow cannot decide when it
+In short: a project keeps small caller files that own the **triggers** (`on:`) and the **permissions**; the
+steps live here, and so do the project's **settings**, as its entry in `apps.json`. A reusable workflow cannot decide when it
 runs, and it can never be granted more permissions than the caller gives it, so those cannot be
 moved here.
 
@@ -57,16 +57,14 @@ moved here.
 
 ### `android_pr.yml`
 
-Inputs (the defaults live here and only here; `apk-path` is the one required input):
+**Settings.** The caller has none. The `config` job looks up the app's entry in [`apps.json`](apps.json) by the repo
+it runs in and passes `apk-path`, `gradle-task`, `java-version`, `java-distribution`, `timezone` and `comment-header`
+to the build ([docs/app-config.md](docs/app-config.md), which has the defaults). The same job skips the whole run for
+a PR into a branch the app does not build, and for a PR that changes only `.claude/skills/`. The workflow's old
+inputs of those names are still accepted but ignored, until every app has the synced caller.
 
 | Input | Default | Meaning |
 |---|---|---|
-| `gradle-task` | `assembleDebug` | Gradle task that produces the APK |
-| `apk-path` | **required** | APK location relative to the repo root |
-| `java-version` | `17` | JDK version |
-| `java-distribution` | `zulu` | JDK distribution |
-| `timezone` | `Europe/Amsterdam` | Timezone for the timestamps in the comment and release |
-| `comment-header` | `example-app-link` | Id of the sticky comment. Change it only if a PR needs several separate APK comments |
 | `tools-ref` | `main` | Branch or tag of this repo to fetch `scripts/` from. Leave it; set it to a branch only to test a script change |
 
 The `app-icon` job renders `app-icon.png` (a 512x512 circle on a transparent background) from the app's
@@ -121,12 +119,8 @@ Builds the APK of the branch it is run on and uploads it as the artifact `apk`, 
 how AppHub gets a build of `main` without a PR: AppHub starts it through the API, follows the run, and
 downloads the artifact. It can also be run from the *Actions* tab.
 
-| Input | Default | Meaning |
-|---|---|---|
-| `gradle-task` | `assembleDebug` | Gradle task that produces the APK |
-| `apk-path` | **required** | APK location relative to the repo root |
-| `java-version` | `17` | JDK version |
-| `java-distribution` | `zulu` | JDK distribution |
+No inputs: `gradle-task`, `apk-path`, `java-version` and `java-distribution` come from the app's entry in
+[`apps.json`](apps.json) ([docs/app-config.md](docs/app-config.md)).
 
 - **The caller is `build_main.yml`** ([`examples/build_main.yml`](examples/build_main.yml)): AppHub starts that
   file by name, on `main`. It needs `workflow_dispatch` and `contents: read`.
@@ -139,9 +133,10 @@ downloads the artifact. It can also be run from the *Actions* tab.
 ### `android_release.yml`
 
 Publishes a permanent release from a manual run. Inputs: `version` (required, `major.minor.patch`,
-used as the tag with no `v`), `notes` (empty lists the merged PRs), and `gradle-task`, `apk-path`,
-`asset-name`, `java-version`, `java-distribution` (defaults suit a standard app module; the asset is
-named after the repository, e.g. `Android-Dock.apk`). Secrets: `RELEASE_KEYSTORE_BASE64`,
+used as the tag with no `v`) and `notes` (empty lists the merged PRs). The build settings (`release-gradle-task`,
+`release-apk-path`, `asset-name`, `java-version`, `java-distribution`) are the app's entry in
+[`apps.json`](apps.json) ([docs/app-config.md](docs/app-config.md)); the defaults suit a standard app module, and
+the asset is named after the repository, e.g. `Android-Dock.apk`. Secrets: `RELEASE_KEYSTORE_BASE64`,
 `RELEASE_KEYSTORE_PASSWORD`, `RELEASE_KEY_ALIAS`, `RELEASE_KEY_PASSWORD`; pass them with
 `secrets: inherit`.
 

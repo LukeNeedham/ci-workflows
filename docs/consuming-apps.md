@@ -6,8 +6,9 @@ are meant**; for "update all consuming apps to the latest library version", that
 `"library": true`.
 
 **The list is [`apps.json`](../apps.json)**, which the [sync](sync.md) also reads: one entry per app, with its name,
-its repo and whether it uses the library (`"library": true`). All of them get the workflow callers and the skill
-by the sync, unless an entry opts out. Krillion wrapper does not use the library yet (it may be added later).
+its repo and whether it uses the library (`"library": true`), plus the settings the app's CI needs when they differ from
+the defaults (`apk-path`, `branches` and so on: [app-config.md](app-config.md)). All of them get the workflow callers
+and the skill by the sync, unless an entry opts out. Krillion wrapper does not use the library yet (it may be added later).
 
 Every app in this list must have `app-icon.png` at its repo root ([app-icon.md](app-icon.md)); the app hub
 reads the icons from these repos.

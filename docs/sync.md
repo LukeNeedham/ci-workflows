@@ -8,17 +8,15 @@ Claude: nothing needs to remember to copy anything.
 | What | Where in the app | How |
 |---|---|---|
 | The Claude skill | `.claude/skills/lukeneedham-conventions/` | Mirrored exactly: files that no longer exist here are deleted |
-| The callers | `.github/workflows/`: `trigger_on_pull_request.yml`, `build_main.yml`, `delete_prereleases.yml` | Rendered from [`examples/`](../examples), **keeping the app's own settings** (see below) |
+| The callers | `.github/workflows/`: `trigger_on_pull_request.yml`, `build_main.yml`, `delete_prereleases.yml` | Copied **byte for byte** from [`examples/`](../examples). They hold no settings, so every app has identical files |
 | A note for Claude | A block in the app's `CLAUDE.md`, between `ci-workflows:begin` and `ci-workflows:end` | Replaced each time. Also tells Claude to always paste the PR's AppHub link into the chat when work completes (`CLAUDE.md` is always loaded, unlike the skill). The old "copy the skill by hand" line is replaced by it. The rest of `CLAUDE.md` is the app's |
 
-Not synced: `release.yml` (it needs the app's signing secrets, so an app opts in with `callers`, below), the
+Not synced by default: `release.yml` (it needs the app's signing secrets, so an app opts in with `callers`, below), the
 library version, and anything else in the app.
 
-**An app's own settings stay.** In a caller, the `with:` settings `apk-path`, `gradle-task`, `java-version`,
-`java-distribution`, `timezone` and `comment-header`, and the `branches:` list, are read from the app's
-current file and put into the new one. `build_main.yml` takes any it lacks from the app's PR caller, so
-`apk-path` is set once. An app with no caller yet gets the example's `apk-path` and a `comment-header` of
-`<repo name>-app-link`. To set one from here instead, use `inputs` in `apps.json`.
+**The callers hold no settings.** What differs per app (`apk-path`, `branches` and so on) is its entry in
+[`apps.json`](../apps.json), and the shared workflows look it up when they run: [app-config.md](app-config.md). The
+sync overwrites whatever the app has in a caller file, so an edit made in an app is lost.
 
 ## When it runs
 
@@ -42,11 +40,10 @@ A run fails (and GitHub emails you) if any app failed, after trying all of them.
 | `name`, `repo` | required | The app's name and its `owner/name` |
 | `library` | `false` | Whether it uses the shared library: for [consuming-apps.md](consuming-apps.md), not used by the sync |
 | `skill` | `true` | `false`: do not sync the skill |
-| `callers` | the three above | The caller files to sync, from `examples/` (add `release.yml` here); `[]` for none |
-| `inputs` | none | Settings to force in the callers, such as `{"apk-path": "app/build/outputs/apk/debug/x.apk"}` |
-| `branches` | the app's own | The branches the PR caller builds PRs for |
+| `callers` | the three above | The caller files to sync, from `examples/`. An app that publishes releases lists the three and `release.yml`; `[]` for none |
+| settings: `apk-path`, `branches`, `gradle-task`, `java-version`, `java-distribution`, `timezone`, `comment-header`, `release-gradle-task`, `release-apk-path`, `asset-name` | the defaults | Not used by the sync: read by the workflows when they run. See [app-config.md](app-config.md) |
 
-**A new app:** add it here (this is also the list "all consuming apps" means), then run *Sync Apps* for it. Its
+**A new app:** add it here, with its settings if it differs from the defaults (this is also the list "all consuming apps" means), then run *Sync Apps* for it. Its
 first sync PR adds the callers, the skill and the `CLAUDE.md` block.
 
 ## The token (one-time setup)
@@ -79,5 +76,5 @@ python3 -m unittest discover -s scripts                           # the tests
 ## Changing what is synced
 
 Change the file in `skills/` or `examples/` and merge: the next run opens the PRs. To sync something new (another
-caller, say), add it to `examples/` and to `DEFAULT_CALLERS` in the script, and to `docs/setup.md`. The
-settings that belong to an app are `INPUT_KEYS` in the script.
+caller, say), add it to `examples/` and to `DEFAULT_CALLERS` in the script, and to `docs/setup.md`. A new
+setting that belongs to an app goes into `DEFAULTS` in `scripts/app_config.py`.
