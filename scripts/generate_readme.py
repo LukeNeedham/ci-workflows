@@ -3,6 +3,9 @@
 
 The layout lives here, the content in the app. Needs PyYAML.
 
+The screenshots are not listed in readme.yml: they are the PNGs of docs/screenshots/, which CI renders from the
+app's page previews (docs/screenshots.md). They are required, unless readme.yml says `screenshots: false`.
+
     python3 generate_readme.py [app_dir] [--repo owner/name] [--check]
 
 --repo defaults to $GITHUB_REPOSITORY, then to the app's git `origin`. --check writes nothing and exits 1 if
@@ -22,12 +25,21 @@ SOURCE = "readme.yml"
 HEADER = f"<!-- Generated from {SOURCE} by LukeNeedham/ci-workflows (docs/readme.md). Edit {SOURCE}, not this file. -->"
 REQUIRED_TEXT = ["name", "tagline", "description", "license"]
 REQUIRED_LISTS = ["structure"]
+SCREENSHOTS = "docs/screenshots"
 KNOWN = {"name", "tagline", "description", "screenshots", "user", "developer", "structure",
          "architecture", "sections", "license"}
 
 
-def problems(data):
-    """What is wrong with the parsed readme.yml [data], as a list of sentences."""
+def screenshot_files(app_dir):
+    """The screenshots of the app, as paths relative to its root, in name order."""
+    return sorted(p.relative_to(app_dir).as_posix() for p in (app_dir / SCREENSHOTS).glob("*.png"))
+
+
+def problems(data, screenshots=None):
+    """What is wrong with the parsed readme.yml [data], as a list of sentences.
+
+    [screenshots] is the list from [screenshot_files]; None skips the check that an app has some.
+    """
     if not isinstance(data, dict):
         return [f"{SOURCE} must be a mapping of fields"]
     found = [f"unknown field `{k}`" for k in data if k not in KNOWN]
@@ -45,17 +57,24 @@ def problems(data):
         found.append("`user.steps` must be a list")
     elif user.get("install") is not None and not str(user["install"]).strip():
         found.append("`user.install` must not be empty")
-    for i, shot in enumerate(data.get("screenshots") or []):
-        if not isinstance(shot, dict) or not shot.get("path") or not shot.get("alt"):
-            found.append(f"`screenshots[{i}]` needs `path` and `alt`")
+    if "screenshots" in data and data["screenshots"] is not False:
+        found.append("`screenshots` can only be `false` (an app with no UI worth showing); the screenshots are rendered by CI into docs/screenshots/")
+    elif screenshots is not None and data.get("screenshots") is not False and not screenshots:
+        found.append("the app has no screenshots: set up the page previews and the screenshot test (docs/screenshots.md in "
+                     "LukeNeedham/ci-workflows), or set `screenshots: false` if the app has no UI worth showing")
     for i, section in enumerate(data.get("sections") or []):
         if not isinstance(section, dict) or not section.get("title") or not section.get("body"):
             found.append(f"`sections[{i}]` needs `title` and `body`")
     return found
 
 
-def render(data, repo):
-    """The README.md text for the valid [data] of the GitHub repo [repo] (`owner/name`)."""
+def alt_text(path):
+    """`docs/screenshots/PullRequest.png` -> `Pull Request`"""
+    return re.sub(r"(?<=[a-z0-9])(?=[A-Z])", " ", Path(path).stem)
+
+
+def render(data, repo, screenshots=()):
+    """The README.md text for the valid [data] of the GitHub repo [repo] (`owner/name`) and its [screenshots]."""
     name = str(data["name"]).strip()
     repo_name = repo.split("/")[1]
     user = data["user"]
@@ -82,8 +101,8 @@ def render(data, repo):
         str(data["description"]).strip(),
         "",
     ]
-    if data.get("screenshots"):
-        out += ["## Screenshots", "", *[f'<img src="{s["path"]}" width="240" alt="{s["alt"]}">' for s in data["screenshots"]], ""]
+    if screenshots and data.get("screenshots") is not False:
+        out += ["## Screenshots", "", *[f'<img src="{s}" width="240" alt="{alt_text(s)}">' for s in screenshots], ""]
     out += [
         "## Getting started as a user",
         "",
@@ -162,10 +181,11 @@ def main():
         sys.exit(f"{SOURCE} is not valid YAML: {e}")
     if data is None:
         sys.exit(f"{app_dir / SOURCE} does not exist. Copy docs/readme-template.yml from LukeNeedham/ci-workflows.")
-    found = problems(data)
+    shots = screenshot_files(app_dir)
+    found = problems(data, shots)
     if found:
         sys.exit("\n".join(f"{SOURCE}: {line}" for line in found))
-    text = render(data, find_repo(app_dir, args.repo))
+    text = render(data, find_repo(app_dir, args.repo), shots)
     readme = app_dir / "README.md"
     current = readme.read_text() if readme.is_file() else None
     if args.check:

@@ -92,11 +92,88 @@ jobs:
             git push origin "HEAD:refs/heads/$BRANCH"
           }
 
+  # The screenshots of the README: one per page of the app, rendered on the JVM (Robolectric, Roborazzi) from the
+  # @Preview of every PageContent composable by the app's own PageScreenshotTest (docs/screenshots.md), and
+  # committed to the PR branch into docs/screenshots/ when they differ. An app that has not set this up yet, or
+  # has `screenshots: false` in its readme.yml (no UI worth showing), skips the job.
+  screenshots:
+    if: github.event_name != 'pull_request' || github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+          ref: ${{ github.head_ref || github.ref_name }}
+
+      - name: Check that the app has screenshots to render
+        id: wanted
+        run: |
+          if grep -qE '^screenshots:[[:space:]]*false' readme.yml 2>/dev/null; then
+            echo "readme.yml says screenshots: false"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          elif ! grep -q roborazzi gradle/libs.versions.toml 2>/dev/null; then
+            echo "::warning::No screenshot test yet (no roborazzi in gradle/libs.versions.toml). See docs/screenshots.md in LukeNeedham/ci-workflows."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up JDK
+        if: steps.wanted.outputs.skip != 'true'
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ inputs.java-version }}
+          distribution: ${{ inputs.java-distribution }}
+
+      - name: Set up Gradle
+        if: steps.wanted.outputs.skip != 'true'
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: ${{ github.event_name == 'pull_request' && github.base_ref == github.event.repository.default_branch }}
+
+      # The test writes docs/screenshots/<Page>.png for every PageContent preview: start from nothing so that a
+      # page that was removed or renamed drops out
+      - name: Render the screenshots
+        if: steps.wanted.outputs.skip != 'true'
+        run: |
+          rm -rf docs/screenshots
+          ./gradlew recordRoborazziDebug --no-daemon --build-cache
+          if ! ls docs/screenshots/*.png > /dev/null 2>&1; then
+            echo "::error::The screenshot test rendered nothing. Every page needs a PageContent preview (docs/screenshots.md)."
+            exit 1
+          fi
+
+      - name: Commit the screenshots if they changed
+        if: steps.wanted.outputs.skip != 'true'
+        env:
+          IS_PR: ${{ github.event_name == 'pull_request' }}
+          IS_FORK: ${{ github.event.pull_request.head.repo.full_name != github.repository }}
+          BRANCH: ${{ github.head_ref }}
+        run: |
+          git add -A docs/screenshots
+          if git diff --cached --quiet -- docs/screenshots; then
+            echo "The screenshots are up to date"
+            exit 0
+          fi
+          if [ "$IS_PR" != "true" ] || [ "$IS_FORK" = "true" ]; then
+            echo "::error file=docs/screenshots::The screenshots do not match the page previews, and this run cannot commit them (it only does on a PR from this repo's own branches). Run ./gradlew recordRoborazziDebug and commit docs/screenshots."
+            exit 1
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Regenerate the screenshots from the page previews"
+          git push origin "HEAD:refs/heads/$BRANCH" || {
+            git pull --rebase origin "$BRANCH"
+            git push origin "HEAD:refs/heads/$BRANCH"
+          }
+
   # The README.md of every app is rendered from its readme.yml, in the layout of docs/readme.md, so the
   # format cannot drift. Same mechanics as app-icon: render on every PR and commit the result to the PR
   # branch when it differs. An app without a readme.yml yet only gets a warning.
   readme:
-    if: github.event_name != 'pull_request' || github.event.action != 'closed'
+    # After the screenshots, which it shows: both commit to the PR branch, and this one starts from their commit
+    needs: screenshots
+    if: ${{ !cancelled() && (github.event_name != 'pull_request' || github.event.action != 'closed') }}
     runs-on: ubuntu-latest
     permissions:
       contents: write

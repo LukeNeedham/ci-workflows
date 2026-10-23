@@ -138,6 +138,8 @@ class SyncApp(unittest.TestCase):
         self.write("readme.yml", "name: Demo\n")
         self.assertIn("readme.yml is invalid", s.readme_note(self.dir))
         self.write("readme.yml", (TOOLS / "docs/readme-template.yml").read_text())
+        self.assertIn("no screenshots", s.readme_note(self.dir))
+        self.write("docs/screenshots/Home.png", "png")
         self.assertEqual("", s.readme_note(self.dir))
         s.sync_app(app(), self.dir)
         self.assertFalse((self.dir / "README.md").exists())

@@ -9,9 +9,8 @@ description: |                  # required: what the app is and who it is for, w
   A short paragraph, or two separated by a blank line. Mention the main things the app does here:
   there is no feature list.
 
-# screenshots:                  # optional: images committed in the repo
-#   - path: docs/screenshots/home.png
-#     alt: The home screen
+# screenshots: false            # only for an app with no UI worth showing (a WebView wrapper). Every other app has
+#                               # screenshots, rendered by CI from its page previews into docs/screenshots/
 
 user:
   min-android: "8.0 (API 26)"   # required

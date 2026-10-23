@@ -9,7 +9,7 @@ description: Luke Needham's conventions for Android apps - project setup, debug 
 # Luke's app conventions
 
 The full, current guides are in the public repo `LukeNeedham/ci-workflows` under `docs/`:
-`new-app.md` (read first when starting an app), `setup.md` (CI workflows), `app-icon.md`, `readme.md` (the README layout and `readme.yml`), `app-conventions.md` (libraries and code patterns), `library.md` and
+`new-app.md` (read first when starting an app), `setup.md` (CI workflows), `app-icon.md`, `readme.md` (the README layout and `readme.yml`), `screenshots.md` (pages and README screenshots), `app-conventions.md` (libraries and code patterns), `library.md` and
 `using-the-library.md` (shared library), `consuming-apps.md` (which apps use it). If you can reach
 GitHub, read the relevant page there; otherwise the rules below are enough.
 
@@ -53,6 +53,15 @@ app's own.
   `license`, and optionally screenshots, `user.steps`, `developer.notes`, `architecture`, `sections`. Skeleton:
   `docs/readme-template.yml` there. If it is missing, write it once from the template; update it in the same PR
   as any change a reader would notice. After a push, `git pull --rebase` to pick up the bot's README commit.
+
+## Pages and screenshots
+- **Every page is `XPage` + `XPageContent`**: `XPage` gets the ViewModel (`koinViewModel()`), collects the state and
+  delegates; it has no preview. `XPageContent` is stateless (state down, events up) and has a preview named
+  `XPageContentPreview` in `AppTheme` with fake state, no ViewModel, Koin or network.
+- **CI renders a README screenshot of every `*PageContentPreview`** (Robolectric + Roborazzi, JVM, no emulator) into
+  `docs/screenshots/<Name>.png` and commits it to the PR branch: never take or edit them by hand. It runs the app's
+  `PageScreenshotTest`; set it up once from `docs/screenshots.md` in `LukeNeedham/ci-workflows`.
+- Required for every app with a UI; `screenshots: false` in `readme.yml` is only for one with none (a WebView wrapper).
 
 ## Architecture
 - Single activity (`ComponentActivity`), Jetpack Compose, no XML, no fragments.

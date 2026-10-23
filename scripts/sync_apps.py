@@ -179,6 +179,9 @@ def claude_block(app):
         f"  `LukeNeedham/ci-workflows`. Never edit `README.md`: edit `readme.yml` (write it by hand; skeleton in\n"
         f"  `docs/readme-template.yml`), and keep it accurate when the app changes. If `readme.yml` is missing,\n"
         f"  write it once from the template. The PR build commits the regenerated `README.md` to the PR branch.\n"
+        f"- **Every page is an `XPage` (gets the ViewModel, no preview) plus a stateless `XPageContent` with an\n"
+        f"  `XPageContentPreview`.** CI renders the README screenshots from those previews into `docs/screenshots/`\n"
+        f"  (`docs/screenshots.md` in `LukeNeedham/ci-workflows`); never take or edit them by hand.\n"
         f"{BLOCK_END}\n"
     )
 
@@ -266,7 +269,7 @@ def readme_note(app_dir):
         return "readme.yml is not valid YAML"
     if data is None:
         return "readme.yml is missing"
-    found = generate_readme.problems(data)
+    found = generate_readme.problems(data, generate_readme.screenshot_files(app_dir))
     return "readme.yml is invalid: " + "; ".join(found) if found else ""
 
 

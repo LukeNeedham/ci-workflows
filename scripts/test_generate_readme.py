@@ -18,6 +18,7 @@ def data():
 class GenerateReadmeTest(unittest.TestCase):
     def test_the_template_is_valid(self):
         self.assertEqual([], g.problems(data()))
+        self.assertEqual([], g.problems(data(), ["docs/screenshots/Home.png"]))
 
     def test_the_layout_is_the_standard_one(self):
         text = g.render(data(), "LukeNeedham/Demo")
@@ -32,10 +33,10 @@ class GenerateReadmeTest(unittest.TestCase):
 
     def test_optional_parts_appear_between_the_right_sections(self):
         d = data()
-        d["screenshots"] = [{"path": "docs/a.png", "alt": "Home"}]
         d["sections"] = [{"title": "Privacy", "body": "None."}]
         d["developer"] = {"notes": "Create local.properties."}
-        text = g.render(d, "LukeNeedham/Demo")
+        text = g.render(d, "LukeNeedham/Demo", ["docs/screenshots/Home.png", "docs/screenshots/PullRequest.png"])
+        self.assertIn('<img src="docs/screenshots/PullRequest.png" width="240" alt="Pull Request">', text)
         order = [text.index(s) for s in ("## Description", "## Screenshots", "## Getting started as a user",
                                          "Create local.properties.", "## Project structure", "## Privacy", "## Contributing")]
         self.assertEqual(sorted(order), order)
@@ -51,6 +52,15 @@ class GenerateReadmeTest(unittest.TestCase):
         self.assertNotIn("apphub", text.lower().replace("app-icon", ""))
         self.assertIn("See [LICENSE](LICENSE).", g.render(data(), "LukeNeedham/Demo"))
 
+    def test_screenshots_are_required_unless_the_app_opts_out(self):
+        self.assertTrue(any("no screenshots" in f for f in g.problems(data(), [])))
+        d = data()
+        d["screenshots"] = False
+        self.assertEqual([], g.problems(d, []))
+        self.assertNotIn("Screenshots", g.render(d, "LukeNeedham/Demo", ["docs/screenshots/Home.png"]))
+        d["screenshots"] = [{"path": "a.png"}]
+        self.assertTrue(any("can only be `false`" in f for f in g.problems(d, ["x.png"])))
+
     def test_problems_name_what_is_missing(self):
         found = g.problems({"name": "X", "extra": 1, "user": {}})
         text = "\n".join(found)
@@ -62,9 +72,13 @@ class GenerateReadmeTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             run = lambda *a: subprocess.run([sys.executable, script, tmp, "--repo", "LukeNeedham/Demo", *a], capture_output=True, text=True)
             (Path(tmp) / "readme.yml").write_text(TEMPLATE.read_text())
+            self.assertEqual(1, run().returncode)  # no screenshots yet
+            (Path(tmp) / "docs" / "screenshots").mkdir(parents=True)
+            (Path(tmp) / "docs" / "screenshots" / "Home.png").write_bytes(b"png")
             self.assertEqual(1, run("--check").returncode)
             self.assertEqual(0, run().returncode)
-            self.assertEqual(g.render(data(), "LukeNeedham/Demo"), (Path(tmp) / "README.md").read_text())
+            shots = ["docs/screenshots/Home.png"]
+            self.assertEqual(g.render(data(), "LukeNeedham/Demo", shots), (Path(tmp) / "README.md").read_text())
             self.assertEqual(0, run("--check").returncode)
             (Path(tmp) / "README.md").write_text("edited by hand\n")
             self.assertEqual(1, run("--check").returncode)
