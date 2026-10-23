@@ -107,7 +107,7 @@ class Workflows(unittest.TestCase):
         # Settings come from apps.json only; an input of that name would be a second source of truth
         import re
         for name in ("android_pr", "android_main_build", "android_release"):
-            text = (TOOLS / ".github" / "workflows" / f"{name}.yml").read_text()
+            text = (TOOLS / ".github" / "workflows" / f"{name}.yml").read_text().split("\njobs:\n")[0]
             for key in list(c.DEFAULTS) + [c.COMMENT_HEADER]:
                 self.assertNotRegex(text, rf"(?m)^      {re.escape(key)}:", f"{name} {key}")
 
