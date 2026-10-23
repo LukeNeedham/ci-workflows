@@ -137,7 +137,8 @@ jobs:
         if: steps.wanted.outputs.skip != 'true'
         run: |
           rm -rf docs/screenshots
-          ./gradlew recordRoborazziDebug --no-daemon --build-cache
+          # Only the screenshot test: a failing unit test elsewhere must not stop the screenshots
+          ./gradlew testDebugUnitTest --tests '*PageScreenshotTest' -Proborazzi.test.record=true --no-daemon --build-cache
           if ! ls docs/screenshots/*.png > /dev/null 2>&1; then
             echo "::error::The screenshot test rendered nothing. Every page needs a PageContent preview (docs/screenshots.md)."
             exit 1
@@ -156,7 +157,7 @@ jobs:
             exit 0
           fi
           if [ "$IS_PR" != "true" ] || [ "$IS_FORK" = "true" ]; then
-            echo "::error file=docs/screenshots::The screenshots do not match the page previews, and this run cannot commit them (it only does on a PR from this repo's own branches). Run ./gradlew recordRoborazziDebug and commit docs/screenshots."
+            echo "::error file=docs/screenshots::The screenshots do not match the page previews, and this run cannot commit them (it only does on a PR from this repo's own branches). Run ./gradlew testDebugUnitTest --tests '*PageScreenshotTest' -Proborazzi.test.record=true and commit docs/screenshots."
             exit 1
           fi
           git config user.name "github-actions[bot]"

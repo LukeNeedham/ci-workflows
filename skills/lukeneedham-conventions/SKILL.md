@@ -60,7 +60,7 @@ app's own.
   `XPageContentPreview` in `AppTheme` with fake state, no ViewModel, Koin or network.
 - **CI renders a README screenshot of every `*PageContentPreview`** (Robolectric + Roborazzi, JVM, no emulator) into
   `docs/screenshots/<Name>.png` and commits it to the PR branch: never take or edit them by hand. It runs the app's
-  `PageScreenshotTest`; set it up once from `docs/screenshots.md` in `LukeNeedham/ci-workflows`.
+  `PageScreenshotTest` (that exact class name); set it up once from `docs/screenshots.md` in `LukeNeedham/ci-workflows`.
 - Required for every app with a UI; `screenshots: false` in `readme.yml` is only for one with none (a WebView wrapper).
 
 ## Architecture

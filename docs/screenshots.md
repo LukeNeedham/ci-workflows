@@ -52,7 +52,8 @@ The `screenshots` job of [`android_pr.yml`](../.github/workflows/android_pr.yml)
 
 1. It skips with a warning if the app has no screenshot test yet (no `roborazzi` in `gradle/libs.versions.toml`),
    or if `readme.yml` says `screenshots: false`.
-2. It deletes `docs/screenshots/` and runs `./gradlew recordRoborazziDebug`. The test below renders each page
+2. It deletes `docs/screenshots/` and runs `./gradlew testDebugUnitTest --tests '*PageScreenshotTest' -Proborazzi.test.record=true`
+   (only that test class: it must be called `PageScreenshotTest`). The test below renders each page
    preview on the JVM (Robolectric, no emulator) and writes the PNGs. It fails if nothing was rendered.
 3. If the PNGs differ from the committed ones, it **commits them to the PR branch** (like the app icon and the
    README): pull the bot's commit before pushing again.
@@ -157,7 +158,8 @@ class PageScreenshotTest(private val preview: ComposablePreview<AndroidPreviewIn
 }
 ```
 
-Run `./gradlew recordRoborazziDebug` to see them (the PNGs land in `docs/screenshots/`); CI does the same and commits them.
+Run `./gradlew testDebugUnitTest --tests '*PageScreenshotTest' -Proborazzi.test.record=true` to see them (the PNGs land in
+`docs/screenshots/`); CI does the same and commits them.
 The fixed size and the JVM renderer keep the output the same from run to run, so a PR that does not change a page's
 UI gets no screenshot commit.
 
