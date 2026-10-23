@@ -7,5 +7,5 @@
   {"name": "Krillion wrapper", "repo": "LukeNeedham/krillion-wrapper", "library": false},
   {"name": "AppHub", "repo": "LukeNeedham/AppHub", "library": true},
   {"name": "PicCollage", "repo": "LukeNeedham/PicCollage-Android", "library": false},
-  {"name": "LT Companion", "repo": "LukeNeedham/LT-Companion", "library": false}
+  {"name": "LT Companion", "repo": "LukeNeedham/LT-Companion", "library": true}
 ]
