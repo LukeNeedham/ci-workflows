@@ -102,6 +102,16 @@ class Cli(unittest.TestCase):
         self.assertIn("apk-path=composeApp/build/outputs/apk/debug/composeApp-debug.apk", lines)
 
 
+class Workflows(unittest.TestCase):
+    def test_the_shared_workflows_take_no_settings_as_inputs(self):
+        # Settings come from apps.json only; an input of that name would be a second source of truth
+        import re
+        for name in ("android_pr", "android_main_build", "android_release"):
+            text = (TOOLS / ".github" / "workflows" / f"{name}.yml").read_text()
+            for key in list(c.DEFAULTS) + [c.COMMENT_HEADER]:
+                self.assertNotRegex(text, rf"(?m)^      {re.escape(key)}:", f"{name} {key}")
+
+
 class AppsFile(unittest.TestCase):
     def test_every_entry_uses_only_known_keys(self):
         for entry in APPS:

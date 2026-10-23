@@ -65,10 +65,3 @@ of the PR's files cannot be read, the PR is built.
 
 What GitHub only reads from the caller file itself, so it is the same in every app: the triggers (`on:`), the
 `permissions:`, and the inputs of a manual run (the version and notes of `release.yml`).
-
-## Removing the old inputs
-
-Until every app has merged its sync PR, the old callers still pass `apk-path` and the other settings as `with:`
-inputs. The shared workflows accept them but **ignore** them (their values were copied into `apps.json`). Once every
-app is synced, delete the deprecated inputs from `android_pr.yml`, `android_main_build.yml` and
-`android_release.yml`.

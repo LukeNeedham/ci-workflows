@@ -9,35 +9,9 @@ name: Android PR
 
 on:
   workflow_call:
-    # The settings of the app (APK path, Gradle task, JDK, timezone, comment id, branches) are not inputs:
-    # the config job looks them up in apps.json by the repo this runs in (docs/app-config.md). The inputs
-    # below are only still accepted so that a caller that has not been synced yet keeps working. They are
-    # ignored, and are removed once every app has the synced caller.
+    # The app's settings (APK path, Gradle task, JDK, timezone, comment id, branches) are not inputs: the config
+    # job looks them up in apps.json by the repo this runs in (docs/app-config.md).
     inputs:
-      gradle-task:
-        description: Deprecated and ignored. Set it in apps.json
-        type: string
-        default: ''
-      apk-path:
-        description: Deprecated and ignored. Set it in apps.json
-        type: string
-        default: ''
-      java-version:
-        description: Deprecated and ignored. Set it in apps.json
-        type: string
-        default: ''
-      java-distribution:
-        description: Deprecated and ignored. Set it in apps.json
-        type: string
-        default: ''
-      timezone:
-        description: Deprecated and ignored. Set it in apps.json
-        type: string
-        default: ''
-      comment-header:
-        description: Deprecated and ignored. Set it in apps.json
-        type: string
-        default: ''
       tools-ref:
         description: Branch or tag of LukeNeedham/ci-workflows to fetch scripts/ from. Leave as main; set it to a branch only to test a script change
         type: string

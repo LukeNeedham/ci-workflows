@@ -23,29 +23,8 @@ on:
         description: Release notes. Empty lists the merged PRs
         type: string
         default: ''
-      # The build settings come from apps.json (docs/app-config.md): release-gradle-task, release-apk-path,
-      # asset-name, java-version and java-distribution. These inputs are only still accepted so that a caller
-      # that has not been synced yet keeps working: they are ignored and will be removed.
-      gradle-task:
-        description: Deprecated and ignored. Set it in apps.json
-        type: string
-        default: ''
-      apk-path:
-        description: Deprecated and ignored. Set it in apps.json
-        type: string
-        default: ''
-      asset-name:
-        description: Deprecated and ignored. Set it in apps.json
-        type: string
-        default: ''
-      java-version:
-        description: Deprecated and ignored. Set it in apps.json
-        type: string
-        default: ''
-      java-distribution:
-        description: Deprecated and ignored. Set it in apps.json
-        type: string
-        default: ''
+      # The build settings (release-gradle-task, release-apk-path, asset-name, java-version, java-distribution)
+      # are not inputs: they are looked up in apps.json by the repo this runs in (docs/app-config.md).
     secrets:
       RELEASE_KEYSTORE_BASE64:
         description: The keystore file, base64 encoded on one line

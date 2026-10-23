@@ -60,8 +60,7 @@ moved here.
 **Settings.** The caller has none. The `config` job looks up the app's entry in [`apps.json`](apps.json) by the repo
 it runs in and passes `apk-path`, `gradle-task`, `java-version`, `java-distribution`, `timezone` and `comment-header`
 to the build ([docs/app-config.md](docs/app-config.md), which has the defaults). The same job skips the whole run for
-a PR into a branch the app does not build, and for a PR that changes only `.claude/skills/`. The workflow's old
-inputs of those names are still accepted but ignored, until every app has the synced caller.
+a PR into a branch the app does not build, and for a PR that changes only `.claude/skills/`.
 
 | Input | Default | Meaning |
 |---|---|---|
