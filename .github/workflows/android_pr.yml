@@ -123,7 +123,8 @@ jobs:
         uses: actions/setup-java@v4
         with:
           java-version: ${{ inputs.java-version }}
-          distribution: ${{ inputs.java-distribution }}
+          # Not the input: Zulu resolves to a CRaC build here, under which the Robolectric native runtime aborted at random
+          distribution: temurin
 
       - name: Set up Gradle
         if: steps.wanted.outputs.skip != 'true'

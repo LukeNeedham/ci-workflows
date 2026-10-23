@@ -69,7 +69,7 @@ Do this once, in the app's first README PR. Check the current stable versions fi
 ```toml
 [versions]
 roborazzi = "1.76.0"
-robolectric = "4.17"
+robolectric = "4.14.1"
 composablePreviewScanner = "0.9.3"
 
 [libraries]
@@ -113,6 +113,7 @@ dependencies {
 ```kotlin
 package com.lukeneedham.<app>
 
+import android.app.Application
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onRoot
 import com.github.takahirom.roborazzi.captureRoboImage
@@ -129,7 +130,8 @@ import sergio.sastre.composable.preview.scanner.core.preview.ComposablePreview
 /** Renders the preview of every PageContent composable to docs/screenshots/ (docs/screenshots.md in ci-workflows). */
 @RunWith(ParameterizedRobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(sdk = [34], qualifiers = "w360dp-h800dp-xxhdpi")
+// A plain Application: the real one usually starts Koin, which fails the second time it is created
+@Config(sdk = [34], qualifiers = "w360dp-h800dp-xxhdpi", application = Application::class)
 class PageScreenshotTest(private val preview: ComposablePreview<AndroidPreviewInfo>) {
 
     @get:Rule
