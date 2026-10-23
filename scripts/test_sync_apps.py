@@ -129,6 +129,19 @@ class SyncApp(unittest.TestCase):
         self.assertNotIn("stale", text)
         self.assertIn("- Rule.", text)
 
+    def test_the_block_tells_claude_the_readme_standard(self):
+        s.sync_claude_md(app(), self.dir)
+        self.assertIn("docs/readme.md", (self.dir / "CLAUDE.md").read_text())
+
+    def test_the_readme_is_reported_but_never_written(self):
+        self.assertEqual("README.md is missing", s.readme_note(self.dir))
+        self.write("README.md", "# Demo\n")
+        self.assertIn("not in the standard format", s.readme_note(self.dir))
+        self.write("README.md", (TOOLS / "docs/readme-template.md").read_text())
+        self.assertEqual("", s.readme_note(self.dir))
+        s.sync_app(app(), self.dir)
+        self.assertEqual((TOOLS / "docs/readme-template.md").read_text(), (self.dir / "README.md").read_text())
+
     def test_an_app_can_opt_out_of_the_skill_and_the_callers(self):
         changed = s.sync_app(app(skill=False, callers=[]), self.dir)
         self.assertEqual([], changed)

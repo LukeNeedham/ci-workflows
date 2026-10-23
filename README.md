@@ -43,6 +43,12 @@ conventions into each app's repo.
 keystore, these CI workflows, and the standard architecture (single activity, Compose, Navigation 3,
 MVVM). Read it first when starting any new app.
 
+## README standard
+
+Every app has a handwritten `README.md` in one format (icon, name, description, getting started as a user and as a
+developer, license and so on): **[docs/readme.md](docs/readme.md)**, skeleton in
+[docs/readme-template.md](docs/readme-template.md). Nothing generates it; the sync only reports which are missing.
+
 ## Setting up a project
 
 **See [docs/setup.md](docs/setup.md)** for the caller files to copy, which parts to configure per

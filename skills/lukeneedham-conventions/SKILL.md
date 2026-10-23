@@ -9,7 +9,7 @@ description: Luke Needham's conventions for Android apps - project setup, debug 
 # Luke's app conventions
 
 The full, current guides are in the public repo `LukeNeedham/ci-workflows` under `docs/`:
-`new-app.md` (read first when starting an app), `setup.md` (CI workflows), `app-icon.md`, `app-conventions.md` (libraries and code patterns), `library.md` and
+`new-app.md` (read first when starting an app), `setup.md` (CI workflows), `app-icon.md`, `readme.md` (the README format), `app-conventions.md` (libraries and code patterns), `library.md` and
 `using-the-library.md` (shared library), `consuming-apps.md` (which apps use it). If you can reach
 GitHub, read the relevant page there; otherwise the rules below are enough.
 
@@ -44,6 +44,14 @@ app's own.
   step. After a push, `git pull --rebase` to pick up the bot's `app-icon.png` commit before pushing again.
 - To look at it before pushing (optional): `pip install cairosvg pillow`, fetch
   `scripts/render_app_icon.py` from `main` of `LukeNeedham/ci-workflows` and run it from the repo root.
+
+## README
+- `README.md` at the repo root follows the standard of `docs/readme.md` in `LukeNeedham/ci-workflows`, from
+  `docs/readme-template.md`: the root `app-icon.png`, the app name, a one-line tagline, then the sections
+  Description, Features, (Screenshots), Getting started as a user, Getting started as a developer, Project
+  structure, Contributing, License, in that order.
+- **Handwritten, never generated**: no script, workflow or build step writes it. If it is missing or not in the
+  format, write it once from the template, and update it in the same PR as any change a reader would notice.
 
 ## Architecture
 - Single activity (`ComponentActivity`), Jetpack Compose, no XML, no fragments.

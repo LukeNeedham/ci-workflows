@@ -5,6 +5,7 @@ What is synced (see docs/sync.md):
   - the Claude skill, mirrored to .claude/skills/lukeneedham-conventions/
   - the callers in .github/workflows/, rendered from examples/ with the app's own settings
   - a managed block in the app's CLAUDE.md
+It also reports (never writes) whether the app's README.md follows the standard of docs/readme.md.
 
 For each app it clones the default branch, makes the changes on the branch `sync/ci-workflows`, and
 force-pushes that branch and opens a PR for it, or updates the PR that is already open.
@@ -29,6 +30,9 @@ import tempfile
 import urllib.error
 import urllib.request
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import check_readme
 
 TOOLS = Path(__file__).resolve().parent.parent
 SKILL = "lukeneedham-conventions"
@@ -169,6 +173,10 @@ def claude_block(app):
         f"- **Always give the user the AppHub link when work on this app completes.** As soon as a PR is open,\n"
         f"  paste `https://www.lukeneedham.com/apphub/pr/<repo name>/<PR number>` into the chat (CI posts the\n"
         f"  same link as a PR comment). Do not wait for the build and do not paste the APK link instead.\n"
+        f"- **`README.md` follows the standard format** of `docs/readme.md` in `LukeNeedham/ci-workflows` (icon, name,\n"
+        f"  description, features, getting started as a user and as a developer, project structure, contributing,\n"
+        f"  license; skeleton in `docs/readme-template.md`). If it is missing or not in that format, write it once,\n"
+        f"  by hand, from the template. Keep it accurate when the app changes. Never generate or script it.\n"
         f"{BLOCK_END}\n"
     )
 
@@ -248,6 +256,15 @@ def pr_body(changed):
     )
 
 
+def readme_note(app_dir):
+    """A one-line report on the app's README.md. Only reports: the README is handwritten (docs/readme.md)."""
+    path = app_dir / "README.md"
+    if not path.is_file():
+        return "README.md is missing"
+    found = check_readme.problems(path.read_text())
+    return "README.md is not in the standard format: " + "; ".join(found) if found else ""
+
+
 def sync_remote(app, token, dry_run, work):
     """Syncs one app on GitHub. Returns a one-line result."""
     repo = app["repo"]
@@ -256,11 +273,13 @@ def sync_remote(app, token, dry_run, work):
     git(work, "clone", "--quiet", "--depth", "1", f"{base}/{repo}.git", str(checkout), token=token)
     git(checkout, "checkout", "--quiet", "-B", BRANCH)
     changed = sync_app(app, checkout)
+    note = readme_note(checkout)
+    note = f" ({note})" if note else ""
     if not changed:
-        return f"{repo}: up to date"
+        return f"{repo}: up to date{note}"
     if dry_run:
         git(checkout, "add", "-A")
-        return f"{repo}: would change {len(changed)} files\n" + git(checkout, "diff", "--cached", "--stat")
+        return f"{repo}: would change {len(changed)} files{note}\n" + git(checkout, "diff", "--cached", "--stat")
     git(checkout, "add", "-A")
     git(checkout, "commit", "--quiet", "-m", "Sync from ci-workflows")
     git(checkout, "push", "--quiet", "--force", "origin", BRANCH, token=token)
@@ -269,14 +288,14 @@ def sync_remote(app, token, dry_run, work):
     open_prs = api(token, "GET", f"/repos/{repo}/pulls?state=open&head={owner}:{BRANCH}")
     if open_prs:
         api(token, "PATCH", f"/repos/{repo}/pulls/{open_prs[0]['number']}", {"body": pr_body(changed)})
-        return f"{repo}: updated {open_prs[0]['html_url']}"
+        return f"{repo}: updated {open_prs[0]['html_url']}{note}"
     created = api(token, "POST", f"/repos/{repo}/pulls", {
         "title": "Sync from ci-workflows",
         "head": BRANCH,
         "base": default,
         "body": pr_body(changed),
     })
-    return f"{repo}: opened {created['html_url']}"
+    return f"{repo}: opened {created['html_url']}{note}"
 
 
 def main():
