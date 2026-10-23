@@ -145,15 +145,6 @@ jobs:
             exit 1
           fi
 
-      # TEMPORARY diagnostics while the screenshot test is being brought up: why does the test JVM abort?
-      - name: Show the crash report
-        if: ${{ failure() && steps.wanted.outputs.skip != 'true' }}
-        run: |
-          echo "--- hs_err"; head -n 60 app/hs_err_pid*.log 2>/dev/null || echo "none"
-          echo "--- java"; java -version 2>&1
-          echo "--- test results"; find app/build/test-results -name '*.xml' | head -5 | xargs -r head -c 2500 || true
-          echo "--- fonts"; fc-list 2>/dev/null | head -3 || true
-
       - name: Commit the screenshots if they changed
         if: steps.wanted.outputs.skip != 'true'
         env:
