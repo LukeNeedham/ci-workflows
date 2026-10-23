@@ -34,7 +34,7 @@ In this order (the title block and the sections are always there, so they cannot
 7. `## Project structure`: `structure`, optionally `architecture`, and a link to the shared conventions
 8. Any `sections` of the app (Privacy, Roadmap, Credits, Known issues), as `## <title>`
 9. `## Contributing`
-10. `## License`: `license`, with a `LICENSE` file at the repo root ("All rights reserved" if the app is not open source)
+10. `## License`: `license`, with a `LICENSE` file at the repo root; "All rights reserved" if the app is not open source (then no `LICENSE` link is rendered)
 
 ## Fields of readme.yml
 
@@ -45,6 +45,7 @@ In this order (the title block and the sections are always there, so they cannot
 | `features` | yes | List of bullets |
 | `screenshots` | no | List of `path` (an image in the repo) and `alt` |
 | `user.min-android` | yes | For example `"8.0 (API 26)"` |
+| `user.install` | no | Replaces the default first step (install from AppHub or the Releases page), for an app that is not installed that way |
 | `user.steps` | no | Steps after installing, such as first-run steps |
 | `developer.notes` | no | Anything extra a developer needs (a secret, a local setup step) |
 | `structure` | yes | Where things are, one bullet each |

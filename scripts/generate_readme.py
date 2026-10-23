@@ -43,6 +43,8 @@ def problems(data):
         found.append("`user.min-android` is required")
     elif user.get("steps") is not None and not isinstance(user["steps"], list):
         found.append("`user.steps` must be a list")
+    elif user.get("install") is not None and not str(user["install"]).strip():
+        found.append("`user.install` must not be empty")
     for i, shot in enumerate(data.get("screenshots") or []):
         if not isinstance(shot, dict) or not shot.get("path") or not shot.get("alt"):
             found.append(f"`screenshots[{i}]` needs `path` and `alt`")
@@ -57,9 +59,12 @@ def render(data, repo):
     name = str(data["name"]).strip()
     repo_name = repo.split("/")[1]
     user = data["user"]
-    steps = [
+    install = str(user.get("install") or "").strip() or (
         f"Install the latest build from the [AppHub](https://www.lukeneedham.com/apphub) app, or download the APK "
-        f"from the [Releases](https://github.com/{repo}/releases) page.",
+        f"from the [Releases](https://github.com/{repo}/releases) page."
+    )
+    steps = [
+        install,
         *[str(s).strip() for s in user.get("steps") or []],
     ]
     out = [
@@ -116,6 +121,9 @@ def render(data, repo):
     ]
     for section in data.get("sections") or []:
         out += [f"## {str(section['title']).strip()}", "", str(section["body"]).strip(), ""]
+    license_name = str(data["license"]).strip().rstrip(".")
+    # A closed app has no LICENSE file to link to
+    license_line = f"{license_name}." if license_name.lower().startswith("all rights reserved") else f"{license_name}. See [LICENSE](LICENSE)."
     out += [
         "## Contributing",
         "",
@@ -123,7 +131,7 @@ def render(data, repo):
         "",
         "## License",
         "",
-        f"{str(data['license']).strip()}. See [LICENSE](LICENSE).",
+        license_line,
     ]
     return "\n".join(out) + "\n"
 

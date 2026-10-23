@@ -40,6 +40,17 @@ class GenerateReadmeTest(unittest.TestCase):
                                          "Create local.properties.", "## Project structure", "## Privacy", "## Contributing")]
         self.assertEqual(sorted(order), order)
 
+    def test_a_closed_app_links_no_license_file_and_install_can_be_replaced(self):
+        d = data()
+        d["license"] = "All rights reserved"
+        d["user"]["install"] = "Get the APK from a PR."
+        text = g.render(d, "LukeNeedham/Demo")
+        self.assertNotIn("LICENSE", text)
+        self.assertTrue(text.rstrip().endswith("All rights reserved."))
+        self.assertIn("1. Get the APK from a PR.", text)
+        self.assertNotIn("apphub", text.lower().replace("app-icon", ""))
+        self.assertIn("See [LICENSE](LICENSE).", g.render(data(), "LukeNeedham/Demo"))
+
     def test_problems_name_what_is_missing(self):
         found = g.problems({"name": "X", "extra": 1, "user": {}})
         text = "\n".join(found)

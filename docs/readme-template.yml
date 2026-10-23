@@ -18,6 +18,7 @@ features:                       # required
 
 user:
   min-android: "8.0 (API 26)"   # required
+  # install: Download the APK from the Releases page.   # optional: replaces the default first step (install from AppHub or Releases)
   steps:                        # optional: what to do after installing, such as first-run steps
     - Open the app and grant the notification permission.
 
