@@ -99,6 +99,20 @@ class SyncApp(unittest.TestCase):
         self.assertNotIn("stale", text)
         self.assertIn("- Rule.", text)
 
+    def test_the_block_tells_claude_the_readme_standard(self):
+        s.sync_claude_md(self.dir)
+        self.assertIn("docs/readme.md", (self.dir / "CLAUDE.md").read_text())
+
+    def test_the_readme_source_is_reported_but_nothing_is_written(self):
+        self.assertEqual("readme.yml is missing", s.readme_note(self.dir))
+        self.write("readme.yml", "name: Demo\n")
+        self.assertIn("readme.yml is invalid", s.readme_note(self.dir))
+        self.write("readme.yml", (TOOLS / "docs/readme-template.yml").read_text())
+        self.assertIn("no screenshots", s.readme_note(self.dir))
+        self.write("docs/screenshots/Home.png", "png")
+        self.assertEqual("", s.readme_note(self.dir))
+        s.sync_app(self.dir)
+        self.assertFalse((self.dir / "README.md").exists())
 
 class Api(unittest.TestCase):
     def test_a_request_with_a_body_declares_json(self):

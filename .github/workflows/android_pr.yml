@@ -11,6 +11,10 @@ on:
   # No inputs: every app is built the same way (docs/app-config.md)
   workflow_call:
 
+env:
+  # The branch of ci-workflows that the screenshot and README scripts are fetched from
+  TOOLS_REF: main
+
 jobs:
   # Provides the settings every app shares, and says whether this run has anything to do. The other jobs wait for it.
   config:
@@ -73,6 +77,132 @@ jobs:
           git add app-icon.png
           git commit -m "Regenerate app-icon.png from the adaptive launcher icon"
           # A push to the branch since this run started makes the first push fail: rebase onto it and retry
+          git push origin "HEAD:refs/heads/$BRANCH" || {
+            git pull --rebase origin "$BRANCH"
+            git push origin "HEAD:refs/heads/$BRANCH"
+          }
+
+  # The screenshots of the README, rendered on the JVM (Robolectric, Roborazzi) from the @Preview of every composable
+  # of the app's screenshot package, by scripts/render_screenshots.sh (docs/screenshots.md), and committed to the PR
+  # branch into docs/screenshots/ when they differ. An app that has no such package yet, or
+  # has `screenshots: false` in its readme.yml (no UI worth showing), skips the job.
+  screenshots:
+    needs: config
+    if: needs.config.outputs.skip != 'true' && (github.event_name != 'pull_request' || github.event.action != 'closed')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+          ref: ${{ github.head_ref || github.ref_name }}
+
+      - name: Check that the app has screenshots to render
+        id: wanted
+        run: |
+          if grep -qE '^screenshots:[[:space:]]*false' readme.yml 2>/dev/null; then
+            echo "readme.yml says screenshots: false"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          elif ! find app/src -path '*/screenshot/*.kt' -print -quit | grep -q .; then
+            echo "::warning::No screenshot package yet (a screenshot/ folder of Kotlin files in the app's package). See docs/screenshots.md in LukeNeedham/ci-workflows."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up JDK
+        if: steps.wanted.outputs.skip != 'true'
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ needs.config.outputs.java-version }}
+          # Not the shared distribution: Zulu resolves to a CRaC build here, under which the Robolectric native runtime aborted at random
+          distribution: temurin
+
+      - name: Set up Gradle
+        if: steps.wanted.outputs.skip != 'true'
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: ${{ github.event_name == 'pull_request' && github.base_ref == github.event.repository.default_branch }}
+
+      # The script deletes docs/screenshots first, so that a page that was removed or renamed drops out
+      - name: Render the screenshots
+        if: steps.wanted.outputs.skip != 'true'
+        run: |
+          curl -fsSL "https://raw.githubusercontent.com/LukeNeedham/ci-workflows/${TOOLS_REF}/scripts/render_screenshots.sh" \
+            -o "$RUNNER_TEMP/render_screenshots.sh"
+          bash "$RUNNER_TEMP/render_screenshots.sh" --no-daemon --build-cache
+
+      - name: Commit the screenshots if they changed
+        if: steps.wanted.outputs.skip != 'true'
+        env:
+          IS_PR: ${{ github.event_name == 'pull_request' }}
+          IS_FORK: ${{ github.event.pull_request.head.repo.full_name != github.repository }}
+          BRANCH: ${{ github.head_ref }}
+        run: |
+          git add -A docs/screenshots
+          if git diff --cached --quiet -- docs/screenshots; then
+            echo "The screenshots are up to date"
+            exit 0
+          fi
+          if [ "$IS_PR" != "true" ] || [ "$IS_FORK" = "true" ]; then
+            echo "::error file=docs/screenshots::The screenshots do not match the page previews, and this run cannot commit them (it only does on a PR from this repo's own branches). Run scripts/render_screenshots.sh (docs/screenshots.md in ci-workflows) and commit docs/screenshots."
+            exit 1
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Regenerate the screenshots from the page previews"
+          git push origin "HEAD:refs/heads/$BRANCH" || {
+            git pull --rebase origin "$BRANCH"
+            git push origin "HEAD:refs/heads/$BRANCH"
+          }
+
+  # The README.md of every app is rendered from its readme.yml, in the layout of docs/readme.md, so the
+  # format cannot drift. Same mechanics as app-icon: render on every PR and commit the result to the PR
+  # branch when it differs. An app without a readme.yml yet only gets a warning.
+  readme:
+    # After the screenshots, which it shows: both commit to the PR branch, and this one starts from their commit
+    needs: [config, screenshots]
+    if: ${{ !cancelled() && needs.config.outputs.skip != 'true' && (github.event_name != 'pull_request' || github.event.action != 'closed') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+          ref: ${{ github.head_ref || github.ref_name }}
+
+      - name: Render README.md from readme.yml
+        id: render
+        run: |
+          if [ ! -f readme.yml ]; then
+            echo "::warning file=README.md::There is no readme.yml. Write one from docs/readme-template.yml in LukeNeedham/ci-workflows; CI then generates README.md from it."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          pip install --quiet pyyaml
+          curl -fsSL "https://raw.githubusercontent.com/LukeNeedham/ci-workflows/${TOOLS_REF}/scripts/generate_readme.py" \
+            -o "$RUNNER_TEMP/generate_readme.py"
+          python3 "$RUNNER_TEMP/generate_readme.py" . --repo "${{ github.repository }}"
+
+      - name: Commit README.md if it changed
+        if: steps.render.outputs.skip != 'true'
+        env:
+          IS_PR: ${{ github.event_name == 'pull_request' }}
+          IS_FORK: ${{ github.event.pull_request.head.repo.full_name != github.repository }}
+          BRANCH: ${{ github.head_ref }}
+        run: |
+          if [ -z "$(git status --porcelain -- README.md)" ]; then
+            echo "README.md is up to date"
+            exit 0
+          fi
+          if [ "$IS_PR" != "true" ] || [ "$IS_FORK" = "true" ]; then
+            echo "::error file=README.md::README.md does not match readme.yml, and this run cannot commit it (it only does on a PR from this repo's own branches). Run scripts/generate_readme.py (see docs/readme.md) and commit the result."
+            exit 1
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add README.md
+          git commit -m "Regenerate README.md from readme.yml"
           git push origin "HEAD:refs/heads/$BRANCH" || {
             git pull --rebase origin "$BRANCH"
             git push origin "HEAD:refs/heads/$BRANCH"

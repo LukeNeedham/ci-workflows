@@ -11,7 +11,9 @@ Claude: nothing needs to remember to copy anything.
 | The callers | `.github/workflows/`: `trigger_on_pull_request.yml`, `build_main.yml`, `delete_prereleases.yml`, `release.yml` | Copied **byte for byte** from [`callers/`](../callers), **all four to every app**. They hold no settings, so every app has identical files. `release.yml` fails with a clear message in an app that is not set up for releases |
 | A note for Claude | A block in the app's `CLAUDE.md`, between `ci-workflows:begin` and `ci-workflows:end` | Replaced each time. Also tells Claude to always paste the PR's AppHub link into the chat when work completes (`CLAUDE.md` is always loaded, unlike the skill). The old "copy the skill by hand" line is replaced by it. The rest of `CLAUDE.md` is the app's |
 
-Not synced: the library version, and anything else in the app.
+Not synced: the app's `readme.yml`, which is handwritten, and its `README.md`, which the PR build generates from it
+([readme.md](readme.md)); the sync only reports, in its run summary, which apps have no valid `readme.yml`. Also not
+synced: the library version, and anything else in the app.
 
 **The callers hold no settings.** Every app is built the same way ([app-config.md](app-config.md)), so there is
 nothing to configure per app. The sync overwrites whatever the app has in a caller file, so an edit made in an app is lost.
@@ -62,7 +64,8 @@ same secret. It is only ever sent to `github.com` and `api.github.com`, and is m
 ```
 SYNC_TOKEN=github_pat_... python3 scripts/sync_apps.py            # every app
 python3 scripts/sync_apps.py --dry-run --apps AppHub              # clone, show the changes, push nothing
-python3 -m unittest discover -s scripts                           # the tests
+python3 -m unittest discover -s scripts                           # the tests (needs pyyaml)
+python3 scripts/generate_readme.py path/to/app --repo owner/name  # render an app's README.md (needs pyyaml)
 ```
 
 `--dry-run` needs no token for a public repo.

@@ -8,8 +8,9 @@ then follow it, and tell the user about anything you skipped and why.
 - [2. Debug keystore](#2-debug-keystore)
 - [3. CI workflows](#3-ci-workflows)
 - [4. App icon](#4-app-icon)
-- [5. App architecture](#5-app-architecture)
-- [6. The shared library](#6-the-shared-library)
+- [5. README](#5-readme)
+- [6. App architecture](#6-app-architecture)
+- [7. The shared library](#7-the-shared-library)
 - [Apps that are not Compose](#apps-that-are-not-compose)
 - [Done checklist](#done-checklist)
 
@@ -121,10 +122,26 @@ Give the app an adaptive launcher icon (`android:icon` pointing to a `mipmap-any
 it from the adaptive icon and commits it to the PR branch, and keeps it in step whenever the launcher icon
 changes. Do not create or edit it by hand. See [app-icon.md](app-icon.md).
 
-## 5. App architecture
+## 5. README
+
+Write the app's **`readme.yml`** by hand, from [readme-template.yml](readme-template.yml): name, tagline,
+description (with the highlights of what the app does; no feature list), minimum Android version, structure and license. CI renders `README.md` from it in the
+standard layout ([readme.md](readme.md)) and commits it to the PR branch, so never edit `README.md`. The icon in it
+is the CI-generated `app-icon.png`, so there is nothing to add for it.
+
+**Screenshots are required** (except for an app with no UI worth showing, which sets `screenshots: false`): add a
+`screenshot` package in `src/debug`, with one file per page that deserves a screenshot (its mock data and a `@Preview` that renders
+the page's content with it) and a README ([screenshots.md](screenshots.md)). CI then renders every preview of the package
+into `docs/screenshots/` and the README shows them. The app holds no screenshot dependencies or test: those live in
+ci-workflows.
+
+## 6. App architecture
 
 Defaults for a normal app. If the user asks for something else, do that instead.
 
+- **Pages are `XPage` + `XPageContent`.** Each screen is a thin `XPage` composable that gets the ViewModel and
+  delegates to a stateless, previewable `XPageContent`; the README screenshots of the pages are previews in the
+  `screenshot` package ([screenshots.md](screenshots.md#the-page-pattern)).
 - **Single activity.** One `MainActivity` (extending `ComponentActivity`) hosts the whole UI. Screens
   are composables, never extra activities or fragments.
 - **Jetpack Compose, themed by the app's own `AppTheme`** (a hand-made composition local, never
@@ -174,7 +191,7 @@ Defaults for a normal app. If the user asks for something else, do that instead.
   previews, one-off events, touch targets, minified release builds): see
   **[app-conventions.md](app-conventions.md)** and follow it.
 
-## 6. The shared library
+## 7. The shared library
 
 **Every app uses the shared library** (`common/`), Compose or not: logger and crash handler, and the optional debug,
 logs and crashes pages. Follow **[using-the-library.md](using-the-library.md)** to add it, and use
@@ -186,9 +203,9 @@ floating button on the main page); see [A settings page](using-the-library.md#a-
 ## Apps that are not Compose
 
 Some apps are too small for the above, such as the Krillion web-game wrapper: one `WebView` in one
-activity. Still do steps 1 to 4 (project, **debug keystore**, **CI workflows**, **app icon**) and the **shared
+activity. Still do steps 1 to 5 (project, **debug keystore**, **CI workflows**, **app icon**, **README**) and the **shared
 library** (logger and crash handler, no debug pages), keep it to a single activity, and skip the rest. Say which
-sections you skipped and why.
+sections you skipped and why. Such an app, with no UI worth showing, sets `screenshots: false` in its `readme.yml`.
 
 ## Done checklist
 
@@ -196,6 +213,8 @@ sections you skipped and why.
 - [ ] `app/debug.keystore` committed and used by the `debug` signing config
 - [ ] All four callers copied unchanged (`trigger_on_pull_request.yml`, `build_main.yml`, `delete_prereleases.yml`, `release.yml`), module `:app`, default branch `main`
 - [ ] Adaptive launcher icon in place (CI then generates `app-icon.png` at the repo root on the first PR)
+- [ ] Every page is an `XPage` + `XPageContent`; a `screenshot` package with a file per screenshotted page and its README ([screenshots.md](screenshots.md)), or `screenshots: false`
+- [ ] Handwritten `readme.yml` ([readme.md](readme.md)); CI generates `README.md` from it
 - [ ] Single activity, Compose, Navigation 3, MVVM, Koin for DI, Coil 3 for images, or a stated reason for each departure
 - [ ] [app-conventions.md](app-conventions.md) followed: strings in `strings.xml`, own `AppTheme` (no `MaterialTheme`), a preview per composable, 48dp touch targets
 - [ ] Shared library added, `DebugKit.init` called first, `Logger` used (debug pages optional)

@@ -9,7 +9,7 @@ and `repo`. Nothing else is configured per app ([app-config.md](app-config.md)),
 callers and the skill by the sync.
 
 Every app in this list must have `app-icon.png` at its repo root ([app-icon.md](app-icon.md)); the app hub
-reads the icons from these repos.
+reads the icons from these repos. Every app also has a handwritten `readme.yml`, from which CI generates its `README.md` ([readme.md](readme.md)).
 
 ## Keeping this list complete
 

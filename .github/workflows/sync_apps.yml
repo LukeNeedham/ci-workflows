@@ -12,6 +12,7 @@ on:
       - 'callers/**'
       - 'apps.json'
       - 'scripts/sync_apps.py'
+      - 'scripts/generate_readme.py'
   schedule:
     - cron: '17 5 * * 1'   # weekly, to catch an app that drifted
   workflow_dispatch:
@@ -36,8 +37,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Test the sync script
-        run: python3 -m unittest discover -s scripts
+      - name: Test the scripts
+        run: |
+          pip install --quiet pyyaml
+          python3 -m unittest discover -s scripts
 
   sync:
     needs: test
@@ -49,6 +52,8 @@ jobs:
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
+
+      - run: pip install --quiet pyyaml
 
       - name: Sync the apps
         env:
