@@ -1,12 +1,12 @@
 name: App config
 description: >
-  Looks up the CI settings of the app running the workflow in apps.json (the defaults fill in what the entry
-  leaves out) and says whether a pull request run has nothing to build. Used by the reusable workflows, so the
-  callers in the apps carry no settings. The logic is scripts/app_config.py; see docs/app-config.md.
+  Provides the CI settings that every app shares (APK path, Gradle task, JDK and so on) and says whether a pull
+  request run has nothing to build. Used by the reusable workflows, so the callers in the apps carry no settings.
+  The logic is scripts/app_config.py; see docs/app-config.md.
 
 outputs:
   skip:
-    description: 'true when the run has nothing to do: the PR targets another branch, or changes only the Claude skill'
+    description: 'true when the run has nothing to do: the PR targets a branch other than main, or changes only the Claude skill'
     value: ${{ steps.config.outputs.skip }}
   apk-path:
     value: ${{ steps.config.outputs.apk-path }}
@@ -49,7 +49,7 @@ runs:
           echo "::warning::Could not list the files of the pull request, so it is built in full"
         fi
 
-    - name: Look up the app in apps.json
+    - name: Get the settings
       id: config
       shell: bash
       env:
@@ -59,7 +59,7 @@ runs:
         EVENT_ACTION: ${{ github.event.action }}
         BASE_REF: ${{ github.event.pull_request.base.ref }}
         FILES: ${{ steps.files.outputs.path }}
-      # The action is checked out with the whole repo: the script is three directories up, next to apps.json
+      # The action is checked out with the whole repo: the script is three directories up
       run: |
         python3 "$ACTION_PATH/../../../scripts/app_config.py" \
           --repo "$REPO" --event "$EVENT" --action "$EVENT_ACTION" --base "$BASE_REF" --files "$FILES"

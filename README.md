@@ -10,7 +10,7 @@ the real logic lives here, so a fix made once reaches every project.
 | [`android_pr_cleanup.yml`](.github/workflows/android_pr_cleanup.yml) | *Building block.* Deletes the PR's build pre-releases and tags | PR closed |
 | [`android_main_build.yml`](.github/workflows/android_main_build.yml) | Builds the debug APK of **main on demand** and keeps it as an artifact for **one day** | Run by hand or by AppHub, from the caller |
 | [`android_release.yml`](.github/workflows/android_release.yml) | Publishes a **permanent, signed release** (tag + APK) | Run by hand, from the caller |
-| [`sync_apps.yml`](.github/workflows/sync_apps.yml) | Opens a PR in every app of [`apps.json`](apps.json) that keeps its skill, callers and `CLAUDE.md` block in line with this repo ([docs/sync.md](docs/sync.md)) | Change here, weekly, or by hand |
+| [`sync_apps.yml`](.github/workflows/sync_apps.yml) | Opens a PR in every app of [`apps.json`](apps.json) that keeps its skill, all four callers and `CLAUDE.md` block in line with this repo ([docs/sync.md](docs/sync.md)) | Change here, weekly, or by hand |
 | [`delete_prereleases.yml`](.github/workflows/delete_prereleases.yml) | Deletes **all** pre-releases and tags in the repo | Run by hand |
 
 `android_pr.yml` just chooses between the build and the cleanup workflow from the event. It is the
@@ -49,7 +49,7 @@ MVVM). Read it first when starting any new app.
 are set in [`apps.json`](apps.json) ([docs/app-config.md](docs/app-config.md)), and how to migrate an existing project.
 
 In short: a project keeps small caller files that own the **triggers** (`on:`) and the **permissions**; the
-steps live here, and so do the project's **settings**, as its entry in `apps.json`. A reusable workflow cannot decide when it
+steps live here, and there are no per-project settings: every project is built the same way. A reusable workflow cannot decide when it
 runs, and it can never be granted more permissions than the caller gives it, so those cannot be
 moved here.
 
@@ -57,10 +57,9 @@ moved here.
 
 ### `android_pr.yml`
 
-**Settings.** The caller has none. The `config` job looks up the app's entry in [`apps.json`](apps.json) by the repo
-it runs in and passes `apk-path`, `gradle-task`, `java-version`, `java-distribution`, `timezone` and `comment-header`
-to the build ([docs/app-config.md](docs/app-config.md), which has the defaults). The same job skips the whole run for
-a PR into a branch the app does not build, and for a PR that changes only `.claude/skills/`.
+**Settings.** The caller has none: every app is built the same way ([docs/app-config.md](docs/app-config.md)), and
+the `config` job provides the values to the build. The same job skips the whole run for a PR that does not go to
+`main`, and for a PR that changes only `.claude/skills/`.
 
 | Input | Default | Meaning |
 |---|---|---|
@@ -118,8 +117,7 @@ Builds the APK of the branch it is run on and uploads it as the artifact `apk`, 
 how AppHub gets a build of `main` without a PR: AppHub starts it through the API, follows the run, and
 downloads the artifact. It can also be run from the *Actions* tab.
 
-No inputs: `gradle-task`, `apk-path`, `java-version` and `java-distribution` come from the app's entry in
-[`apps.json`](apps.json) ([docs/app-config.md](docs/app-config.md)).
+No inputs: every app is built the same way ([docs/app-config.md](docs/app-config.md)).
 
 - **The caller is `build_main.yml`** ([`examples/build_main.yml`](examples/build_main.yml)): AppHub starts that
   file by name, on `main`. It needs `workflow_dispatch` and `contents: read`.
@@ -132,10 +130,8 @@ No inputs: `gradle-task`, `apk-path`, `java-version` and `java-distribution` com
 ### `android_release.yml`
 
 Publishes a permanent release from a manual run. Inputs: `version` (required, `major.minor.patch`,
-used as the tag with no `v`) and `notes` (empty lists the merged PRs). The build settings (`release-gradle-task`,
-`release-apk-path`, `asset-name`, `java-version`, `java-distribution`) are the app's entry in
-[`apps.json`](apps.json) ([docs/app-config.md](docs/app-config.md)); the defaults suit a standard app module, and
-the asset is named after the repository, e.g. `Android-Dock.apk`. Secrets: `RELEASE_KEYSTORE_BASE64`,
+used as the tag with no `v`) and `notes` (empty lists the merged PRs). The build settings are the standard
+([docs/app-config.md](docs/app-config.md)); the asset is named after the repository, e.g. `Android-Dock.apk`. Secrets: `RELEASE_KEYSTORE_BASE64`,
 `RELEASE_KEYSTORE_PASSWORD`, `RELEASE_KEY_ALIAS`, `RELEASE_KEY_PASSWORD`; pass them with
 `secrets: inherit`.
 

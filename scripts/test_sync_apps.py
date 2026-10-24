@@ -9,10 +9,6 @@ import sync_apps as s
 TOOLS = s.TOOLS
 
 
-def app(**extra):
-    return {"name": "Demo", "repo": "LukeNeedham/Demo", **extra}
-
-
 class SyncApp(unittest.TestCase):
     def setUp(self):
         self._tmp = tempfile.TemporaryDirectory()
@@ -25,26 +21,26 @@ class SyncApp(unittest.TestCase):
         path.write_text(text)
 
     def test_a_new_app_gets_the_skill_the_callers_and_the_block(self):
-        changed = s.sync_app(app(), self.dir)
+        changed = s.sync_app(self.dir)
 
         self.assertIn(".claude/skills/lukeneedham-conventions/SKILL.md", changed)
-        for name in s.DEFAULT_CALLERS:
+        for name in s.CALLERS:
             self.assertTrue((self.dir / ".github" / "workflows" / name).is_file(), name)
         claude = (self.dir / "CLAUDE.md").read_text()
         self.assertIn(s.BLOCK_BEGIN, claude)
         self.assertTrue(claude.startswith("# Instructions for Claude"))
 
     def test_a_second_run_changes_nothing(self):
-        s.sync_app(app(), self.dir)
-        self.assertEqual([], s.sync_app(app(), self.dir))
+        s.sync_app(self.dir)
+        self.assertEqual([], s.sync_app(self.dir))
 
     def test_the_callers_are_copied_byte_for_byte_over_whatever_the_app_has(self):
         self.write(".github/workflows/trigger_on_pull_request.yml", "name: Old\nwith:\n  apk-path: old.apk\n")
 
-        changed = s.sync_callers(app(), self.dir)
+        changed = s.sync_callers(self.dir)
 
         self.assertIn(".github/workflows/trigger_on_pull_request.yml", changed)
-        for name in s.DEFAULT_CALLERS:
+        for name in s.CALLERS:
             self.assertEqual((TOOLS / "examples" / name).read_bytes(), (self.dir / ".github/workflows" / name).read_bytes(), name)
 
     def test_the_callers_hold_no_settings(self):
@@ -53,9 +49,11 @@ class SyncApp(unittest.TestCase):
                 self.assertNotRegex(line, r"^\s*#?\s*(apk-path|gradle-task|java-version|java-distribution|timezone|comment-header|asset-name):", path.name)
             self.assertNotRegex(path.read_text(), r"(?m)^\s*branches:", path.name)
 
-    def test_an_app_that_publishes_releases_gets_the_release_caller_too(self):
-        s.sync_callers(app(callers=s.DEFAULT_CALLERS + ["release.yml"]), self.dir)
-        self.assertTrue((self.dir / ".github/workflows/release.yml").is_file())
+    def test_every_app_gets_every_caller_including_the_release_one(self):
+        s.sync_callers(self.dir)
+        for name in ("trigger_on_pull_request.yml", "build_main.yml", "delete_prereleases.yml", "release.yml"):
+            self.assertTrue((self.dir / ".github/workflows" / name).is_file(), name)
+        self.assertEqual(sorted(p.name for p in (TOOLS / "examples").glob("*.yml")), sorted(s.CALLERS))
 
     def test_the_skill_is_mirrored_and_stray_files_go(self):
         self.write(".claude/skills/lukeneedham-conventions/SKILL.md", "old")
@@ -77,7 +75,7 @@ class SyncApp(unittest.TestCase):
 - Another rule.
 """)
 
-        s.sync_claude_md(app(), self.dir)
+        s.sync_claude_md(self.dir)
 
         text = (self.dir / "CLAUDE.md").read_text()
         self.assertNotIn("Before starting work", text)
@@ -87,18 +85,12 @@ class SyncApp(unittest.TestCase):
     def test_an_existing_block_is_replaced_not_added_again(self):
         self.write("CLAUDE.md", "# Instructions\n\n" + s.BLOCK_BEGIN + "\nstale\n" + s.BLOCK_END + "\n\n- Rule.\n")
 
-        s.sync_claude_md(app(), self.dir)
+        s.sync_claude_md(self.dir)
 
         text = (self.dir / "CLAUDE.md").read_text()
         self.assertEqual(1, text.count(s.BLOCK_BEGIN))
         self.assertNotIn("stale", text)
         self.assertIn("- Rule.", text)
-
-    def test_an_app_can_opt_out_of_the_skill_and_the_callers(self):
-        changed = s.sync_app(app(skill=False, callers=[]), self.dir)
-        self.assertEqual([], changed)
-        self.assertFalse((self.dir / ".claude").exists())
-        self.assertFalse((self.dir / "CLAUDE.md").exists())
 
 
 class Api(unittest.TestCase):
@@ -115,21 +107,6 @@ class Api(unittest.TestCase):
                 s.api("t", "POST", "/repos/o/r/pulls", {"title": "x"})
         self.assertEqual("application/json", seen["Content-type"])
         self.assertEqual("Bearer t", seen["Authorization"])
-
-
-class AppsFile(unittest.TestCase):
-    def test_every_app_has_a_name_and_a_repo(self):
-        import json
-        apps = json.loads((TOOLS / "apps.json").read_text())
-        self.assertTrue(apps)
-        for entry in apps:
-            self.assertRegex(entry["repo"], r"^[\w.-]+/[\w.-]+$")
-            self.assertTrue(entry["name"])
-        self.assertEqual(len(apps), len({a["repo"] for a in apps}))
-
-    def test_every_default_caller_has_an_example(self):
-        for name in s.DEFAULT_CALLERS:
-            self.assertTrue((TOOLS / "examples" / name).is_file(), name)
 
 
 if __name__ == "__main__":

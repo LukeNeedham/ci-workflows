@@ -1,5 +1,5 @@
 # Synced from LukeNeedham/ci-workflows into every app by CI: do not edit it in an app. It has no settings.
-# The file name matters: AppHub starts it by name. The app's settings are its entry in ci-workflows' apps.json.
+# The file name matters: AppHub starts it by name.
 # Run it from the Actions tab (Run workflow, on main), or from AppHub. It builds the branch it is run on
 # and keeps the APK as an artifact for one day.
 # Docs: https://github.com/LukeNeedham/ci-workflows/blob/main/docs/app-config.md

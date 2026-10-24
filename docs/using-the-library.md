@@ -5,10 +5,10 @@ animation speed) to a **new** app and to an **existing** one. What the library i
 is in [library.md](library.md); this page is the step-by-step.
 
 - [Before you start](#before-you-start)
-- [The five steps, in short](#the-five-steps-in-short)
+- [The steps, in short](#the-steps-in-short)
 - [A new app](#a-new-app)
 - [An existing app](#an-existing-app)
-- [Always wrap the UI in `ProvideDebugSettings`](#always-wrap-the-ui-in-providedebugsettings)
+- [Wrap the UI in `ProvideDebugSettings`](#wrap-the-ui-in-providedebugsettings) (optional)
 - [Wiring the pages into your navigation](#wiring-the-pages-into-your-navigation)
 - [Turning it off in release builds](#turning-it-off-in-release-builds)
 - [Check that it works](#check-that-it-works)
@@ -28,17 +28,19 @@ is in [library.md](library.md); this page is the step-by-step.
 The library brings its own Compose Multiplatform 1.10 (foundation, no Material). If your app is on an older
 Compose, Gradle upgrades it to match, so test the app's screens after adding the library.
 
-## The five steps, in short
+## The steps, in short
 
-Every app, new or existing, does the same five things:
+**Every app uses the library**, Compose or not. What every app does:
 
 1. **Add the repository** to `settings.gradle.kts`.
 2. **Add the dependency** to the app module.
 3. **Call `DebugKit.init(...)` once, as early as possible** (before anything can crash or log).
-4. **Wrap the UI in `ProvideDebugSettings`**, and place a `DebugButton` on the app's settings page. Every app, new or existing, does this, even one that reads no debug setting yet (see [Always wrap the UI](#always-wrap-the-ui-in-providedebugsettings)). Every app needs a settings page for it ([Every app has a settings page](#every-app-has-a-settings-page)).
-5. **Add the three pages** (`DebugPage`, `LogsPage`, `CrashesPage`) to your navigation.
+4. **Use `Logger`** instead of `Log`/`println`, and log the failures the app catches instead of swallowing them.
 
-Then use `Logger` instead of `Log`/`println`.
+That gives every app the logger and the crash handler. **The debug pages are optional**; an app that wants them also does:
+
+5. **Wrap the UI in `ProvideDebugSettings`**, and place a `DebugButton` on a settings page ([Wrap the UI](#wrap-the-ui-in-providedebugsettings), [A settings page](#a-settings-page)).
+6. **Add the three pages** (`DebugPage`, `LogsPage`, `CrashesPage`) to your navigation.
 
 ## A new app
 
@@ -205,13 +207,12 @@ So there are four routes: the app's debug page, and under it the library's `Debu
 `CrashesPage`. An app with no debug tools of its own has no page of its own and opens the library's
 `DebugPage` directly.
 
-## Every app has a settings page
+## A settings page
 
-Every app, new or existing, has a **settings page**, reachable from the app's normal navigation (a
-settings icon in the top bar, a drawer or tab entry, whichever fits the app). **A new app always gets
-one. An existing app that has none adds one** as part of adopting the library. The page is rendered
-even when it has no other actions on it: an app with nothing to configure still has a settings page,
-and it still holds the `DebugButton`.
+An app that shows the debug pages (optional, see above) puts the `DebugButton` on a **settings page**, reachable
+from the app's normal navigation (a settings icon in the top bar, a drawer or tab entry, whichever fits the app).
+The page may have nothing else on it. An app with no UI for it, such as a single `WebView`, can skip the debug
+pages altogether and still has the logger and the crash handler.
 
 The **`DebugButton`** is a normal item on the page (a row or button in the page's column). It opens
 the debug page, and shows nothing unless debugging is enabled. It is never a floating action button
@@ -236,13 +237,13 @@ from the build. The app does nothing for this.
 If the app already has a settings page, add the `DebugButton` to it. If it already has a settings
 entry that opens its own debug page, keep that.
 
-## Always wrap the UI in `ProvideDebugSettings`
+## Wrap the UI in `ProvideDebugSettings`
 
 `ProvideDebugSettings` is the single place where the library hands composition locals to the app.
 It provides `LocalDebugSettings` (every debug setting that applies to the UI, as one value) and a
 local for each setting that has its own, today `LocalAnimationSpeed`.
 
-**Every app wraps its content in it once, near the root, including apps that read no setting yet.**
+**An app that shows the debug pages wraps its content in it once, near the root, even if it reads no setting yet.**
 An app with no animation to scale today may need another debug setting tomorrow. If the app is
 already wrapped, a setting added to the library later reaches every screen with a library version
 bump and nothing else, instead of a change to every consuming app.

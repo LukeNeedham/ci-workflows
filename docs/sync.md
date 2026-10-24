@@ -8,15 +8,13 @@ Claude: nothing needs to remember to copy anything.
 | What | Where in the app | How |
 |---|---|---|
 | The Claude skill | `.claude/skills/lukeneedham-conventions/` | Mirrored exactly: files that no longer exist here are deleted |
-| The callers | `.github/workflows/`: `trigger_on_pull_request.yml`, `build_main.yml`, `delete_prereleases.yml` | Copied **byte for byte** from [`examples/`](../examples). They hold no settings, so every app has identical files |
+| The callers | `.github/workflows/`: `trigger_on_pull_request.yml`, `build_main.yml`, `delete_prereleases.yml`, `release.yml` | Copied **byte for byte** from [`examples/`](../examples), **all four to every app**. They hold no settings, so every app has identical files. `release.yml` fails with a clear message in an app that is not set up for releases |
 | A note for Claude | A block in the app's `CLAUDE.md`, between `ci-workflows:begin` and `ci-workflows:end` | Replaced each time. Also tells Claude to always paste the PR's AppHub link into the chat when work completes (`CLAUDE.md` is always loaded, unlike the skill). The old "copy the skill by hand" line is replaced by it. The rest of `CLAUDE.md` is the app's |
 
-Not synced by default: `release.yml` (it needs the app's signing secrets, so an app opts in with `callers`, below), the
-library version, and anything else in the app.
+Not synced: the library version, and anything else in the app.
 
-**The callers hold no settings.** What differs per app (`apk-path`, `branches` and so on) is its entry in
-[`apps.json`](../apps.json), and the shared workflows look it up when they run: [app-config.md](app-config.md). The
-sync overwrites whatever the app has in a caller file, so an edit made in an app is lost.
+**The callers hold no settings.** Every app is built the same way ([app-config.md](app-config.md)), so there is
+nothing to configure per app. The sync overwrites whatever the app has in a caller file, so an edit made in an app is lost.
 
 ## When it runs
 
@@ -32,18 +30,14 @@ A run fails (and GitHub emails you) if any app failed, after trying all of them.
 ## apps.json
 
 ```json
-{"name": "AppHub", "repo": "LukeNeedham/AppHub", "library": true}
+{"name": "AppHub", "repo": "LukeNeedham/AppHub"}
 ```
 
-| Field | Default | Meaning |
-|---|---|---|
-| `name`, `repo` | required | The app's name and its `owner/name` |
-| `library` | `false` | Whether it uses the shared library: for [consuming-apps.md](consuming-apps.md), not used by the sync |
-| `skill` | `true` | `false`: do not sync the skill |
-| `callers` | the three above | The caller files to sync, from `examples/`. An app that publishes releases lists the three and `release.yml`; `[]` for none |
-| settings: `apk-path`, `branches`, `gradle-task`, `java-version`, `java-distribution`, `timezone`, `comment-header`, `release-gradle-task`, `release-apk-path`, `asset-name` | the defaults | Not used by the sync: read by the workflows when they run. See [app-config.md](app-config.md) |
+| Field | Meaning |
+|---|---|
+| `name`, `repo` | The app's name and its `owner/name`. The only fields: every app gets everything, and nothing is configured per app |
 
-**A new app:** add it here, with its settings if it differs from the defaults (this is also the list "all consuming apps" means), then run *Sync Apps* for it. Its
+**A new app:** add it here (this is also the list "all consuming apps" means), then run *Sync Apps* for it. Its
 first sync PR adds the callers, the skill and the `CLAUDE.md` block.
 
 ## The token (one-time setup)

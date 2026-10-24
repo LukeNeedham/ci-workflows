@@ -1,11 +1,11 @@
 [
-  {"name": "Android-Dock", "repo": "LukeNeedham/Android-Dock", "library": true, "callers": ["trigger_on_pull_request.yml", "build_main.yml", "delete_prereleases.yml", "release.yml"]},
-  {"name": "FlagTutor", "repo": "LukeNeedham/FlagTutor", "library": true, "apk-path": "composeApp/build/outputs/apk/debug/composeApp-debug.apk"},
-  {"name": "VideoDiary", "repo": "LukeNeedham/VideoDiary", "library": true},
-  {"name": "PoetryBook", "repo": "LukeNeedham/PoetryBook", "library": true, "callers": ["trigger_on_pull_request.yml", "build_main.yml", "delete_prereleases.yml", "release.yml"]},
-  {"name": "StickerBoard", "repo": "LukeNeedham/Stickerboard", "library": true},
-  {"name": "Krillion wrapper", "repo": "LukeNeedham/krillion-wrapper", "library": false},
-  {"name": "AppHub", "repo": "LukeNeedham/AppHub", "library": true},
-  {"name": "PicCollage", "repo": "LukeNeedham/PicCollage-Android", "library": false, "branches": ["master"]},
-  {"name": "LT Companion", "repo": "LukeNeedham/LT-Companion", "library": true, "comment-header": "LT-Companion-app-link"}
+  {"name": "Android-Dock", "repo": "LukeNeedham/Android-Dock"},
+  {"name": "FlagTutor", "repo": "LukeNeedham/FlagTutor"},
+  {"name": "VideoDiary", "repo": "LukeNeedham/VideoDiary"},
+  {"name": "PoetryBook", "repo": "LukeNeedham/PoetryBook"},
+  {"name": "StickerBoard", "repo": "LukeNeedham/Stickerboard"},
+  {"name": "Krillion wrapper", "repo": "LukeNeedham/krillion-wrapper"},
+  {"name": "AppHub", "repo": "LukeNeedham/AppHub"},
+  {"name": "PicCollage", "repo": "LukeNeedham/PicCollage-Android"},
+  {"name": "LT Companion", "repo": "LukeNeedham/LT-Companion"}
 ]

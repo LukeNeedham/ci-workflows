@@ -2,6 +2,7 @@
 
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -10,51 +11,39 @@ from pathlib import Path
 
 import app_config as c
 
-TOOLS = c.TOOLS
-APPS = json.loads((TOOLS / "apps.json").read_text())
+TOOLS = Path(__file__).resolve().parent.parent
 SKILL_FILE = ".claude/skills/lukeneedham-conventions/SKILL.md"
 
 
-def run(repo="LukeNeedham/Demo", event="pull_request", action="synchronize", base="main", files=(), apps=()):
-    return c.run(repo, event, action, base, list(files), list(apps))[0]
+def run(repo="LukeNeedham/Demo", event="pull_request", action="synchronize", base="main", files=()):
+    return c.run(repo, event, action, base, list(files))[0]
 
 
 class Settings(unittest.TestCase):
-    def test_an_app_that_sets_nothing_gets_the_defaults(self):
-        out = run(apps=[{"name": "Demo", "repo": "LukeNeedham/Demo"}])
+    def test_every_app_gets_the_standard_settings(self):
+        out = run()
         self.assertEqual("app/build/outputs/apk/debug/app-debug.apk", out["apk-path"])
         self.assertEqual("assembleDebug", out["gradle-task"])
         self.assertEqual("17", out["java-version"])
         self.assertEqual("zulu", out["java-distribution"])
         self.assertEqual("Europe/Amsterdam", out["timezone"])
         self.assertEqual("assembleRelease", out["release-gradle-task"])
-        self.assertEqual("", out["asset-name"])
+        self.assertEqual("app/build/outputs/apk/release/app-release.apk", out["release-apk-path"])
 
-    def test_the_comment_id_is_derived_from_the_repo_name(self):
-        self.assertEqual("demo-app-link", run(apps=[{"name": "Demo", "repo": "LukeNeedham/Demo"}])["comment-header"])
+    def test_the_comment_id_and_the_release_asset_come_from_the_repo_name(self):
+        out = run(repo="LukeNeedham/LT-Companion")
+        self.assertEqual("lt-companion-app-link", out["comment-header"])
+        self.assertEqual("LT-Companion.apk", out["asset-name"])
 
-    def test_what_the_entry_sets_wins_over_the_default(self):
-        out = run(apps=[{"name": "Demo", "repo": "LukeNeedham/Demo", "apk-path": "x/y.apk", "java-version": 21, "comment-header": "mine"}])
-        self.assertEqual("x/y.apk", out["apk-path"])
-        self.assertEqual("21", out["java-version"])
-        self.assertEqual("mine", out["comment-header"])
-
-    def test_the_repo_is_found_whatever_its_case(self):
-        out = run(repo="lukeneedham/DEMO", apps=[{"name": "Demo", "repo": "LukeNeedham/Demo", "apk-path": "x.apk"}])
-        self.assertEqual("x.apk", out["apk-path"])
-
-    def test_an_unknown_repo_gets_the_defaults_and_a_warning(self):
-        out, log = c.run("LukeNeedham/Nope", "pull_request", "opened", "main", [], APPS)
-        self.assertEqual("app/build/outputs/apk/debug/app-debug.apk", out["apk-path"])
-        self.assertEqual("false", out["skip"])
-        self.assertTrue(any(line.startswith("::warning::") for line in log))
+    def test_the_outputs_are_what_the_action_declares(self):
+        text = (TOOLS / ".github/actions/app-config/action.yml").read_text()
+        outputs = text.split("\noutputs:\n")[1].split("\nruns:\n")[0]
+        self.assertEqual(set(re.findall(r"(?m)^  ([a-z-]+):$", outputs)), set(run()))
 
 
 class Skipping(unittest.TestCase):
-    demo = [{"name": "Demo", "repo": "LukeNeedham/Demo"}]
-
     def skip(self, **kwargs):
-        return run(apps=kwargs.pop("apps", self.demo), **kwargs)["skip"]
+        return run(**kwargs)["skip"]
 
     def test_a_pr_that_changes_only_the_skill_is_skipped(self):
         self.assertEqual("true", self.skip(files=[SKILL_FILE, ".claude/skills/other/notes.md"]))
@@ -72,15 +61,11 @@ class Skipping(unittest.TestCase):
     def test_a_closing_pr_is_not_skipped_for_its_files(self):
         self.assertEqual("false", self.skip(action="closed", files=[SKILL_FILE]))
 
-    def test_a_pr_into_another_branch_is_skipped_when_open_and_when_closed(self):
-        self.assertEqual("true", self.skip(base="develop", files=["app/Main.kt"]))
-        self.assertEqual("true", self.skip(base="develop", action="closed"))
-
-    def test_the_branches_of_the_entry_are_used(self):
-        apps = [{"name": "Demo", "repo": "LukeNeedham/Demo", "branches": ["master", "release/*"]}]
-        self.assertEqual("false", self.skip(apps=apps, base="master", files=["a"]))
-        self.assertEqual("false", self.skip(apps=apps, base="release/1.2", files=["a"]))
-        self.assertEqual("true", self.skip(apps=apps, base="main", files=["a"]))
+    def test_only_prs_into_main_are_built(self):
+        self.assertEqual("false", self.skip(base="main", files=["app/Main.kt"]))
+        for base in ("master", "develop", "release/1.0"):
+            self.assertEqual("true", self.skip(base=base, files=["app/Main.kt"]), base)
+            self.assertEqual("true", self.skip(base=base, action="closed"), base)
 
     def test_a_manual_run_is_never_skipped(self):
         self.assertEqual("false", self.skip(event="workflow_dispatch", base="", files=[SKILL_FILE]))
@@ -99,43 +84,35 @@ class Cli(unittest.TestCase):
             )
             lines = out.read_text().splitlines()
         self.assertIn("skip=true", lines)
-        self.assertIn("apk-path=composeApp/build/outputs/apk/debug/composeApp-debug.apk", lines)
+        self.assertIn("apk-path=app/build/outputs/apk/debug/app-debug.apk", lines)
 
 
 class Workflows(unittest.TestCase):
     def test_the_shared_workflows_take_no_settings_as_inputs(self):
-        # Settings come from apps.json only; an input of that name would be a second source of truth
-        import re
+        # Every app is built the same way; an input of that name would be a per-app setting again
         for name in ("android_pr", "android_main_build", "android_release"):
             text = (TOOLS / ".github" / "workflows" / f"{name}.yml").read_text().split("\njobs:\n")[0]
-            for key in list(c.DEFAULTS) + [c.COMMENT_HEADER]:
+            for key in list(c.SETTINGS) + ["comment-header", "asset-name", "branches"]:
                 self.assertNotRegex(text, rf"(?m)^      {re.escape(key)}:", f"{name} {key}")
+
+    def test_the_release_workflow_checks_its_setup_before_it_tags_anything(self):
+        text = (TOOLS / ".github/workflows/android_release.yml").read_text()
+        for secret in ("RELEASE_KEYSTORE_BASE64", "RELEASE_KEYSTORE_PASSWORD", "RELEASE_KEY_ALIAS", "RELEASE_KEY_PASSWORD"):
+            self.assertRegex(text, rf"(?m)^      {secret}:\n(.*\n)*?        required: false", secret)
+        self.assertLess(text.index("Check the app is set up for releases"), text.index("Tag this commit"))
 
 
 class AppsFile(unittest.TestCase):
-    def test_every_entry_uses_only_known_keys(self):
-        for entry in APPS:
-            self.assertLessEqual(set(entry), c.ENTRY_KEYS, entry["name"])
+    apps = json.loads((TOOLS / "apps.json").read_text())
 
-    def test_branches_and_callers_are_lists_of_strings(self):
-        for entry in APPS:
-            for key in ("branches", "callers"):
-                if key in entry:
-                    self.assertTrue(entry[key] and all(isinstance(v, str) for v in entry[key]), f"{entry['name']} {key}")
-
-    def test_every_other_setting_is_a_string(self):
-        for entry in APPS:
-            for key in list(c.DEFAULTS) + [c.COMMENT_HEADER]:
-                if key in entry:
-                    self.assertIsInstance(entry[key], str, f"{entry['name']} {key}")
-
-    def test_every_caller_an_entry_names_has_an_example(self):
-        for entry in APPS:
-            for name in entry.get("callers", []):
-                self.assertTrue((TOOLS / "examples" / name).is_file(), f"{entry['name']} {name}")
-
-    def test_the_defaults_are_the_standard_app_layout(self):
-        self.assertEqual("app/build/outputs/apk/debug/app-debug.apk", c.DEFAULTS["apk-path"])
+    def test_an_entry_is_just_a_name_and_a_repo(self):
+        # Nothing is configured per app: every app is built the same way
+        self.assertTrue(self.apps)
+        for entry in self.apps:
+            self.assertEqual({"name", "repo"}, set(entry), entry)
+            self.assertRegex(entry["repo"], r"^[\w.-]+/[\w.-]+$")
+            self.assertTrue(entry["name"])
+        self.assertEqual(len(self.apps), len({a["repo"].lower() for a in self.apps}))
 
 
 if __name__ == "__main__":

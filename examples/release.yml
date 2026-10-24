@@ -1,6 +1,6 @@
-# Synced from LukeNeedham/ci-workflows into the apps that publish releases (`callers` in apps.json): do not
-# edit it in an app. Run it from the Actions tab. The app's settings are its entry in ci-workflows' apps.json.
-# Needs the Gradle script applied in the app (see docs/setup.md) and four repo secrets:
+# Synced from LukeNeedham/ci-workflows into every app by CI: do not edit it in an app. It has no settings.
+# Run it from the Actions tab. An app that is not set up for releases fails at once with a message that says
+# what is missing. To publish, it needs the Gradle script applied in the app (see docs/setup.md) and four repo secrets:
 #   RELEASE_KEYSTORE_BASE64, RELEASE_KEYSTORE_PASSWORD, RELEASE_KEY_ALIAS, RELEASE_KEY_PASSWORD
 # Docs: https://github.com/LukeNeedham/ci-workflows/blob/main/docs/setup.md
 name: Release

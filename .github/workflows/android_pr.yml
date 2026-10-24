@@ -3,14 +3,14 @@ name: Android PR
 # Reusable workflow: the whole PR flow in one call. Builds and comments on the PR while it is open,
 # and cleans up its build releases when it is closed. It simply picks android_pr_build.yml or
 # android_pr_cleanup.yml from the event, so a project needs one caller job instead of two. Nothing runs for a
-# PR that targets a branch the app does not build, or that changes only the Claude skill (see config).
+# PR that targets a branch other than main, or that changes only the Claude skill (see config).
 #
-# Caller example: examples/trigger_on_pull_request.yml. It has no settings: everything is in apps.json.
+# Caller example: examples/trigger_on_pull_request.yml. It has no settings: every app is built the same way.
 
 on:
   workflow_call:
-    # The app's settings (APK path, Gradle task, JDK, timezone, comment id, branches) are not inputs: the config
-    # job looks them up in apps.json by the repo this runs in (docs/app-config.md).
+    # The settings (APK path, Gradle task, JDK, timezone, comment id) are not inputs: every app is built the same
+    # way, and the config job provides them (docs/app-config.md).
     inputs:
       tools-ref:
         description: Branch or tag of LukeNeedham/ci-workflows to fetch scripts/ from. Leave as main; set it to a branch only to test a script change
@@ -18,7 +18,7 @@ on:
         default: main
 
 jobs:
-  # Looks up the app's settings in apps.json, and whether this run has anything to do. The other jobs wait for it.
+  # Provides the settings every app shares, and says whether this run has anything to do. The other jobs wait for it.
   config:
     runs-on: ubuntu-latest
     outputs:

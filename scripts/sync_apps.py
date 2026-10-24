@@ -3,8 +3,8 @@
 
 What is synced (see docs/sync.md):
   - the Claude skill, mirrored to .claude/skills/lukeneedham-conventions/
-  - the callers in .github/workflows/, copied byte for byte from examples/ (they hold no settings:
-    an app's settings are its entry in apps.json, see docs/app-config.md)
+  - the callers in .github/workflows/, copied byte for byte from examples/ (all of them, to every app; they
+    hold no settings, see docs/app-config.md)
   - a managed block in the app's CLAUDE.md
 
 For each app it clones the default branch, makes the changes on the branch `sync/ci-workflows`, and
@@ -34,7 +34,8 @@ from pathlib import Path
 TOOLS = Path(__file__).resolve().parent.parent
 SKILL = "lukeneedham-conventions"
 BRANCH = "sync/ci-workflows"
-DEFAULT_CALLERS = ["trigger_on_pull_request.yml", "build_main.yml", "delete_prereleases.yml"]
+# Every app gets every caller. The release one fails with a clear message if the app is not set up for releases
+CALLERS = ["trigger_on_pull_request.yml", "build_main.yml", "delete_prereleases.yml", "release.yml"]
 
 BLOCK_BEGIN = "<!-- ci-workflows:begin (managed by LukeNeedham/ci-workflows, do not edit) -->"
 BLOCK_END = "<!-- ci-workflows:end -->"
@@ -68,11 +69,11 @@ def sync_skill(app_dir, tools=TOOLS):
     return changed
 
 
-def sync_callers(app, app_dir, tools=TOOLS):
-    """Copies the app's callers from examples/, byte for byte. Returns changed paths."""
+def sync_callers(app_dir, tools=TOOLS):
+    """Copies the callers from examples/, byte for byte. Returns changed paths."""
     workflows = app_dir / ".github" / "workflows"
     changed = []
-    for name in app.get("callers", DEFAULT_CALLERS):
+    for name in CALLERS:
         content = (tools / "examples" / name).read_bytes()
         target = workflows / name
         if not target.exists() or target.read_bytes() != content:
@@ -82,19 +83,14 @@ def sync_callers(app, app_dir, tools=TOOLS):
     return changed
 
 
-def claude_block(app):
-    parts = []
-    if app.get("skill", True):
-        parts.append(f"`.claude/skills/{SKILL}`")
-    if app.get("callers", DEFAULT_CALLERS):
-        parts.append("the callers `" + "`, `".join(app.get("callers", DEFAULT_CALLERS)) + "` in `.github/workflows/`")
-    what = " and ".join(parts)
+def claude_block():
+    callers = "`, `".join(CALLERS)
     return (
         f"{BLOCK_BEGIN}\n"
-        f"- {what[0].upper() + what[1:]} are kept in sync from `LukeNeedham/ci-workflows` by CI, which\n"
-        f"  keeps one PR titled \"Sync from ci-workflows\" open when they differ. Do not edit them here and do\n"
-        f"  not copy them by hand: change them in ci-workflows. The callers hold no settings: this app's settings\n"
-        f"  (`apk-path`, `branches` and so on) are its entry in `apps.json` there.\n"
+        f"- `.claude/skills/{SKILL}` and the callers `{callers}` in `.github/workflows/` are kept in sync from\n"
+        f"  `LukeNeedham/ci-workflows` by CI, which keeps one PR titled \"Sync from ci-workflows\" open when they\n"
+        f"  differ. Do not edit them here and do not copy them by hand: change them in ci-workflows. The callers\n"
+        f"  hold no settings: every app is built the same way (see `docs/app-config.md` there).\n"
         f"- **Always give the user the AppHub link when work on this app completes.** As soon as a PR is open,\n"
         f"  paste `https://www.lukeneedham.com/apphub/pr/<repo name>/<PR number>` into the chat (CI posts the\n"
         f"  same link as a PR comment). Do not wait for the build and do not paste the APK link instead.\n"
@@ -102,10 +98,10 @@ def claude_block(app):
     )
 
 
-def sync_claude_md(app, app_dir):
+def sync_claude_md(app_dir):
     """Puts the managed block into the app's CLAUDE.md, replacing the old copy-it-by-hand line. Returns changed paths."""
     path = app_dir / "CLAUDE.md"
-    block = claude_block(app)
+    block = claude_block()
     text = path.read_text() if path.is_file() else "# Instructions for Claude\n\n"
     if BLOCK_RE.search(text):
         new = BLOCK_RE.sub(lambda _: block, text, count=1)
@@ -119,16 +115,9 @@ def sync_claude_md(app, app_dir):
     return ["CLAUDE.md"]
 
 
-def sync_app(app, app_dir, tools=TOOLS):
+def sync_app(app_dir, tools=TOOLS):
     """Applies everything to the checkout [app_dir]. Returns the paths that changed."""
-    changed = []
-    if app.get("skill", True):
-        changed += sync_skill(app_dir, tools)
-    if app.get("callers", DEFAULT_CALLERS):
-        changed += sync_callers(app, app_dir, tools)
-    if app.get("skill", True) or app.get("callers", DEFAULT_CALLERS):
-        changed += sync_claude_md(app, app_dir)
-    return changed
+    return sync_skill(app_dir, tools) + sync_callers(app_dir, tools) + sync_claude_md(app_dir)
 
 
 # ---------------------------------------------------------------------------------------------------
@@ -172,8 +161,7 @@ def pr_body(changed):
         "Keeps this repo in line with [`LukeNeedham/ci-workflows`](https://github.com/LukeNeedham/ci-workflows): "
         "the Claude skill, the workflow callers and the managed block in `CLAUDE.md`.\n\n"
         f"Changed:\n{files}\n\n"
-        "The callers hold no settings: this app's settings (`apk-path`, `branches` and so on) are its entry in "
-        "ci-workflows' `apps.json`. This PR is "
+        "The callers hold no settings: every app is built the same way (`docs/app-config.md` in ci-workflows). This PR is "
         f"opened and updated by ci-workflows' `sync_apps.yml`; it stays one PR (`{BRANCH}`) until it is merged.\n"
     )
 
@@ -185,7 +173,7 @@ def sync_remote(app, token, dry_run, work):
     checkout = Path(work) / repo.replace("/", "_")
     git(work, "clone", "--quiet", "--depth", "1", f"{base}/{repo}.git", str(checkout), token=token)
     git(checkout, "checkout", "--quiet", "-B", BRANCH)
-    changed = sync_app(app, checkout)
+    changed = sync_app(checkout)
     if not changed:
         return f"{repo}: up to date"
     if dry_run:

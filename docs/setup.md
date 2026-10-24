@@ -1,9 +1,8 @@
 # Setting up a project
 
 How to start using these workflows in a new project, or move an existing project over to them. The
-caller files are in [`examples/`](../examples) and have no settings: copy them as they are. What differs per
-project is its entry in [`apps.json`](../apps.json) ([app-config.md](app-config.md)). For an app in `apps.json` the
-[sync](sync.md) copies the callers by itself.
+caller files are in [`examples/`](../examples) and have no settings: copy them as they are (all four). For an app
+in `apps.json` the [sync](sync.md) copies the callers by itself.
 
 For what each workflow does, its inputs and the PR comment it posts, see the
 [README](../README.md).
@@ -16,9 +15,8 @@ GitHub does not let a shared workflow choose its own triggers or permissions, so
 - **when it runs** (`on:`),
 - **what it may do** (`permissions:`).
 
-Everything else is shared, so a fix here reaches every project. That includes the project's **settings** (APK
-path, branches and so on): they are not in the caller but in the project's entry in `apps.json`, which the shared
-workflows read when they run ([app-config.md](app-config.md)).
+Everything else is shared, so a fix here reaches every project. There are no per-project settings: every
+project is built the same way ([app-config.md](app-config.md)).
 
 ## Before you start
 
@@ -44,10 +42,8 @@ closes.
 
 ### Settings
 
-They are the project's entry in [`apps.json`](../apps.json), all optional (the defaults suit a standard app module):
-`apk-path`, `branches`, `gradle-task`, `java-version`, `java-distribution`, `timezone`, `comment-header`. The table
-of what each means and its default is in [app-config.md](app-config.md#the-settings). The usual ones to set are
-`apk-path` (when the module is not `app`) and `branches` (when PRs do not go to `main`).
+There are none: every app is built the same way ([app-config.md](app-config.md)). The debug APK has to be at
+`app/build/outputs/apk/debug/app-debug.apk` (module `:app`), and PRs are built when they go to `main`.
 
 A PR that changes only the Claude skill (`.claude/skills/`) does not build; see
 [app-config.md](app-config.md#runs-that-do-nothing).
@@ -82,9 +78,8 @@ comes from a git tag (`0.3.0`, no `v`), which the workflow creates.
    and remove the app's own `versionCode`, `versionName` and release signing config; the script
    sets them. Builds then need network to fetch the script the first time, and
    `--refresh-dependencies` picks up a changed script on a machine that cached the old one.
-2. **Copy** [`examples/release.yml`](../examples/release.yml), unchanged, to `.github/workflows/release.yml`, and
-   list it in the app's `callers` in `apps.json` so the sync keeps it in line. Its settings
-   (`release-gradle-task`, `release-apk-path`, `asset-name`) are the app's entry there too.
+2. **`release.yml`** is already in the app (every app has it, from the sync). Until steps 1 and 3 are done, running it
+   fails in its first step, before anything is tagged, with an error that lists what is missing.
 3. **Make a signing key** and add four repo secrets (*Settings → Secrets and variables → Actions*):
    `RELEASE_KEYSTORE_BASE64` (the keystore, base64 on one line), `RELEASE_KEYSTORE_PASSWORD`,
    `RELEASE_KEY_ALIAS`, `RELEASE_KEY_PASSWORD`. Keep a copy of the key somewhere safe: an app signed
@@ -102,7 +97,7 @@ A manual build of the default branch that keeps its APK for one day, as a workfl
 offers the APK to install. It can also be run from the *Actions* tab.
 
 **File:** [`examples/build_main.yml`](../examples/build_main.yml): copy it, unchanged, to
-`.github/workflows/build_main.yml` in your project. It uses the same `apk-path` as section 1.
+`.github/workflows/build_main.yml` in your project.
 **Keep the file name**: AppHub starts `build_main.yml` on `main`. It must be on `main` before it can be run.
 
 Starting it from AppHub needs a GitHub token with **Actions: Read and write** on the repo; downloading the
@@ -110,10 +105,9 @@ APK needs *Actions: Read*. See the AppHub README for creating one.
 
 ## Setting up a new project
 
-1. Add the project to [`apps.json`](../apps.json), with the settings that differ from the defaults
-   ([app-config.md](app-config.md)).
-2. Copy `examples/trigger_on_pull_request.yml`, `examples/build_main.yml` (so AppHub can build main) and
-   optionally `examples/delete_prereleases.yml` to `.github/workflows/` in the project, unchanged. After the first
+1. Add the project to [`apps.json`](../apps.json): its `name` and `repo`.
+2. Copy the four files of `examples/` (`trigger_on_pull_request.yml`, `build_main.yml` so AppHub can build main,
+   `delete_prereleases.yml` and `release.yml`) to `.github/workflows/` in the project, unchanged. After the first
    copy the [sync](sync.md) keeps them in line.
 3. Commit them on a branch and open a PR to the target branch.
 4. [Check it works](#check-that-it-works).
@@ -122,12 +116,9 @@ APK needs *Actions: Read*. See the AppHub README for creating one.
 
 Assuming the project already builds an APK on pull requests with its own workflow(s).
 
-1. **Collect the project's current settings** from the old workflow, because they become its entry in
-   `apps.json`:
-   - the Gradle task it runs → `gradle-task`
-   - where the APK ends up → `apk-path`
-   - the JDK version and distribution → `java-version`, `java-distribution`
-   - the branch(es) it triggers on → `branches`
+1. **Make the project follow the standard** ([app-config.md](app-config.md)), because the workflows have no
+   settings: module `:app` (so the debug APK is at `app/build/outputs/apk/debug/app-debug.apk`), JDK 17, and
+   `main` as the branch PRs go to. Rename the module or the default branch first if they differ.
 2. **Replace the old build workflow** with `examples/trigger_on_pull_request.yml`, unchanged. Keep any jobs in
    it that the shared workflows do not cover in the same `jobs:` block.
 3. **Delete the old cleanup workflow**, if there is one: the cleanup now runs from the same file.
@@ -164,8 +155,8 @@ On the PR you opened:
 |---|---|
 | The run fails immediately with no jobs | The caller file is invalid, or a permission it requests is not allowed. Check the *Actions* run page for the message; confirm `permissions:` is as above and that the repo may use this repo's workflows (private repos need *Access* enabled here) |
 | No comment appears on the PR | The caller is missing `pull-requests: write`, or the PR comes from a fork (forks get a read-only token) |
-| The release step fails with "no files found" | `apk-path` (or `release-apk-path`) in the app's `apps.json` entry is wrong. Build locally and use the real path, relative to the repo root |
-| The run is skipped | The PR changes only `.claude/skills/`, or targets a branch that is not in the app's `branches` ([app-config.md](app-config.md#runs-that-do-nothing)) |
+| The build step cannot find the APK | The project does not follow the standard: the debug APK has to be at `app/build/outputs/apk/debug/app-debug.apk`, so the module must be `:app` ([app-config.md](app-config.md)) |
+| The run is skipped | The PR changes only `.claude/skills/`, or does not target `main` ([app-config.md](app-config.md#runs-that-do-nothing)) |
 | Releases are not deleted when the PR closes | `closed` is missing from the caller's `types` list |
 | The PR waits forever for a check | Branch protection still requires the old check name (see migration step 4) |
 | Old PR builds are still listed | They predate the cleanup: run *Delete Pre-releases* |
