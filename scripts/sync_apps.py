@@ -104,9 +104,10 @@ def claude_block():
         f"  `LukeNeedham/ci-workflows`. Never edit `README.md`: edit `readme.yml` (write it by hand; skeleton in\n"
         f"  `docs/readme-template.yml`), and keep it accurate when the app changes. If `readme.yml` is missing,\n"
         f"  write it once from the template. The PR build commits the regenerated `README.md` to the PR branch.\n"
-        f"- **Every page is an `XPage` (gets the ViewModel, no preview) plus a stateless `XPageContent` with an\n"
-        f"  `XPageContentPreview`.** CI renders the README screenshots from those previews into `docs/screenshots/`\n"
-        f"  (`docs/screenshots.md` in `LukeNeedham/ci-workflows`); never take or edit them by hand.\n"
+        f"- **Every page is an `XPage` (gets the ViewModel, no preview) plus a stateless `XPageContent`** with general\n"
+        f"  previews and one `XPageContentScreenshot` that uses the app's `AppScreenshotMockData`. CI renders the README\n"
+        f"  screenshots from the `*PageContentScreenshot` composables into `docs/screenshots/` (`docs/screenshots.md` in\n"
+        f"  `LukeNeedham/ci-workflows`); never take or edit them by hand.\n"
         f"{BLOCK_END}\n"
     )
 

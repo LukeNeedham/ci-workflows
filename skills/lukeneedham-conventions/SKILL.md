@@ -57,11 +57,14 @@ is built the same way (`docs/app-config.md` in `ci-workflows`), so there is noth
 
 ## Pages and screenshots
 - **Every page is `XPage` + `XPageContent`**: `XPage` gets the ViewModel (`koinViewModel()`), collects the state and
-  delegates; it has no preview. `XPageContent` is stateless (state down, events up) and has a preview named
-  `XPageContentPreview` in `AppTheme` with fake state, no ViewModel, Koin or network.
-- **CI renders a README screenshot of every `*PageContentPreview`** (Robolectric + Roborazzi, JVM, no emulator) into
-  `docs/screenshots/<Name>.png` and commits it to the PR branch: never take or edit them by hand. It runs the app's
-  `PageScreenshotTest` (that exact class name); set it up once from `docs/screenshots.md` in `LukeNeedham/ci-workflows`.
+  delegates; it has no preview. `XPageContent` is stateless (state down, events up, no ViewModel, Koin or network).
+- Each `XPageContent` has general previews for development (`XPageContentPreview`, as many as help) **and one
+  `XPageContentScreenshot`**: a `@Preview` in `AppTheme` that uses only `AppScreenshotMockData` (the app's Kotlin object
+  of sample data, in `src/main`) and is used for nothing but the README screenshot.
+- **CI renders a README screenshot of every `*PageContentScreenshot`** (Robolectric + Roborazzi, JVM, no emulator) into
+  `docs/screenshots/<Name>.png` and commits it to the PR branch: never take or edit them by hand. The dependencies, the
+  test and the Gradle setup live in `LukeNeedham/ci-workflows` (`scripts/screenshots/`, `docs/screenshots.md`): the app
+  only needs `ui-tooling-preview` and the composables above, no Roborazzi, no test class.
 - Required for every app with a UI; `screenshots: false` in `readme.yml` is only for one with none (a WebView wrapper).
 
 ## Architecture

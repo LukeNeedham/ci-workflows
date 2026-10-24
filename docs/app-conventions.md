@@ -70,8 +70,9 @@ object AppTheme {
 - **Every composable has a preview, except trivial ones.** Previews wrap the content in `AppTheme` and
   use fake `UiState` / sample data, so they need no ViewModel, Koin or network.
 - **Every page is an `XPage` and an `XPageContent`.** `XPage` holds the ViewModel and delegates all UI to the
-  stateless `XPageContent` (state down, events up). Only `XPageContent` is previewable, with a preview named
-  `XPageContentPreview`; CI renders a README screenshot from each one. See [screenshots.md](screenshots.md).
+  stateless `XPageContent` (state down, events up). Only `XPageContent` is previewable. It has the general previews
+  of your choice (`XPageContentPreview`) and one `XPageContentScreenshot`, which uses the app's `AppScreenshotMockData`
+  and is used for nothing but the README screenshot that CI renders from it. See [screenshots.md](screenshots.md).
 
 ## One-off events
 

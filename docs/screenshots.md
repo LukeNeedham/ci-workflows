@@ -1,15 +1,19 @@
 # Page screenshots
 
-The README of every app with a UI shows a screenshot of each of its pages. They are **rendered by CI from the
-`@Preview` of every `PageContent` composable**, never taken by hand, and committed to `docs/screenshots/`. This page
-is the pattern and the setup. The README side is [readme.md](readme.md).
+The README of every app with a UI shows a screenshot of each of its pages. They are **rendered by CI from a
+`<Name>PageContentScreenshot` composable of each page**, never taken by hand, and committed to `docs/screenshots/`.
+This page is the pattern and how it works. The README side is [readme.md](readme.md).
 
 An app with no UI worth showing (the Krillion WebView wrapper) opts out with `screenshots: false` in its
 `readme.yml` and skips all of this. Every other app needs it: its `readme.yml` is invalid without screenshots.
 
+**The app holds almost nothing for it**: the dependencies, the test and the Gradle setup all live here, in
+[`scripts/screenshots/`](../scripts/screenshots), so a version bump reaches every app at once. The app only has its
+pages, their screenshot composables and its mock data.
+
 ## The page pattern
 
-Every page (screen) of an app is **two composables**:
+Every page (screen) of an app is **two composables**, and each has its own previews:
 
 ```kotlin
 /** The page: gets its ViewModel, collects the state and delegates. No preview, nothing else. */
@@ -17,157 +21,81 @@ Every page (screen) of an app is **two composables**:
 fun HomePage(onOpenSettings: () -> Unit) {
     val viewModel = koinViewModel<HomeViewModel>()
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    HomePageContent(
-        state = state,
-        onRefresh = viewModel::refresh,
-        onOpenSettings = onOpenSettings,
-    )
+    HomePageContent(state = state, onRefresh = viewModel::refresh, onOpenSettings = onOpenSettings)
 }
 
 /** All of the page's UI: state down, events up. No ViewModel, no Koin. */
 @Composable
 internal fun HomePageContent(state: HomeUiState, onRefresh: () -> Unit, onOpenSettings: () -> Unit) { /* ... */ }
 
+/** For Android Studio, whatever helps while building the page: empty, loading, error, dark. */
 @Preview
 @Composable
 private fun HomePageContentPreview() {
-    AppTheme { HomePageContent(state = sampleHomeState(), onRefresh = {}, onOpenSettings = {}) }
+    AppTheme { HomePageContent(state = HomeUiState(isLoading = false), onRefresh = {}, onOpenSettings = {}) }
+}
+
+/** For the README screenshot only: never reuse it for anything else. */
+@Preview
+@Composable
+private fun HomePageContentScreenshot() {
+    AppTheme { HomePageContent(state = AppScreenshotMockData.homeState, onRefresh = {}, onOpenSettings = {}) }
 }
 ```
 
 - **`XPage`** holds the ViewModel (and one-off event collection, lifecycle effects) and passes state and callbacks on.
   It is **not previewable**: it needs Koin and a ViewModel.
 - **`XPageContent`** renders everything and takes only state and callbacks, so it can be previewed with fake state.
-- **Each `XPageContent` has a preview named `<Name>PageContentPreview`**, wrapped in the app's `AppTheme`, using
-  sample data and no network. The screenshot takes its name from it: `HomePageContentPreview` becomes
-  `docs/screenshots/Home.png`. A page with several interesting states has a preview for each
-  (`HomeEmptyPageContentPreview` becomes `HomeEmpty.png`).
-- The CI renders **every** preview whose function name ends in `PageContentPreview`, and nothing else. Previews of
-  smaller composables are for Android Studio only.
+- **`XPageContentPreview`** is the general preview, for development. Nothing renders it in CI: write as many as help.
+- **`XPageContentScreenshot`** is the **only** thing CI renders, and is used for nothing else. It shows the page
+  at its best, with the data of the app's `AppScreenshotMockData`. Its name gives the file: `HomePageContentScreenshot`
+  becomes `docs/screenshots/Home.png`. It is annotated `@Preview` so that the scanner finds it (and so it shows in
+  Android Studio next to the others).
+- **`AppScreenshotMockData`** is a Kotlin `object` of the app (any package of the app, in `src/main`, usually
+  `ui/AppScreenshotMockData.kt`) holding the sample data of the screenshots: one place for the app's fake people,
+  titles and states, so the screenshots tell one story. It uses no network, Koin, ViewModel or clock.
 
 ## What CI does
 
 The `screenshots` job of [`android_pr.yml`](../.github/workflows/android_pr.yml) runs on every PR, before the
 [README](readme.md) job:
 
-1. It skips with a warning if the app has no screenshot test yet (no `roborazzi` in `gradle/libs.versions.toml`),
-   or if `readme.yml` says `screenshots: false`.
-2. It deletes `docs/screenshots/` and runs `./gradlew testDebugUnitTest --tests '*PageScreenshotTest' -Proborazzi.test.record=true`
-   (only that test class: it must be called `PageScreenshotTest`). The test below renders each page
-   preview on the JVM (Robolectric, no emulator) and writes the PNGs. It fails if nothing was rendered.
-3. If the PNGs differ from the committed ones, it **commits them to the PR branch** (like the app icon and the
+1. It skips, with a warning, if the app has no `…PageContentScreenshot` composable yet, or if `readme.yml` says
+   `screenshots: false`.
+2. It runs [`scripts/render_screenshots.sh`](../scripts/render_screenshots.sh) in the app. The script fetches the
+   Gradle init script [`screenshots.init.gradle`](../scripts/screenshots/screenshots.init.gradle) and the test
+   [template](../scripts/screenshots/PageScreenshotTest.kt.template), deletes `docs/screenshots/`, and runs
+   `./gradlew testDebugUnitTest --tests '*PageScreenshotTest' --init-script …`.
+3. The init script, applied only for that run, adds the test dependencies (Roborazzi, Robolectric, the Compose test
+   rule, the preview scanner), turns on resources for unit tests, and generates `PageScreenshotTest` from the
+   template, for the app's namespace. The test renders every `…PageContentScreenshot` on the JVM (Robolectric native
+   graphics, no emulator) at a fixed phone size and writes the PNGs. It fails if nothing was rendered.
+4. If the PNGs differ from the committed ones, the job **commits them to the PR branch** (like the app icon and the
    README): pull the bot's commit before pushing again.
 
-PRs from forks cannot be committed to, so there the job fails if the screenshots are out of date.
+PRs from forks cannot be committed to, so there the job fails if the screenshots are out of date. The job runs on a
+Temurin JDK, because the Zulu build that `setup-java` resolves to is a CRaC build under which the Robolectric native
+runtime aborted at random.
 
-## Setting it up in an app
+## In the app
 
-Do this once, in the app's first README PR. Check the current stable versions first; these are the ones last used.
+Only this, once:
 
-`gradle/libs.versions.toml`:
+- `androidx.compose.ui:ui-tooling-preview` as an `implementation` dependency (for `@Preview`), and `ui-tooling` as
+  `debugImplementation` for Android Studio. Nothing else: no Roborazzi, Robolectric or test dependencies, no plugin,
+  no test class.
+- A `…PageContentScreenshot` per page and the `AppScreenshotMockData` object.
 
-```toml
-[versions]
-roborazzi = "1.76.0"
-robolectric = "4.14.1"
-composablePreviewScanner = "0.9.3"
+To see the screenshots without CI, from the app's root (needs the Android SDK):
 
-[libraries]
-compose-ui-tooling = { module = "androidx.compose.ui:ui-tooling" }
-compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview" }
-compose-ui-test-junit4 = { module = "androidx.compose.ui:ui-test-junit4" }
-compose-ui-test-manifest = { module = "androidx.compose.ui:ui-test-manifest" }
-roborazzi = { module = "io.github.takahirom.roborazzi:roborazzi", version.ref = "roborazzi" }
-roborazzi-compose = { module = "io.github.takahirom.roborazzi:roborazzi-compose", version.ref = "roborazzi" }
-robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
-composable-preview-scanner = { module = "io.github.sergio-sastre.ComposablePreviewScanner:android", version.ref = "composablePreviewScanner" }
-
-[plugins]
-roborazzi = { id = "io.github.takahirom.roborazzi", version.ref = "roborazzi" }
 ```
-
-Root `build.gradle.kts`: `alias(libs.plugins.roborazzi) apply false`. `app/build.gradle.kts`:
-
-```kotlin
-plugins { alias(libs.plugins.roborazzi) }
-
-android {
-    testOptions { unitTests { isIncludeAndroidResources = true } }
-}
-
-dependencies {
-    implementation(libs.compose.ui.tooling.preview)
-    debugImplementation(libs.compose.ui.tooling)
-    debugImplementation(libs.compose.ui.test.manifest)
-
-    testImplementation(libs.roborazzi)
-    testImplementation(libs.roborazzi.compose)
-    testImplementation(libs.compose.ui.test.junit4)
-    testImplementation(libs.robolectric)
-    testImplementation(libs.composable.preview.scanner)
-}
+curl -fsSL https://raw.githubusercontent.com/LukeNeedham/ci-workflows/main/scripts/render_screenshots.sh | bash
 ```
-
-`app/src/test/kotlin/com/lukeneedham/<app>/PageScreenshotTest.kt` (change the package, twice):
-
-```kotlin
-package com.lukeneedham.<app>
-
-import android.app.Application
-import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.onRoot
-import com.github.takahirom.roborazzi.captureRoboImage
-import org.junit.Rule
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.robolectric.ParameterizedRobolectricTestRunner
-import org.robolectric.annotation.Config
-import org.robolectric.annotation.GraphicsMode
-import sergio.sastre.composable.preview.scanner.android.AndroidComposablePreviewScanner
-import sergio.sastre.composable.preview.scanner.android.AndroidPreviewInfo
-import sergio.sastre.composable.preview.scanner.core.preview.ComposablePreview
-
-/** Renders the preview of every PageContent composable to docs/screenshots/ (docs/screenshots.md in ci-workflows). */
-@RunWith(ParameterizedRobolectricTestRunner::class)
-@GraphicsMode(GraphicsMode.Mode.NATIVE)
-// A plain Application: the real one usually starts Koin, which fails the second time it is created
-@Config(sdk = [34], qualifiers = "w360dp-h800dp-xxhdpi", application = Application::class)
-class PageScreenshotTest(private val preview: ComposablePreview<AndroidPreviewInfo>) {
-
-    @get:Rule
-    val composeRule = createComposeRule()
-
-    @Test
-    fun render() {
-        composeRule.setContent { preview() }
-        // The tests run in the app module's directory
-        composeRule.onRoot().captureRoboImage("../docs/screenshots/${preview.methodName.removeSuffix(SUFFIX)}.png")
-    }
-
-    companion object {
-        private const val SUFFIX = "PageContentPreview"
-
-        @JvmStatic
-        @ParameterizedRobolectricTestRunner.Parameters(name = "{0}")
-        fun previews(): List<Array<Any>> =
-            AndroidComposablePreviewScanner()
-                .scanPackageTrees("com.lukeneedham.<app>")
-                .includePrivatePreviews()
-                .getPreviews()
-                .filter { it.methodName.endsWith(SUFFIX) }
-                .map { arrayOf(it) }
-    }
-}
-```
-
-Run `./gradlew testDebugUnitTest --tests '*PageScreenshotTest' -Proborazzi.test.record=true` to see them (the PNGs land in
-`docs/screenshots/`); CI does the same and commits them.
-The fixed size and the JVM renderer keep the output the same from run to run, so a PR that does not change a page's
-UI gets no screenshot commit.
 
 ## Notes
 
-- Previews must not touch the network, Koin, a ViewModel or the clock. Images from a URL (Coil) render as their
-  placeholder, so give the preview a placeholder worth seeing or sample data without remote images.
+- Mock data must not touch the network, Koin, a ViewModel or the clock. Images from a URL (Coil) show their
+  placeholder offline, or the real image if the run has network, so prefer sample data without remote images.
 - Robolectric downloads its Android jar the first time it runs; CI has network.
-- Roborazzi and the scanner are updated often: when bumping them, run the task and read the diff of the PNGs.
+- **Changing the setup** (a version, the phone size, the test): edit the files in `scripts/screenshots/` here and run
+  an app's PR to read the diff of the PNGs.
