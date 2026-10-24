@@ -59,17 +59,18 @@ below are enough.
 
 ## Pages and screenshots
 - **Every page is `XPage` + `XPageContent`, always** (full definition: `docs/pages.md` in `LukeNeedham/ci-workflows`).
-  A page is a navigation destination. `XPage` is public: it gets the ViewModel (`koinViewModel()`), collects the
+  A page is a navigation destination. `XPage` is public: it gets its ViewModel, which is always named **`XViewModel`**
+  (`koinViewModel<XViewModel>()`), collects the
   state, handles lifecycle and one-off events, turns navigation into lambdas, and only calls `XPageContent`; no
   preview. `XPageContent` is `internal` and stateless (takes `XUiState` and one lambda per action; no ViewModel, Koin,
   `Flow` or navigator) and has the general previews for development (`XPageContentPreview`). Both are in `XPage.kt`;
   the ViewModel and state in `XViewModel.kt`. Never `XScreen`, `XContent` or `XView`; a navigation key is named after
   the destination (`X`, or `XKey` if it clashes), the entry just calls `XPage`. **Migrating an app: rename and split
   every screen this way** (steps in `docs/pages.md`).
-- **README screenshots live together in one package, `<app package>.screenshot`, in `src/debug`**: one file per page
-  that deserves a screenshot, named after the page (`HomePage.kt`). Each screenshot is a **private `@Preview` composable
+- **README screenshots live together in one package, `<app package>.screenshot`, in `src/debug`**: a file for each page
+  that has screenshots, named after the page (`HomePage.kt`); not every page needs one. Each screenshot is a **private `@Preview` composable
   that owns its mock data** (inside its body) and renders `HomePageContent` with it (`HomePageScreenshot`). More previews
-  in the file = more screenshots of the page; no file = no screenshot.
+  in the file = more screenshots of the page, as many as are worth showing; no file = no screenshot of that page.
 - **Nothing is shared between screenshots, nor with the general previews or the app**: no shared mock-data file, no
   top-level `val`, `object` or helper, nothing non-private in the package; CI fails on it. The package has a `README.md`
   (template: `docs/screenshot-readme-template.md` in `LukeNeedham/ci-workflows`).

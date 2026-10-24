@@ -36,12 +36,18 @@ class ScreenshotsSetupTest(unittest.TestCase):
                 self.assertTrue((SCRIPTS / script).is_file(), f"{action} runs scripts/{script}, which does not exist")
 
     def test_the_block_tells_claude_about_the_screenshot_package(self):
-        block = s.claude_block()
+        block = " ".join(s.claude_block().split())
         self.assertIn("package `screenshot`", block)
-        self.assertIn("is shared between screenshots", block)
+        self.assertIn("nothing is shared between screenshots", block)
         self.assertIn("docs/pages.md", block)
         self.assertIn("never `XScreen`", block)
         self.assertNotIn("AppScreenshotMockData", block)
+
+    def test_the_block_names_the_viewmodel_and_does_not_imply_a_screenshot_per_page(self):
+        block = " ".join(s.claude_block().split())
+        self.assertIn("`XViewModel`", block)
+        self.assertIn("a page can have several, or none", block)
+        self.assertNotIn("one file per page", block)
 
 
 if __name__ == "__main__":

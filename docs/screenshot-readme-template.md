@@ -5,9 +5,10 @@ Everything in this package is a **README screenshot**. CI renders every `@Previe
 root of the repo shows them. How it works, in full: `docs/screenshots.md` in
 [LukeNeedham/ci-workflows](https://github.com/LukeNeedham/ci-workflows/blob/main/docs/screenshots.md).
 
-## One file per page, one preview per screenshot
+## A file per page with screenshots, a preview per screenshot
 
-Each page that gets a screenshot has **one file here, named after the page** (`HomePage.kt`). Each screenshot is a
+A page that has screenshots has **a file here, named after the page** (`HomePage.kt`); not every page needs one. Each
+screenshot is a
 **private `@Preview` composable that owns its mock data** and renders the page's `…PageContent` composable with it:
 
 ```kotlin
@@ -21,8 +22,8 @@ private fun HomePageScreenshot() {
 
 - The image is named after the composable without the trailing `Screenshot`: `HomePageScreenshot` is `HomePage.png`.
   Names must be unique in this package.
-- **Several screenshots of one page**: more previews in its file, each with its own data.
-- **No screenshot for a page**: no file for it.
+- **Any number of screenshots of a page**: more previews in its file, each with its own data.
+- **No screenshot for a page**: no file for it. The app needs at least one screenshot in all, not one per page.
 
 ## Nothing is shared
 

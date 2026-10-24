@@ -1,6 +1,6 @@
 # Page screenshots
 
-The README of every app with a UI shows screenshots of its pages. They are **rendered by CI from the `@Preview`
+The README of every app with a UI shows screenshots of the app: of the pages worth showing, one or several for each. They are **rendered by CI from the `@Preview`
 composables of the app's `screenshot` package**, never taken by hand, and committed to `docs/screenshots/`. This page
 is the pattern and how it works. The README side is [readme.md](readme.md).
 
@@ -21,9 +21,10 @@ general previews.
 ## The `screenshot` package
 
 All the screenshot code is in **one package, `<the app's package>.screenshot`**, in `src/debug` (so that the mock data
-is not in the release APK; `internal` composables of `src/main` are visible from it). **One file per page that gets a
-screenshot**, named after the page. The file holds the page's screenshots, and **each screenshot is one private
-`@Preview` composable that owns its mock data and renders the page's content with it**:
+is not in the release APK; `internal` composables of `src/main` are visible from it). **A page that has screenshots has
+a file here, named after the page; not every page needs one, and a page can have several screenshots.** Each file
+holds the screenshots of its page, and **each screenshot is one private `@Preview` composable that owns its mock data
+and renders the page's content with it**:
 
 ```kotlin
 // screenshot/HomePage.kt
@@ -41,8 +42,10 @@ private fun HomePageScreenshot() {
 - **Every `@Preview` in the package is a screenshot, and nothing outside it is.** The image takes the name of the
   composable without a trailing `Screenshot`: `HomePageScreenshot` becomes `docs/screenshots/HomePage.png`. Names must be
   unique across the package (the test fails otherwise); the README lists the images in alphabetical order.
-- **Several screenshots of one page** are several previews in its file (`HomePageScreenshot`,
-  `HomeEmptyPageScreenshot`). **A page with no file has no screenshot**: leave out the pages that are not worth showing.
+- **A page can have any number of screenshots**: several previews in its file, each with its own data
+  (`HomePageScreenshot`, `HomeEmptyPageScreenshot`), as many as are worth showing. **A page can have none**: a page
+  with no file has no screenshot, so leave out the pages that are not worth showing. The app needs at least one
+  screenshot in all, not one per page.
 - **Nothing is shared.** Every screenshot owns its data, so that changing one never changes another, and the
   screenshots are independent of the app and of the general previews:
   - not between pages, and not between the screenshots of one page: a second screenshot has its own copy of what it

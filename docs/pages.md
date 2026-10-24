@@ -13,7 +13,7 @@ composable in its own file, and a dialog or sheet is drawn by the `XPageContent`
 | | `XPage` | `XPageContent` |
 |---|---|---|
 | Visibility | public (`fun`) | **`internal`** |
-| Job | Connects the page to the app: gets the ViewModel, collects its state, handles lifecycle and one-off events, and turns navigation into plain lambdas | **All of the page's UI** |
+| Job | Connects the page to the app: gets its ViewModel (**`XViewModel`**), collects its state, handles lifecycle and one-off events, and turns navigation into plain lambdas | **All of the page's UI** |
 | Takes | What the navigation gives it: the page's arguments and the navigation callbacks (`onBack`, `onOpenDetail`) | The page's `XUiState` and **one lambda per user action** (state down, events up) |
 | Never | Draws any UI of its own: it only calls `XPageContent` | Touches a ViewModel, Koin, a `Flow`, a repository or a navigator; starts work of its own; holds business logic |
 | Previewable | **No**: it needs Koin and a ViewModel | **Yes**: with fake state |
@@ -68,8 +68,10 @@ needed, or passes it to `XPageContent` as a plain parameter ([app-conventions.md
 
 ## Names and files
 
-- `HomePage` and `HomePageContent`; the ViewModel `HomeViewModel` and the state `HomeUiState`. **Never** `HomeScreen`,
-  `HomeContent`, `HomeView` or `HomeScreenContent`: the suffix is always `Page` and `PageContent`.
+- `HomePage` and `HomePageContent`. **The ViewModel that `HomePage` holds is named `HomeViewModel`**: always
+  `XViewModel` for `XPage` (one ViewModel per page), never `HomePageViewModel`, `HomeScreenViewModel` or a name that
+  does not match the page; and its state is `HomeUiState`. **Never** `HomeScreen`, `HomeContent`, `HomeView` or
+  `HomeScreenContent` for the composables: the suffix is always `Page` and `PageContent`.
 - **One file per page, `HomePage.kt`, holding `HomePage`, `HomePageContent` and the general previews**
   (`HomePageContentPreview`: as many as help, named after what they show). The ViewModel and the state are in
   `HomeViewModel.kt`. This is the one exception to "one composable per file" ([app-conventions.md](app-conventions.md#composables-and-previews)).
@@ -82,7 +84,7 @@ needed, or passes it to `XPageContent` as a plain parameter ([app-conventions.md
   ```
 
   The `backStack` never goes below `AppNavigation`: neither `XPage` nor `XPageContent` gets it.
-- The README screenshots of the pages are separate from the general previews: previews in the app's `screenshot`
+- Any README screenshots of a page (a page can have several, or none) are separate from the general previews: previews in the app's `screenshot`
   package, each owning its data ([screenshots.md](screenshots.md)).
 
 ## Why
@@ -101,7 +103,8 @@ Do this for every page of the app, in the same change as the rest of its migrati
 2. The composable that draws the screen (`XContent`, `XScreenContent`, or the body of the old screen) becomes
    **`XPageContent`**, `internal`, taking only state and lambdas. If a screen is not split yet, split it: everything
    that needs the ViewModel, Koin or a `Flow` goes up into `XPage`.
-3. Rename the file to `XPage.kt` and the ViewModel and state to `XViewModel` and `XUiState` if they differ.
+3. Rename the file to `XPage.kt`, **the ViewModel the page holds to `XViewModel`** (not `XPageViewModel`,
+   `XScreenViewModel` or anything else) and its state to `XUiState`, if they differ.
 4. A navigation key that is called `XPage` or `XScreen` is renamed after the destination (`X`, or `XKey`), so that the
    name `XPage` is the composable's.
 5. Give `XPageContent` general previews, and (if the page deserves a screenshot) a file in the `screenshot` package.
