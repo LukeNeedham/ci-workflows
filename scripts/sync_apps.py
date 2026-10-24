@@ -238,7 +238,10 @@ def main():
 
     token = os.environ.get("SYNC_TOKEN")
     if not token and not args.dry_run:
-        sys.exit("SYNC_TOKEN is not set. See docs/sync.md for the token it needs.")
+        print("::error::The secret SYNC_TOKEN is not set. See docs/sync.md.")
+        sys.exit(1)
+    if token:
+        print(f"::add-mask::{token}")
     apps = json.loads((TOOLS / "apps.json").read_text())
     if args.apps:
         wanted = {a.strip() for a in args.apps.split(",")}

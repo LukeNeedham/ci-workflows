@@ -28,31 +28,15 @@ jobs:
     # macOS so the iOS targets are built on a Mac, as Kotlin recommends for publishing them.
     runs-on: macos-latest
     steps:
+      - uses: actions/checkout@v4
+
       - name: Check the version
         env:
           VERSION: ${{ inputs.version }}
-        run: |
-          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "::error::The version must be major.minor.patch, but it is '$VERSION'"
-            exit 1
-          fi
-
-      - uses: actions/checkout@v4
+        run: python3 scripts/library_release.py check-version --version "$VERSION"
 
       - name: Make sure the gh-pages branch exists
-        run: |
-          if ! git ls-remote --exit-code --heads origin gh-pages > /dev/null; then
-            git config user.name 'github-actions[bot]'
-            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-            git switch --orphan gh-pages
-            touch .nojekyll
-            git add .nojekyll
-            git commit -m 'Start the Maven repository'
-            git push origin gh-pages
-            # Back to the commit being released. `git switch -` does not work here: the checkout
-            # action leaves no previous branch to return to.
-            git switch --detach "$GITHUB_SHA"
-          fi
+        run: python3 scripts/library_release.py ensure-gh-pages
 
       - uses: actions/checkout@v4
         with:
@@ -62,11 +46,7 @@ jobs:
       - name: Refuse to overwrite a published version
         env:
           VERSION: ${{ inputs.version }}
-        run: |
-          if [ -d "pages/maven/com/lukeneedham/common/$VERSION" ]; then
-            echo "::error::Version $VERSION is already published. Pick a new one."
-            exit 1
-          fi
+        run: python3 scripts/library_release.py check-unpublished --version "$VERSION"
 
       - uses: actions/setup-java@v4
         with:
@@ -87,16 +67,10 @@ jobs:
           -PstaticRepoDir="$GITHUB_WORKSPACE/pages/maven"
 
       - name: Push the repository
+        working-directory: pages
         env:
           VERSION: ${{ inputs.version }}
-        working-directory: pages
-        run: |
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          touch .nojekyll
-          git add -A
-          git commit -m "Publish common $VERSION"
-          git push origin HEAD:gh-pages
+        run: python3 "$GITHUB_WORKSPACE/scripts/library_release.py" push --version "$VERSION"
 
       - name: Tag it and make the release
         env:

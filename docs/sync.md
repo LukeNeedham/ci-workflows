@@ -83,3 +83,18 @@ reaches an app, so changing it starts no sync. A script that is used only inside
 Change the file in `skills/` or `callers/` and merge: the next run opens the PRs. To sync something new (another
 caller, say), add it to `callers/` and to `CALLERS` in the script, and to `docs/setup.md`. A new
 setting that belongs to an app goes into `DEFAULTS` in `scripts/app_config.py`.
+
+## Workflows only call scripts
+
+The logic of every workflow is in `scripts/`, tested in `internal-scripts/`; a `run:` is a call or a few lines. The
+workflows that run in an app (`android_pr_build.yml`, `android_pr_cleanup.yml`, `android_release.yml`) start with the
+action [`ci-scripts`](../.github/actions/ci-scripts/action.yml), which sets `CI_SCRIPTS` to the `scripts/` of the same
+version of this repo. Values from the event (a branch name, the notes) go in through `env:`, never straight into the
+command line.
+
+| Script | Used by |
+|---|---|
+| `pr_releases.py` | the PR build (stale comment, metadata, superseded) and the cleanup |
+| `release.py` | `android_release.yml` |
+| `library_release.py` | `library_release.yml` |
+| `ghactions.py` | the helpers for step outputs, `GITHUB_ENV` and error annotations |
