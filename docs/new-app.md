@@ -26,8 +26,9 @@ then follow it, and tell the user about anything you skipped and why.
   App access to it (<https://github.com/apps/claude/installations/select_target>). Until they have,
   pushing fails with a 403.
 - **Work on a branch and open a PR to `main`.** The PR build (step 3) only runs on PRs.
-- **No Android SDK in the sandbox**, so you usually cannot compile locally. CI is the first real
-  build: write carefully, then fix what the build log says.
+- **Claude can never build or run the app**: the sandbox has no access to Gradle, Maven or the Android SDK. Builds
+  and compile checks happen only on CI. Do not try to download Gradle or set up the SDK (a waste of tokens): write
+  carefully, push, then read the PR build comment and fix what the build log says.
 
 ## 1. The project
 

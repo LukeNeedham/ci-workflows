@@ -21,7 +21,11 @@ below are enough.
 - AGP 8.13.2, Kotlin 2.2.21, Gradle 8.14.3 (bump together); `compileSdk`/`targetSdk` 36; `minSdk` 23+; JDK 17.
 - **Commit a debug keystore** at `app/debug.keystore` (alias `androiddebugkey`, password `android`) and
   use it for the `debug` signing config, so CI builds can update each other.
-- No Android SDK in the sandbox: you usually cannot compile locally. CI is the first build.
+- **Claude can never build or run the app.** The sandbox has no access to Gradle distributions, Maven or the Android
+  SDK, so compiling, building, running and checking that it builds happen **only on CI**. Skip it at once: never try
+  to download Gradle, set up the SDK or run `./gradlew` (it only wastes tokens). Write carefully, push, then read the
+  PR build result and comments (CI's build comment, the AppHub link) and fix what the build log says. Pure
+  Python/Kotlin-JVM logic with no Android dependency is the only thing worth running locally.
 
 ## CI
 - Every app is built the same way and nothing is configured per app: module `:app`, debug APK at
