@@ -29,7 +29,7 @@ is built the same way (`docs/app-config.md` in `ci-workflows`), so there is noth
 
 ## CI
 - Callers `trigger_on_pull_request.yml`, `build_main.yml` (AppHub builds main through it, so keep the name), `delete_prereleases.yml` and `release.yml` come from
-  `LukeNeedham/ci-workflows/examples/`; the logic is in the shared reusable workflows there.
+  `LukeNeedham/ci-workflows/callers/`; the logic is in the shared reusable workflows there.
 - Every app follows the same standard, with no per-app options: module `:app`, debug APK `app/build/outputs/apk/debug/app-debug.apk`, PRs into `main` only (never `master` or `develop`), JDK 17, the shared library, and all four callers (`release.yml` fails with a clear message until the app has the release secrets and `gradle/android-release.gradle`). A new app needs only its entry (`name`, `repo`) in `ci-workflows`' `apps.json`.
 - A PR that changes only `.claude/skills/` does not build (no APK, no AppHub link comment from CI).
 - Debug mode always comes from `BuildConfig.DEBUG` (the build config field).

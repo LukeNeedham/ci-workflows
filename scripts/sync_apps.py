@@ -3,7 +3,7 @@
 
 What is synced (see docs/sync.md):
   - the Claude skill, mirrored to .claude/skills/lukeneedham-conventions/
-  - the callers in .github/workflows/, copied byte for byte from examples/ (all of them, to every app; they
+  - the callers in .github/workflows/, copied byte for byte from callers/ (all of them, to every app; they
     hold no settings, see docs/app-config.md)
   - a managed block in the app's CLAUDE.md
 
@@ -70,11 +70,11 @@ def sync_skill(app_dir, tools=TOOLS):
 
 
 def sync_callers(app_dir, tools=TOOLS):
-    """Copies the callers from examples/, byte for byte. Returns changed paths."""
+    """Copies the callers from callers/, byte for byte. Returns changed paths."""
     workflows = app_dir / ".github" / "workflows"
     changed = []
     for name in CALLERS:
-        content = (tools / "examples" / name).read_bytes()
+        content = (tools / "callers" / name).read_bytes()
         target = workflows / name
         if not target.exists() or target.read_bytes() != content:
             target.parent.mkdir(parents=True, exist_ok=True)

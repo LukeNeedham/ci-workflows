@@ -10,7 +10,7 @@
   ([`docs/skill.md`](docs/skill.md)).
 - Apps get the skill, the workflow callers and a `CLAUDE.md` block from CI (`sync_apps.yml`), as a "Sync from
   ci-workflows" PR: never copy them by hand and never edit an app's copy. See [`docs/sync.md`](docs/sync.md).
-  A new caller or a change to one in `examples/` reaches the apps this way too. The callers hold no settings and an app
+  A new caller or a change to one in `callers/` reaches the apps this way too. The callers hold no settings and an app
   has no options: every app follows the same standard ([`docs/app-config.md`](docs/app-config.md)), so `apps.json` lists
   only `name` and `repo`.
 - **AppHub link**: whenever work on an app completes (a PR is open), always paste the PR's AppHub link

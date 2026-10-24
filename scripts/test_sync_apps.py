@@ -41,19 +41,26 @@ class SyncApp(unittest.TestCase):
 
         self.assertIn(".github/workflows/trigger_on_pull_request.yml", changed)
         for name in s.CALLERS:
-            self.assertEqual((TOOLS / "examples" / name).read_bytes(), (self.dir / ".github/workflows" / name).read_bytes(), name)
+            self.assertEqual((TOOLS / "callers" / name).read_bytes(), (self.dir / ".github/workflows" / name).read_bytes(), name)
 
     def test_the_callers_hold_no_settings(self):
-        for path in sorted((TOOLS / "examples").glob("*.yml")):
+        for path in sorted((TOOLS / "callers").glob("*.yml")):
             for line in path.read_text().splitlines():
                 self.assertNotRegex(line, r"^\s*#?\s*(apk-path|gradle-task|java-version|java-distribution|timezone|comment-header|asset-name):", path.name)
             self.assertNotRegex(path.read_text(), r"(?m)^\s*branches:", path.name)
+
+    def test_a_caller_has_one_comment_saying_where_it_is_copied_from(self):
+        for name in s.CALLERS:
+            comments = [l for l in (TOOLS / "callers" / name).read_text().splitlines() if "#" in l]
+            self.assertEqual(
+                [f"# Copied from LukeNeedham/ci-workflows (callers/{name}). Do not edit it here: change it there."],
+                comments, name)
 
     def test_every_app_gets_every_caller_including_the_release_one(self):
         s.sync_callers(self.dir)
         for name in ("trigger_on_pull_request.yml", "build_main.yml", "delete_prereleases.yml", "release.yml"):
             self.assertTrue((self.dir / ".github/workflows" / name).is_file(), name)
-        self.assertEqual(sorted(p.name for p in (TOOLS / "examples").glob("*.yml")), sorted(s.CALLERS))
+        self.assertEqual(sorted(p.name for p in (TOOLS / "callers").glob("*.yml")), sorted(s.CALLERS))
 
     def test_the_skill_is_mirrored_and_stray_files_go(self):
         self.write(".claude/skills/lukeneedham-conventions/SKILL.md", "old")

@@ -9,7 +9,7 @@ on:
     branches: [main]
     paths:
       - 'skills/**'
-      - 'examples/**'
+      - 'callers/**'
       - 'apps.json'
       - 'scripts/sync_apps.py'
   schedule:
@@ -24,7 +24,7 @@ on:
     paths:
       - 'scripts/**'
       - 'apps.json'
-      - 'examples/**'
+      - 'callers/**'
       - 'skills/**'
       - '.github/workflows/sync_apps.yml'
 

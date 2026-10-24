@@ -5,17 +5,11 @@ name: Android PR
 # android_pr_cleanup.yml from the event, so a project needs one caller job instead of two. Nothing runs for a
 # PR that targets a branch other than main, or that changes only the Claude skill (see config).
 #
-# Caller example: examples/trigger_on_pull_request.yml. It has no settings: every app is built the same way.
+# Caller: callers/trigger_on_pull_request.yml. It has no settings: every app is built the same way.
 
 on:
+  # No inputs: every app is built the same way (docs/app-config.md)
   workflow_call:
-    # The settings (APK path, Gradle task, JDK, timezone, comment id) are not inputs: every app is built the same
-    # way, and the config job provides them (docs/app-config.md).
-    inputs:
-      tools-ref:
-        description: Branch or tag of LukeNeedham/ci-workflows to fetch scripts/ from. Leave as main; set it to a branch only to test a script change
-        type: string
-        default: main
 
 jobs:
   # Provides the settings every app shares, and says whether this run has anything to do. The other jobs wait for it.
@@ -53,12 +47,10 @@ jobs:
           ref: ${{ github.head_ref || github.ref_name }}
 
       - name: Render the app icon
-        env:
-          TOOLS_REF: ${{ inputs.tools-ref }}
         run: |
           sudo apt-get install -y --no-install-recommends libcairo2 > /dev/null
           pip install --quiet cairosvg pillow
-          curl -fsSL "https://raw.githubusercontent.com/LukeNeedham/ci-workflows/${TOOLS_REF}/scripts/render_app_icon.py" \
+          curl -fsSL "https://raw.githubusercontent.com/LukeNeedham/ci-workflows/main/scripts/render_app_icon.py" \
             -o "$RUNNER_TEMP/render_app_icon.py"
           python3 "$RUNNER_TEMP/render_app_icon.py" .
 

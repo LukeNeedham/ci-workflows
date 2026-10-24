@@ -61,10 +61,6 @@ moved here.
 the `config` job provides the values to the build. The same job skips the whole run for a PR that does not go to
 `main`, and for a PR that changes only `.claude/skills/`.
 
-| Input | Default | Meaning |
-|---|---|---|
-| `tools-ref` | `main` | Branch or tag of this repo to fetch `scripts/` from. Leave it; set it to a branch only to test a script change |
-
 The `app-icon` job renders `app-icon.png` (a 512x512 circle on a transparent background) from the app's
 adaptive launcher icon on every PR and commits it to the PR branch when it differs
 ([app-icon.md](docs/app-icon.md)). The path is fixed, not an input. It fetches
@@ -119,7 +115,7 @@ downloads the artifact. It can also be run from the *Actions* tab.
 
 No inputs: every app is built the same way ([docs/app-config.md](docs/app-config.md)).
 
-- **The caller is `build_main.yml`** ([`examples/build_main.yml`](examples/build_main.yml)): AppHub starts that
+- **The caller is `build_main.yml`** ([`callers/build_main.yml`](callers/build_main.yml)): AppHub starts that
   file by name, on `main`. It needs `workflow_dispatch` and `contents: read`.
 - **An artifact, not a release.** It expires after a day by itself, so there is no tag, no pre-release and no
   cleanup. Artifacts, unlike release assets, can only be downloaded with a token (*Actions: read*), which AppHub
@@ -191,8 +187,8 @@ Changes to `main` affect every project at once, so:
 
 1. Make the change on a branch and open a PR.
 2. To try it before merging, point a test PR in a consuming repo at the branch
-   (`...android_pr_build.yml@my-branch`), then switch it back to `@main`. If the change is to a script in
-   `scripts/`, also pass `tools-ref: my-branch` in that caller, or the workflow fetches the script from `main`.
+   (`...android_pr_build.yml@my-branch`), then switch it back to `@main`. A script in `scripts/` that a workflow
+   downloads (the app icon renderer) is always fetched from `main`, so it can only be tried once merged.
 3. Merge, then watch the next real run in a consuming repo.
 
 When a consuming project's CI behaves oddly, the project's own caller files are usually fine; look

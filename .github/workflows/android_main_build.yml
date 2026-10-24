@@ -8,7 +8,7 @@ name: Android Main Build
 # nothing needs cleaning up. The artifact is named `apk` and holds the APK as a single file.
 #
 # The caller must be named build_main.yml, because that is the file AppHub starts.
-# Caller example: examples/build_main.yml. It needs `contents: read` only and has no settings.
+# Caller: callers/build_main.yml. It needs `contents: read` only and has no settings.
 
 on:
   # No inputs: every app is built the same way (docs/app-config.md)

@@ -1,7 +1,7 @@
 # Setting up a project
 
 How to start using these workflows in a new project, or move an existing project over to them. The
-caller files are in [`examples/`](../examples) and have no settings: copy them as they are (all four). For an app
+caller files are in [`callers/`](../callers) and have no settings: copy them as they are (all four). For an app
 in `apps.json` the [sync](sync.md) copies the callers by itself.
 
 For what each workflow does, its inputs and the PR comment it posts, see the
@@ -37,7 +37,7 @@ project is built the same way ([app-config.md](app-config.md)).
 Builds the APK on every PR push, comments the download link, and deletes the PR's builds when it
 closes.
 
-**File:** [`examples/trigger_on_pull_request.yml`](../examples/trigger_on_pull_request.yml): copy it, unchanged, to
+**File:** [`callers/trigger_on_pull_request.yml`](../callers/trigger_on_pull_request.yml): copy it, unchanged, to
 `.github/workflows/trigger_on_pull_request.yml` in your project. There is nothing to edit in it.
 
 ### Settings
@@ -59,7 +59,7 @@ A manual button that deletes **every** pre-release and tag in the repo. Useful o
 (to clear old builds the cleanup never saw) and for builds from manual runs, which have no PR to
 clean them up.
 
-**File:** [`examples/delete_prereleases.yml`](../examples/delete_prereleases.yml): copy it, unchanged, to
+**File:** [`callers/delete_prereleases.yml`](../callers/delete_prereleases.yml): copy it, unchanged, to
 `.github/workflows/delete_prereleases.yml` in your project.
 
 Nothing to configure. Run it from the *Actions* tab. It only deletes pre-releases, never full
@@ -96,7 +96,7 @@ A manual build of the default branch that keeps its APK for one day, as a workfl
 *Build main* button for every repo that has it, starts the run through the API, reports its progress, and
 offers the APK to install. It can also be run from the *Actions* tab.
 
-**File:** [`examples/build_main.yml`](../examples/build_main.yml): copy it, unchanged, to
+**File:** [`callers/build_main.yml`](../callers/build_main.yml): copy it, unchanged, to
 `.github/workflows/build_main.yml` in your project.
 **Keep the file name**: AppHub starts `build_main.yml` on `main`. It must be on `main` before it can be run.
 
@@ -106,7 +106,7 @@ APK needs *Actions: Read*. See the AppHub README for creating one.
 ## Setting up a new project
 
 1. Add the project to [`apps.json`](../apps.json): its `name` and `repo`.
-2. Copy the four files of `examples/` (`trigger_on_pull_request.yml`, `build_main.yml` so AppHub can build main,
+2. Copy the four files of `callers/` (`trigger_on_pull_request.yml`, `build_main.yml` so AppHub can build main,
    `delete_prereleases.yml` and `release.yml`) to `.github/workflows/` in the project, unchanged. After the first
    copy the [sync](sync.md) keeps them in line.
 3. Commit them on a branch and open a PR to the target branch.
@@ -119,7 +119,7 @@ Assuming the project already builds an APK on pull requests with its own workflo
 1. **Make the project follow the standard** ([app-config.md](app-config.md)), because the workflows have no
    settings: module `:app` (so the debug APK is at `app/build/outputs/apk/debug/app-debug.apk`), JDK 17, and
    `main` as the branch PRs go to. Rename the module or the default branch first if they differ.
-2. **Replace the old build workflow** with `examples/trigger_on_pull_request.yml`, unchanged. Keep any jobs in
+2. **Replace the old build workflow** with `callers/trigger_on_pull_request.yml`, unchanged. Keep any jobs in
    it that the shared workflows do not cover in the same `jobs:` block.
 3. **Delete the old cleanup workflow**, if there is one: the cleanup now runs from the same file.
    Make sure the project has exactly one workflow reacting to PR closes, otherwise releases are

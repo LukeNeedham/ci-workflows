@@ -8,7 +8,7 @@ Claude: nothing needs to remember to copy anything.
 | What | Where in the app | How |
 |---|---|---|
 | The Claude skill | `.claude/skills/lukeneedham-conventions/` | Mirrored exactly: files that no longer exist here are deleted |
-| The callers | `.github/workflows/`: `trigger_on_pull_request.yml`, `build_main.yml`, `delete_prereleases.yml`, `release.yml` | Copied **byte for byte** from [`examples/`](../examples), **all four to every app**. They hold no settings, so every app has identical files. `release.yml` fails with a clear message in an app that is not set up for releases |
+| The callers | `.github/workflows/`: `trigger_on_pull_request.yml`, `build_main.yml`, `delete_prereleases.yml`, `release.yml` | Copied **byte for byte** from [`callers/`](../callers), **all four to every app**. They hold no settings, so every app has identical files. `release.yml` fails with a clear message in an app that is not set up for releases |
 | A note for Claude | A block in the app's `CLAUDE.md`, between `ci-workflows:begin` and `ci-workflows:end` | Replaced each time. Also tells Claude to always paste the PR's AppHub link into the chat when work completes (`CLAUDE.md` is always loaded, unlike the skill). The old "copy the skill by hand" line is replaced by it. The rest of `CLAUDE.md` is the app's |
 
 Not synced: the library version, and anything else in the app.
@@ -18,7 +18,7 @@ nothing to configure per app. The sync overwrites whatever the app has in a call
 
 ## When it runs
 
-[`sync_apps.yml`](../.github/workflows/sync_apps.yml) runs when `skills/`, `examples/`, `apps.json` or the script
+[`sync_apps.yml`](../.github/workflows/sync_apps.yml) runs when `skills/`, `callers/`, `apps.json` or the script
 change on `main`, every Monday, and by hand (*Actions → Sync Apps → Run workflow*, optionally for some apps).
 For each app that differs it pushes the branch `sync/ci-workflows` and opens a PR, **Sync from ci-workflows**; if
 that PR is already open it is updated (the branch is force-pushed: it belongs to the sync). Nothing is pushed to
@@ -69,6 +69,6 @@ python3 -m unittest discover -s scripts                           # the tests
 
 ## Changing what is synced
 
-Change the file in `skills/` or `examples/` and merge: the next run opens the PRs. To sync something new (another
-caller, say), add it to `examples/` and to `DEFAULT_CALLERS` in the script, and to `docs/setup.md`. A new
+Change the file in `skills/` or `callers/` and merge: the next run opens the PRs. To sync something new (another
+caller, say), add it to `callers/` and to `CALLERS` in the script, and to `docs/setup.md`. A new
 setting that belongs to an app goes into `DEFAULTS` in `scripts/app_config.py`.

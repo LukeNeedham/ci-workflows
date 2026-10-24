@@ -91,13 +91,13 @@ Permanent, signed **release** builds are separate (own key, kept in repo secrets
 Every app uses the shared workflows in this repo. Follow **[setup.md](setup.md)**, which has the
 details. In short, for a new app:
 
-1. Copy [`examples/trigger_on_pull_request.yml`](../examples/trigger_on_pull_request.yml) to
+1. Copy [`callers/trigger_on_pull_request.yml`](../callers/trigger_on_pull_request.yml) to
    `.github/workflows/trigger_on_pull_request.yml`, unchanged. The callers have no settings.
-2. Copy [`examples/delete_prereleases.yml`](../examples/delete_prereleases.yml) to
+2. Copy [`callers/delete_prereleases.yml`](../callers/delete_prereleases.yml) to
    `.github/workflows/delete_prereleases.yml`, unchanged.
-3. Copy [`examples/build_main.yml`](../examples/build_main.yml) to `.github/workflows/build_main.yml`, unchanged.
+3. Copy [`callers/build_main.yml`](../callers/build_main.yml) to `.github/workflows/build_main.yml`, unchanged.
    AppHub builds `main` on demand through it, so keep the file name.
-4. Copy [`examples/release.yml`](../examples/release.yml) to `.github/workflows/release.yml`, unchanged. Every app has
+4. Copy [`callers/release.yml`](../callers/release.yml) to `.github/workflows/release.yml`, unchanged. Every app has
    it. It fails at once, with a clear message, until the app has the release key and the Gradle script
    ([setup.md](setup.md#3-permanent-releases-optional)); only do that when the user wants installable releases (the
    four repo secrets are for the user to add).

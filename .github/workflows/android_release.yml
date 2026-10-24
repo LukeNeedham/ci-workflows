@@ -9,7 +9,7 @@ name: Android Release
 # the project must apply. The same script reads the signing key from the environment variables this
 # workflow sets from the secrets below.
 #
-# Caller example: examples/release.yml. Every app has it; it has no settings besides the version and notes.
+# Caller: callers/release.yml. Every app has it; it has no settings besides the version and notes.
 # The caller must grant `contents: write` and pass the secrets (`secrets: inherit` does it). An app that is not
 # set up for releases (secrets, the Gradle script) fails in the first step with a message that says what is missing.
 

@@ -56,4 +56,12 @@ first step, before anything is tagged or built, with one error that lists what i
 ## What stays in the caller
 
 What GitHub only reads from the caller file itself, so it is the same in every app: the triggers (`on:`), the
-`permissions:`, and the inputs of a manual run (the version and notes of `release.yml`).
+`permissions:`, and the inputs of a manual run (the version and notes of `release.yml`). The files in
+[`callers/`](../callers) carry one comment, that they are copied from here and not to be edited in the app; what they
+do is documented here and in [setup.md](setup.md):
+
+- `trigger_on_pull_request.yml` lists all four pull request types: `closed` runs the release cleanup, the others
+  build. Only PRs into `main` are built; the shared workflow skips the rest.
+- `build_main.yml` must keep its file name: AppHub starts it by name. It builds the branch it is run on and keeps the
+  APK as an artifact for one day.
+- `delete_prereleases.yml` deletes **every** pre-release and tag in the repo, so it is only run by hand.
