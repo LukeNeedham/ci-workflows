@@ -4,7 +4,7 @@
 the one way to build a screen in every app, so that any app reads like any other, and the previews and the README
 screenshots work the same everywhere ([screenshots.md](screenshots.md)).
 
-A **page** is a destination of the navigation: a full screen, one `entry<…>` of the `NavDisplay`. A reusable piece
+A **page** is a destination of the navigation: a full screen, one `entry<XNavKey>` of the `NavDisplay`. A reusable piece
 (a card, a row, a toolbar), and a dialog or a sheet that belongs to a page, is **not** a page: it is a plain
 composable in its own file, and a dialog or sheet is drawn by the `XPageContent` of its page.
 
@@ -52,7 +52,7 @@ private fun HomePageContentPreview() {
 }
 ```
 
-A page with arguments gets them from its navigation key, and passes them on to its ViewModel:
+A page with arguments gets them from its navigation key (`DetailNavKey`, below), and passes them on to its ViewModel:
 
 ```kotlin
 @Composable
@@ -75,12 +75,18 @@ needed, or passes it to `XPageContent` as a plain parameter ([app-conventions.md
 - **One file per page, `HomePage.kt`, holding `HomePage`, `HomePageContent` and the general previews**
   (`HomePageContentPreview`: as many as help, named after what they show). The ViewModel and the state are in
   `HomeViewModel.kt`. This is the one exception to "one composable per file" ([app-conventions.md](app-conventions.md#composables-and-previews)).
-- The navigation key is named after the destination (`Home`, `Settings`), plus `Key` if the name would clash with a
-  class of the app (`PullRequestKey`). The entry only calls the page, with the navigation as lambdas:
+- **The navigation key of `XPage` is always `XNavKey`** (`HomePage` is `HomeNavKey`, `PullRequestPage` is
+  `PullRequestNavKey`): never `Home`, `HomeKey` or `HomeRoute`. A key is a `@Serializable` object, or a class with
+  the page's arguments, implementing `NavKey`. The entry only calls the page, with the navigation as lambdas:
 
   ```kotlin
-  entry<Home> { HomePage(onOpenSettings = { backStack.add(Settings) }, onOpenDetail = { backStack.add(Detail(it)) }) }
-  entry<Detail> { key -> DetailPage(id = key.id, onBack = { backStack.removeLastOrNull() }) }
+  @Serializable data object HomeNavKey : NavKey
+  @Serializable data class DetailNavKey(val id: String) : NavKey
+
+  entry<HomeNavKey> {
+      HomePage(onOpenSettings = { backStack.add(SettingsNavKey) }, onOpenDetail = { backStack.add(DetailNavKey(it)) })
+  }
+  entry<DetailNavKey> { key -> DetailPage(id = key.id, onBack = { backStack.removeLastOrNull() }) }
   ```
 
   The `backStack` never goes below `AppNavigation`: neither `XPage` nor `XPageContent` gets it.
@@ -105,11 +111,11 @@ Do this for every page of the app, in the same change as the rest of its migrati
    that needs the ViewModel, Koin or a `Flow` goes up into `XPage`.
 3. Rename the file to `XPage.kt`, **the ViewModel the page holds to `XViewModel`** (not `XPageViewModel`,
    `XScreenViewModel` or anything else) and its state to `XUiState`, if they differ.
-4. A navigation key that is called `XPage` or `XScreen` is renamed after the destination (`X`, or `XKey`), so that the
-   name `XPage` is the composable's.
+4. **The navigation key of the page is renamed to `XNavKey`**, whatever it is called now (`X`, `XKey`, `XRoute`, `XPage` or
+   `XScreen`). A key called `XPage` has to change in any case, because that name is the composable's.
 5. Give `XPageContent` general previews, and (if the page deserves a screenshot) a file in the `screenshot` package.
 6. Update every reference: tests, docs and the app's `CLAUDE.md` lines that name files.
 7. **Not pages:** composables that are only parts of a page keep their names; nothing else gets the `Page` suffix.
 
 A check of the result: `grep -rn "Screen\b\|Screen(" app/src/main` should find no page composables, and every
-`entry<…>` of the navigation should call exactly one `XPage`.
+`entry<…>` of the navigation should be an `entry<XNavKey>` that calls exactly one `XPage`.

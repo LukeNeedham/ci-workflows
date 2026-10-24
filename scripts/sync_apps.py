@@ -107,11 +107,11 @@ def claude_block():
         f"  write it once from the template. The PR build commits the regenerated `README.md` to the PR branch.\n"
         f"- **Every page is an `XPage` plus a stateless `internal` `XPageContent`, always** (`docs/pages.md` in\n"
         f"  `LukeNeedham/ci-workflows`): `XPage` gets its `XViewModel` (always named after the page) and delegates all\n"
-        f"  UI; never `XScreen` or a mixed screen. The README screenshots live together in the package `screenshot`\n"
-        f"  (in `src/debug`): a file for each page that has some (a page can have several, or none), each screenshot a\n"
-        f"  private `@Preview` that owns its mock data and renders the page's content; nothing is shared between\n"
-        f"  screenshots. CI renders every preview of that package into `docs/screenshots/` (`docs/screenshots.md`\n"
-        f"  there); never take or edit them by hand.\n"
+        f"  UI; its navigation key is always `XNavKey`; never `XScreen` or a mixed screen. The README screenshots live\n"
+        f"  together in the package `screenshot` (in `src/debug`): a file for each page that has some (a page can have\n"
+        f"  several, or none), each screenshot a private `@Preview` that owns its mock data and renders the page's\n"
+        f"  content; nothing is shared between screenshots. CI renders every preview of that package into\n"
+        f"  `docs/screenshots/` (`docs/screenshots.md` there); never take or edit them by hand.\n"
         f"{BLOCK_END}\n"
     )
 

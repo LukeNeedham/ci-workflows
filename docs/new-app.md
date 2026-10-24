@@ -144,7 +144,7 @@ Defaults for a normal app. If the user asks for something else, do that instead.
 
 - **Pages are `XPage` + `XPageContent`, always** ([pages.md](pages.md)). Each screen is a thin, public `XPage`
   composable that gets its `XViewModel` (always named after the page), collects the state and handles navigation as
-  lambdas, and delegates all UI to an
+  lambdas (its navigation key is always `XNavKey`), and delegates all UI to an
   `internal`, stateless `XPageContent` (state down, events up) that has the previews. Never `XScreen`, `XContent` or a
   screen that mixes the two. Any README screenshots of a page are previews in the `screenshot` package
   ([screenshots.md](screenshots.md)).
@@ -156,19 +156,21 @@ Defaults for a normal app. If the user asks for something else, do that instead.
   objects/classes implementing `NavKey`; the back stack is state the app owns:
 
   ```kotlin
-  @Serializable data object Home : NavKey
-  @Serializable data class Detail(val id: String) : NavKey
+  @Serializable data object HomeNavKey : NavKey
+  @Serializable data class DetailNavKey(val id: String) : NavKey
 
-  val backStack = rememberNavBackStack(Home)
+  val backStack = rememberNavBackStack(HomeNavKey)
   NavDisplay(
       backStack = backStack,
       onBack = { backStack.removeLastOrNull() },
       entryProvider = entryProvider {
-          entry<Home> { HomeScreen(onOpen = { backStack.add(Detail(it)) }) }
-          entry<Detail> { key -> DetailScreen(key.id) }
+          entry<HomeNavKey> { HomePage(onOpenDetail = { backStack.add(DetailNavKey(it)) }) }
+          entry<DetailNavKey> { key -> DetailPage(id = key.id, onBack = { backStack.removeLastOrNull() }) }
       },
   )
   ```
+
+  **The navigation key of `XPage` is always `XNavKey`** ([pages.md](pages.md)).
 
   Check the current stable versions and API before using them; Navigation 3 is newer than most
   documentation.

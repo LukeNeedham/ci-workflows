@@ -64,8 +64,8 @@ below are enough.
   state, handles lifecycle and one-off events, turns navigation into lambdas, and only calls `XPageContent`; no
   preview. `XPageContent` is `internal` and stateless (takes `XUiState` and one lambda per action; no ViewModel, Koin,
   `Flow` or navigator) and has the general previews for development (`XPageContentPreview`). Both are in `XPage.kt`;
-  the ViewModel and state in `XViewModel.kt`. Never `XScreen`, `XContent` or `XView`; a navigation key is named after
-  the destination (`X`, or `XKey` if it clashes), the entry just calls `XPage`. **Migrating an app: rename and split
+  the ViewModel and state in `XViewModel.kt`. Never `XScreen`, `XContent` or `XView`; **the navigation key of `XPage` is always
+  `XNavKey`** (`entry<XNavKey> { XPage(...) }`; never `X`, `XKey` or `XRoute`). **Migrating an app: rename and split
   every screen this way** (steps in `docs/pages.md`).
 - **README screenshots live together in one package, `<app package>.screenshot`, in `src/debug`**: a file for each page
   that has screenshots, named after the page (`HomePage.kt`); not every page needs one. Each screenshot is a **private `@Preview` composable
