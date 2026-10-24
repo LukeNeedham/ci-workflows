@@ -1,0 +1,65 @@
+name: App config
+description: >
+  Provides the CI settings that every app shares (APK path, Gradle task, JDK and so on) and says whether a pull
+  request run has nothing to build. Used by the reusable workflows, so the callers in the apps carry no settings.
+  The logic is scripts/app_config.py; see docs/app-config.md.
+
+outputs:
+  skip:
+    description: 'true when the run has nothing to do: the PR targets a branch other than main, or changes only the Claude skill'
+    value: ${{ steps.config.outputs.skip }}
+  apk-path:
+    value: ${{ steps.config.outputs.apk-path }}
+  gradle-task:
+    value: ${{ steps.config.outputs.gradle-task }}
+  java-version:
+    value: ${{ steps.config.outputs.java-version }}
+  java-distribution:
+    value: ${{ steps.config.outputs.java-distribution }}
+  timezone:
+    value: ${{ steps.config.outputs.timezone }}
+  comment-header:
+    value: ${{ steps.config.outputs.comment-header }}
+  release-gradle-task:
+    value: ${{ steps.config.outputs.release-gradle-task }}
+  release-apk-path:
+    value: ${{ steps.config.outputs.release-apk-path }}
+  asset-name:
+    value: ${{ steps.config.outputs.asset-name }}
+
+runs:
+  using: composite
+  steps:
+    # Only a PR that is still open can be skipped for what it changes. If the list cannot be read the run
+    # builds, which is always safe.
+    - name: List the files the pull request changes
+      id: files
+      if: github.event_name == 'pull_request' && github.event.action != 'closed'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        REPO: ${{ github.repository }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+      run: |
+        # A renamed file counts at both its old and its new path
+        if gh api --paginate "repos/${REPO}/pulls/${PR_NUMBER}/files" \
+            --jq '.[] | .filename, (.previous_filename // empty)' > "$RUNNER_TEMP/changed_files.txt"; then
+          echo "path=$RUNNER_TEMP/changed_files.txt" >> "$GITHUB_OUTPUT"
+        else
+          echo "::warning::Could not list the files of the pull request, so it is built in full"
+        fi
+
+    - name: Get the settings
+      id: config
+      shell: bash
+      env:
+        ACTION_PATH: ${{ github.action_path }}
+        REPO: ${{ github.repository }}
+        EVENT: ${{ github.event_name }}
+        EVENT_ACTION: ${{ github.event.action }}
+        BASE_REF: ${{ github.event.pull_request.base.ref }}
+        FILES: ${{ steps.files.outputs.path }}
+      # The action is checked out with the whole repo: the script is three directories up
+      run: |
+        python3 "$ACTION_PATH/../../../scripts/app_config.py" \
+          --repo "$REPO" --event "$EVENT" --action "$EVENT_ACTION" --base "$BASE_REF" --files "$FILES"

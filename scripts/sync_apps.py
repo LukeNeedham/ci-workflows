@@ -3,7 +3,8 @@
 
 What is synced (see docs/sync.md):
   - the Claude skill, mirrored to .claude/skills/lukeneedham-conventions/
-  - the callers in .github/workflows/, rendered from examples/ with the app's own settings
+  - the callers in .github/workflows/, copied byte for byte from callers/ (all of them, to every app; they
+    hold no settings, see docs/app-config.md)
   - a managed block in the app's CLAUDE.md
 
 For each app it clones the default branch, makes the changes on the branch `sync/ci-workflows`, and
@@ -33,11 +34,8 @@ from pathlib import Path
 TOOLS = Path(__file__).resolve().parent.parent
 SKILL = "lukeneedham-conventions"
 BRANCH = "sync/ci-workflows"
-DEFAULT_CALLERS = ["trigger_on_pull_request.yml", "build_main.yml", "delete_prereleases.yml"]
-DEFAULT_APK_PATH = "app/build/outputs/apk/debug/app-debug.apk"
-
-# The settings of a caller that belong to the app. Everything else in a caller is shared.
-INPUT_KEYS = ["apk-path", "gradle-task", "java-version", "java-distribution", "timezone", "comment-header"]
+# Every app gets every caller. The release one fails with a clear message if the app is not set up for releases
+CALLERS = ["trigger_on_pull_request.yml", "build_main.yml", "delete_prereleases.yml", "release.yml"]
 
 BLOCK_BEGIN = "<!-- ci-workflows:begin (managed by LukeNeedham/ci-workflows, do not edit) -->"
 BLOCK_END = "<!-- ci-workflows:end -->"
@@ -49,61 +47,6 @@ OLD_BULLET_RE = re.compile(r"^- Before starting work, check that .*?docs/skill\.
 # ---------------------------------------------------------------------------------------------------
 # What to put in an app. Pure functions on files, so they can be tested without a network.
 # ---------------------------------------------------------------------------------------------------
-
-def read_inputs(text):
-    """The uncommented `key: value` settings in the `with:` block of a caller, and its `branches:` list."""
-    inputs = {}
-    branches = []
-    in_with = False
-    in_branches = False
-    for line in text.splitlines():
-        if re.match(r"^\s*with:\s*$", line):
-            in_with = True
-        elif re.match(r"^\s*branches:\s*$", line):
-            in_branches = True
-        elif in_branches:
-            item = re.match(r"^\s+-\s+(\S+)", line)
-            if item:
-                branches.append(item.group(1))
-            else:
-                in_branches = False
-        if in_with:
-            match = re.match(r"^\s+([a-z-]+):\s*(.*?)\s*(\s#.*)?$", line)
-            if match and match.group(1) in INPUT_KEYS:
-                inputs[match.group(1)] = match.group(2)
-    return inputs, branches
-
-
-def render_caller(template, inputs, branches):
-    """[template] with the app's [inputs] and [branches] in place of the template's own."""
-    out = []
-    in_with = False
-    in_branches = False
-    first_branch = True
-    for line in template.splitlines():
-        if re.match(r"^\s*with:\s*$", line):
-            in_with = True
-        if branches and re.match(r"^\s*branches:\s*$", line):
-            in_branches, first_branch = True, True
-        elif in_branches:
-            item = re.match(r"^(\s+)-\s+\S+(.*)$", line)
-            if item:
-                if first_branch:
-                    # The template's comment stays with the first branch
-                    out.extend(f"{item.group(1)}- {name}{item.group(2) if i == 0 else ''}" for i, name in enumerate(branches))
-                    first_branch = False
-                continue
-            in_branches = False
-        if in_with:
-            for key, value in inputs.items():
-                match = re.match(rf"^(\s*)(#\s*)?{re.escape(key)}:\s*([^#\n]*?)(\s+#.*)?$", line)
-                if match:
-                    if match.group(3).strip() != value:
-                        line = f"{match.group(1)}{key}: {value}{match.group(4) or ''}"
-                    break
-        out.append(line)
-    return "\n".join(out) + "\n"
-
 
 def sync_skill(app_dir, tools=TOOLS):
     """Mirrors the skill into the app. Returns the paths that changed."""
@@ -126,46 +69,28 @@ def sync_skill(app_dir, tools=TOOLS):
     return changed
 
 
-def sync_callers(app, app_dir, tools=TOOLS):
-    """Renders the app's callers from examples/, keeping the app's own settings. Returns changed paths."""
-    names = app.get("callers", DEFAULT_CALLERS)
+def sync_callers(app_dir, tools=TOOLS):
+    """Copies the callers from callers/, byte for byte. Returns changed paths."""
     workflows = app_dir / ".github" / "workflows"
-    existing = {}
-    branches = []
-    for name in DEFAULT_CALLERS + [n for n in names if n not in DEFAULT_CALLERS]:
-        path = workflows / name
-        if path.is_file():
-            found, found_branches = read_inputs(path.read_text())
-            for key, value in found.items():
-                existing.setdefault(key, value)
-            branches = branches or found_branches
-    inputs = {**existing, **{k: str(v) for k, v in app.get("inputs", {}).items()}}
-    inputs.setdefault("comment-header", app["repo"].split("/")[1].lower() + "-app-link")
     changed = []
-    for name in names:
-        template = (tools / "examples" / name).read_text()
-        rendered = render_caller(template, inputs, app.get("branches") or branches)
+    for name in CALLERS:
+        content = (tools / "callers" / name).read_bytes()
         target = workflows / name
-        if not target.exists() or target.read_text() != rendered:
+        if not target.exists() or target.read_bytes() != content:
             target.parent.mkdir(parents=True, exist_ok=True)
-            target.write_text(rendered)
+            target.write_bytes(content)
             changed.append(str(target.relative_to(app_dir)))
     return changed
 
 
-def claude_block(app):
-    parts = []
-    if app.get("skill", True):
-        parts.append(f"`.claude/skills/{SKILL}`")
-    if app.get("callers", DEFAULT_CALLERS):
-        parts.append("the callers `" + "`, `".join(app.get("callers", DEFAULT_CALLERS)) + "` in `.github/workflows/`")
-    what = " and ".join(parts)
+def claude_block():
+    callers = "`, `".join(CALLERS)
     return (
         f"{BLOCK_BEGIN}\n"
-        f"- {what[0].upper() + what[1:]} are kept in sync from `LukeNeedham/ci-workflows` by CI, which\n"
-        f"  keeps one PR titled \"Sync from ci-workflows\" open when they differ. Do not edit them here and do\n"
-        f"  not copy them by hand: change them in ci-workflows (settings of a caller, such as `apk-path`, are\n"
-        f"  the exception and stay as they are).\n"
+        f"- `.claude/skills/{SKILL}` and the callers `{callers}` in `.github/workflows/` are kept in sync from\n"
+        f"  `LukeNeedham/ci-workflows` by CI, which keeps one PR titled \"Sync from ci-workflows\" open when they\n"
+        f"  differ. Do not edit them here and do not copy them by hand: change them in ci-workflows. The callers\n"
+        f"  hold no settings: every app is built the same way (see `docs/app-config.md` there).\n"
         f"- **Always give the user the AppHub link when work on this app completes.** As soon as a PR is open,\n"
         f"  paste `https://www.lukeneedham.com/apphub/pr/<repo name>/<PR number>` into the chat (CI posts the\n"
         f"  same link as a PR comment). Do not wait for the build and do not paste the APK link instead.\n"
@@ -173,10 +98,10 @@ def claude_block(app):
     )
 
 
-def sync_claude_md(app, app_dir):
+def sync_claude_md(app_dir):
     """Puts the managed block into the app's CLAUDE.md, replacing the old copy-it-by-hand line. Returns changed paths."""
     path = app_dir / "CLAUDE.md"
-    block = claude_block(app)
+    block = claude_block()
     text = path.read_text() if path.is_file() else "# Instructions for Claude\n\n"
     if BLOCK_RE.search(text):
         new = BLOCK_RE.sub(lambda _: block, text, count=1)
@@ -190,16 +115,9 @@ def sync_claude_md(app, app_dir):
     return ["CLAUDE.md"]
 
 
-def sync_app(app, app_dir, tools=TOOLS):
+def sync_app(app_dir, tools=TOOLS):
     """Applies everything to the checkout [app_dir]. Returns the paths that changed."""
-    changed = []
-    if app.get("skill", True):
-        changed += sync_skill(app_dir, tools)
-    if app.get("callers", DEFAULT_CALLERS):
-        changed += sync_callers(app, app_dir, tools)
-    if app.get("skill", True) or app.get("callers", DEFAULT_CALLERS):
-        changed += sync_claude_md(app, app_dir)
-    return changed
+    return sync_skill(app_dir, tools) + sync_callers(app_dir, tools) + sync_claude_md(app_dir)
 
 
 # ---------------------------------------------------------------------------------------------------
@@ -243,7 +161,7 @@ def pr_body(changed):
         "Keeps this repo in line with [`LukeNeedham/ci-workflows`](https://github.com/LukeNeedham/ci-workflows): "
         "the Claude skill, the workflow callers and the managed block in `CLAUDE.md`.\n\n"
         f"Changed:\n{files}\n\n"
-        "Settings of a caller (`apk-path`, `comment-header` and so on) are kept as they are here. This PR is "
+        "The callers hold no settings: every app is built the same way (`docs/app-config.md` in ci-workflows). This PR is "
         f"opened and updated by ci-workflows' `sync_apps.yml`; it stays one PR (`{BRANCH}`) until it is merged.\n"
     )
 
@@ -255,7 +173,7 @@ def sync_remote(app, token, dry_run, work):
     checkout = Path(work) / repo.replace("/", "_")
     git(work, "clone", "--quiet", "--depth", "1", f"{base}/{repo}.git", str(checkout), token=token)
     git(checkout, "checkout", "--quiet", "-B", BRANCH)
-    changed = sync_app(app, checkout)
+    changed = sync_app(checkout)
     if not changed:
         return f"{repo}: up to date"
     if dry_run:

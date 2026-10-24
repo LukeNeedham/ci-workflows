@@ -9,44 +9,6 @@ import sync_apps as s
 TOOLS = s.TOOLS
 
 
-def app(**extra):
-    return {"name": "Demo", "repo": "LukeNeedham/Demo", **extra}
-
-
-class ReadAndRender(unittest.TestCase):
-    template = (TOOLS / "examples" / "trigger_on_pull_request.yml").read_text()
-
-    def test_the_unchanged_template_reads_its_own_apk_path_and_branch(self):
-        inputs, branches = s.read_inputs(self.template)
-        self.assertEqual({"apk-path": s.DEFAULT_APK_PATH}, inputs)
-        self.assertEqual(["main"], branches)
-
-    def test_rendering_with_the_templates_own_values_changes_nothing(self):
-        inputs, branches = s.read_inputs(self.template)
-        self.assertEqual(self.template, s.render_caller(self.template, inputs, branches))
-
-    def test_an_app_value_replaces_the_default_and_a_commented_one_is_uncommented(self):
-        out = s.render_caller(self.template, {"apk-path": "x/y.apk", "java-version": "'21'", "gradle-task": "assembleDebug"}, [])
-        self.assertIn("      apk-path: x/y.apk\n", out)
-        self.assertIn("      java-version: '21'\n", out)
-        # Equal to the default: stays commented
-        self.assertIn("      # gradle-task: assembleDebug\n", out)
-
-    def test_a_trailing_comment_is_kept(self):
-        out = s.render_caller(self.template, {"comment-header": "demo-app-link"}, [])
-        self.assertIn("      comment-header: demo-app-link # change only if a PR needs several APK comments\n", out)
-
-    def test_branches_are_replaced_and_the_comment_stays_on_the_first(self):
-        out = s.render_caller(self.template, {}, ["main", "develop"])
-        self.assertIn("      - main   # CONFIGURE: the branch(es) your PRs target\n      - develop\n", out)
-
-    def test_what_an_app_has_is_read_back_after_rendering(self):
-        out = s.render_caller(self.template, {"apk-path": "x/y.apk", "timezone": "UTC"}, ["dev"])
-        inputs, branches = s.read_inputs(out)
-        self.assertEqual({"apk-path": "x/y.apk", "timezone": "UTC"}, inputs)
-        self.assertEqual(["dev"], branches)
-
-
 class SyncApp(unittest.TestCase):
     def setUp(self):
         self._tmp = tempfile.TemporaryDirectory()
@@ -59,38 +21,46 @@ class SyncApp(unittest.TestCase):
         path.write_text(text)
 
     def test_a_new_app_gets_the_skill_the_callers_and_the_block(self):
-        changed = s.sync_app(app(), self.dir)
+        changed = s.sync_app(self.dir)
 
         self.assertIn(".claude/skills/lukeneedham-conventions/SKILL.md", changed)
-        for name in s.DEFAULT_CALLERS:
+        for name in s.CALLERS:
             self.assertTrue((self.dir / ".github" / "workflows" / name).is_file(), name)
-        pr = (self.dir / ".github/workflows/trigger_on_pull_request.yml").read_text()
-        self.assertIn("comment-header: demo-app-link", pr)
         claude = (self.dir / "CLAUDE.md").read_text()
         self.assertIn(s.BLOCK_BEGIN, claude)
         self.assertTrue(claude.startswith("# Instructions for Claude"))
 
     def test_a_second_run_changes_nothing(self):
-        s.sync_app(app(), self.dir)
-        self.assertEqual([], s.sync_app(app(), self.dir))
+        s.sync_app(self.dir)
+        self.assertEqual([], s.sync_app(self.dir))
 
-    def test_an_apps_own_settings_survive_and_carry_over_to_the_main_build(self):
-        self.write(".github/workflows/trigger_on_pull_request.yml", self_template(apk="app/build/x.apk", header="demo-link"))
+    def test_the_callers_are_copied_byte_for_byte_over_whatever_the_app_has(self):
+        self.write(".github/workflows/trigger_on_pull_request.yml", "name: Old\nwith:\n  apk-path: old.apk\n")
 
-        s.sync_app(app(), self.dir)
+        changed = s.sync_callers(self.dir)
 
-        pr = (self.dir / ".github/workflows/trigger_on_pull_request.yml").read_text()
-        main = (self.dir / ".github/workflows/build_main.yml").read_text()
-        self.assertIn("apk-path: app/build/x.apk", pr)
-        self.assertIn("comment-header: demo-link", pr)
-        self.assertIn("apk-path: app/build/x.apk", main)
+        self.assertIn(".github/workflows/trigger_on_pull_request.yml", changed)
+        for name in s.CALLERS:
+            self.assertEqual((TOOLS / "callers" / name).read_bytes(), (self.dir / ".github/workflows" / name).read_bytes(), name)
 
-    def test_apps_json_inputs_win_over_the_apps_own_file(self):
-        self.write(".github/workflows/trigger_on_pull_request.yml", self_template(apk="old.apk", header="h"))
+    def test_the_callers_hold_no_settings(self):
+        for path in sorted((TOOLS / "callers").glob("*.yml")):
+            for line in path.read_text().splitlines():
+                self.assertNotRegex(line, r"^\s*#?\s*(apk-path|gradle-task|java-version|java-distribution|timezone|comment-header|asset-name):", path.name)
+            self.assertNotRegex(path.read_text(), r"(?m)^\s*branches:", path.name)
 
-        s.sync_app(app(inputs={"apk-path": "new.apk"}), self.dir)
+    def test_a_caller_has_one_comment_saying_where_it_is_copied_from(self):
+        for name in s.CALLERS:
+            comments = [l for l in (TOOLS / "callers" / name).read_text().splitlines() if "#" in l]
+            self.assertEqual(
+                [f"# Copied from LukeNeedham/ci-workflows (callers/{name}). Do not edit it here: change it there."],
+                comments, name)
 
-        self.assertIn("apk-path: new.apk", (self.dir / ".github/workflows/trigger_on_pull_request.yml").read_text())
+    def test_every_app_gets_every_caller_including_the_release_one(self):
+        s.sync_callers(self.dir)
+        for name in ("trigger_on_pull_request.yml", "build_main.yml", "delete_prereleases.yml", "release.yml"):
+            self.assertTrue((self.dir / ".github/workflows" / name).is_file(), name)
+        self.assertEqual(sorted(p.name for p in (TOOLS / "callers").glob("*.yml")), sorted(s.CALLERS))
 
     def test_the_skill_is_mirrored_and_stray_files_go(self):
         self.write(".claude/skills/lukeneedham-conventions/SKILL.md", "old")
@@ -112,7 +82,7 @@ class SyncApp(unittest.TestCase):
 - Another rule.
 """)
 
-        s.sync_claude_md(app(), self.dir)
+        s.sync_claude_md(self.dir)
 
         text = (self.dir / "CLAUDE.md").read_text()
         self.assertNotIn("Before starting work", text)
@@ -122,24 +92,12 @@ class SyncApp(unittest.TestCase):
     def test_an_existing_block_is_replaced_not_added_again(self):
         self.write("CLAUDE.md", "# Instructions\n\n" + s.BLOCK_BEGIN + "\nstale\n" + s.BLOCK_END + "\n\n- Rule.\n")
 
-        s.sync_claude_md(app(), self.dir)
+        s.sync_claude_md(self.dir)
 
         text = (self.dir / "CLAUDE.md").read_text()
         self.assertEqual(1, text.count(s.BLOCK_BEGIN))
         self.assertNotIn("stale", text)
         self.assertIn("- Rule.", text)
-
-    def test_an_app_can_opt_out_of_the_skill_and_the_callers(self):
-        changed = s.sync_app(app(skill=False, callers=[]), self.dir)
-        self.assertEqual([], changed)
-        self.assertFalse((self.dir / ".claude").exists())
-        self.assertFalse((self.dir / "CLAUDE.md").exists())
-
-
-def self_template(apk, header):
-    text = (TOOLS / "examples" / "trigger_on_pull_request.yml").read_text()
-    text = text.replace(s.DEFAULT_APK_PATH, apk)
-    return text.replace("# comment-header: example-app-link", f"comment-header: {header}")
 
 
 class Api(unittest.TestCase):
@@ -156,21 +114,6 @@ class Api(unittest.TestCase):
                 s.api("t", "POST", "/repos/o/r/pulls", {"title": "x"})
         self.assertEqual("application/json", seen["Content-type"])
         self.assertEqual("Bearer t", seen["Authorization"])
-
-
-class AppsFile(unittest.TestCase):
-    def test_every_app_has_a_name_and_a_repo(self):
-        import json
-        apps = json.loads((TOOLS / "apps.json").read_text())
-        self.assertTrue(apps)
-        for entry in apps:
-            self.assertRegex(entry["repo"], r"^[\w.-]+/[\w.-]+$")
-            self.assertTrue(entry["name"])
-        self.assertEqual(len(apps), len({a["repo"] for a in apps}))
-
-    def test_every_default_caller_has_an_example(self):
-        for name in s.DEFAULT_CALLERS:
-            self.assertTrue((TOOLS / "examples" / name).is_file(), name)
 
 
 if __name__ == "__main__":

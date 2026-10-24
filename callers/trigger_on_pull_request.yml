@@ -1,0 +1,16 @@
+# Copied from LukeNeedham/ci-workflows (callers/trigger_on_pull_request.yml). Do not edit it here: change it there.
+name: On Pull Request
+
+on:
+  workflow_dispatch: {}
+  pull_request:
+
+    types: [opened, reopened, synchronize, closed]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  android:
+    uses: LukeNeedham/ci-workflows/.github/workflows/android_pr.yml@main

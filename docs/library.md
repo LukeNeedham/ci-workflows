@@ -1,7 +1,7 @@
 # The shared library (`common/`)
 
-A Kotlin Multiplatform library (Android, iOS, web/wasm) holding the debug tools that every app
-needs, so they are written once instead of copied between apps.
+A Kotlin Multiplatform library (Android, iOS, web/wasm) holding the logger and crash handler that every app
+uses, and the optional debug pages, so they are written once instead of copied between apps.
 
 | Part | What it does |
 |---|---|
@@ -9,9 +9,9 @@ needs, so they are written once instead of copied between apps.
 | Crash handler | Catches every uncaught exception, writes it to disk with the last 50 log lines, then lets the app crash as normal |
 | `LogsPage`, `CrashesPage` | Read the saved logs and crashes back. Text is selectable, so it can be copied |
 | `DebugPage` | The library's own debug page: the app's package and current version (the application id and version name and code on Android, the bundle id and version on iOS, the page host on web), debug settings (animation speed, saved) and links to the logs and crashes pages. It shows only those; an app's own debug tools go on the app's own debug page, which links to this one |
-| `DebugButton` | A button that opens the debug page. Shows nothing unless debugging is enabled. Always placed on the app's settings page, never as a floating button over the main page |
+| `DebugButton` | A button that opens the debug page. Shows nothing unless debugging is enabled. Placed on the app's settings page, never as a floating button over the main page |
 | Animation speed | A debug setting (0.25x to 2x), saved to disk, that scales every animation duration |
-| `ProvideDebugSettings` | The one composable that provides every debug setting to the UI as composition locals (`LocalDebugSettings`, `LocalAnimationSpeed`, ...), and the `DebugTheme` the pages are drawn with. **Every app wraps its content in it**, whether or not it uses a setting yet |
+| `ProvideDebugSettings` | The one composable that provides every debug setting to the UI as composition locals (`LocalDebugSettings`, `LocalAnimationSpeed`, ...), and the `DebugTheme` the pages are drawn with. An app that shows the debug pages wraps its content in it, whether or not it uses a setting yet |
 | `DebugTheme` | The colours and font family of the library's pages and button, passed by the app to `ProvideDebugSettings`. The library uses no Material and reads no app theme |
 
 There is no Room, DataStore or navigation library inside it: it keeps plain files (`localStorage`
@@ -23,9 +23,10 @@ on the web), and the pages do not navigate by themselves, so any app can adopt i
 to an existing one, wiring the pages into the app's navigation (Navigation 3, Voyager or anything
 else), removing the old logger and crash handler, and a checklist to verify it works.
 
-In short, the five steps are: add the repository, add the dependency, call `DebugKit.init(...)`
-once and early, wrap the UI in `ProvideDebugSettings` (and place a `DebugButton` on the app's settings page, which every app has), and add the
-three pages to the navigation. Then log with `Logger.i(...)`, `Logger.e(...)` and so on.
+**Every app uses the library**: add the repository, add the dependency, call `DebugKit.init(...)` once and
+early, and log with `Logger.i(...)`, `Logger.e(...)` and so on. The debug pages are optional: an app that shows
+them also wraps the UI in `ProvideDebugSettings`, puts a `DebugButton` on a settings page and adds the three
+pages to the navigation.
 
 ## How the pieces work
 

@@ -10,7 +10,7 @@ the real logic lives here, so a fix made once reaches every project.
 | [`android_pr_cleanup.yml`](.github/workflows/android_pr_cleanup.yml) | *Building block.* Deletes the PR's build pre-releases and tags | PR closed |
 | [`android_main_build.yml`](.github/workflows/android_main_build.yml) | Builds the debug APK of **main on demand** and keeps it as an artifact for **one day** | Run by hand or by AppHub, from the caller |
 | [`android_release.yml`](.github/workflows/android_release.yml) | Publishes a **permanent, signed release** (tag + APK) | Run by hand, from the caller |
-| [`sync_apps.yml`](.github/workflows/sync_apps.yml) | Opens a PR in every app of [`apps.json`](apps.json) that keeps its skill, callers and `CLAUDE.md` block in line with this repo ([docs/sync.md](docs/sync.md)) | Change here, weekly, or by hand |
+| [`sync_apps.yml`](.github/workflows/sync_apps.yml) | Opens a PR in every app of [`apps.json`](apps.json) that keeps its skill, all four callers and `CLAUDE.md` block in line with this repo ([docs/sync.md](docs/sync.md)) | Change here, weekly, or by hand |
 | [`delete_prereleases.yml`](.github/workflows/delete_prereleases.yml) | Deletes **all** pre-releases and tags in the repo | Run by hand |
 
 `android_pr.yml` just chooses between the build and the cleanup workflow from the event. It is the
@@ -45,11 +45,11 @@ MVVM). Read it first when starting any new app.
 
 ## Setting up a project
 
-**See [docs/setup.md](docs/setup.md)** for the caller files to copy, which parts to configure per
-project, and how to migrate an existing project.
+**See [docs/setup.md](docs/setup.md)** for the caller files to copy (they need no editing), how a project's settings
+are set in [`apps.json`](apps.json) ([docs/app-config.md](docs/app-config.md)), and how to migrate an existing project.
 
-In short: a project keeps small caller files that own the **triggers** (`on:`), the **permissions**
-and the **settings** (`with:`); the steps live here. A reusable workflow cannot decide when it
+In short: a project keeps small caller files that own the **triggers** (`on:`) and the **permissions**; the
+steps live here, and there are no per-project settings: every project is built the same way. A reusable workflow cannot decide when it
 runs, and it can never be granted more permissions than the caller gives it, so those cannot be
 moved here.
 
@@ -57,17 +57,9 @@ moved here.
 
 ### `android_pr.yml`
 
-Inputs (the defaults live here and only here; `apk-path` is the one required input):
-
-| Input | Default | Meaning |
-|---|---|---|
-| `gradle-task` | `assembleDebug` | Gradle task that produces the APK |
-| `apk-path` | **required** | APK location relative to the repo root |
-| `java-version` | `17` | JDK version |
-| `java-distribution` | `zulu` | JDK distribution |
-| `timezone` | `Europe/Amsterdam` | Timezone for the timestamps in the comment and release |
-| `comment-header` | `example-app-link` | Id of the sticky comment. Change it only if a PR needs several separate APK comments |
-| `tools-ref` | `main` | Branch or tag of this repo to fetch `scripts/` from. Leave it; set it to a branch only to test a script change |
+**Settings.** The caller has none: every app is built the same way ([docs/app-config.md](docs/app-config.md)), and
+the `config` job provides the values to the build. The same job skips the whole run for a PR that does not go to
+`main`, and for a PR that changes only `.claude/skills/`.
 
 The `app-icon` job renders `app-icon.png` (a 512x512 circle on a transparent background) from the app's
 adaptive launcher icon on every PR and commits it to the PR branch when it differs
@@ -121,14 +113,9 @@ Builds the APK of the branch it is run on and uploads it as the artifact `apk`, 
 how AppHub gets a build of `main` without a PR: AppHub starts it through the API, follows the run, and
 downloads the artifact. It can also be run from the *Actions* tab.
 
-| Input | Default | Meaning |
-|---|---|---|
-| `gradle-task` | `assembleDebug` | Gradle task that produces the APK |
-| `apk-path` | **required** | APK location relative to the repo root |
-| `java-version` | `17` | JDK version |
-| `java-distribution` | `zulu` | JDK distribution |
+No inputs: every app is built the same way ([docs/app-config.md](docs/app-config.md)).
 
-- **The caller is `build_main.yml`** ([`examples/build_main.yml`](examples/build_main.yml)): AppHub starts that
+- **The caller is `build_main.yml`** ([`callers/build_main.yml`](callers/build_main.yml)): AppHub starts that
   file by name, on `main`. It needs `workflow_dispatch` and `contents: read`.
 - **An artifact, not a release.** It expires after a day by itself, so there is no tag, no pre-release and no
   cleanup. Artifacts, unlike release assets, can only be downloaded with a token (*Actions: read*), which AppHub
@@ -139,9 +126,8 @@ downloads the artifact. It can also be run from the *Actions* tab.
 ### `android_release.yml`
 
 Publishes a permanent release from a manual run. Inputs: `version` (required, `major.minor.patch`,
-used as the tag with no `v`), `notes` (empty lists the merged PRs), and `gradle-task`, `apk-path`,
-`asset-name`, `java-version`, `java-distribution` (defaults suit a standard app module; the asset is
-named after the repository, e.g. `Android-Dock.apk`). Secrets: `RELEASE_KEYSTORE_BASE64`,
+used as the tag with no `v`) and `notes` (empty lists the merged PRs). The build settings are the standard
+([docs/app-config.md](docs/app-config.md)); the asset is named after the repository, e.g. `Android-Dock.apk`. Secrets: `RELEASE_KEYSTORE_BASE64`,
 `RELEASE_KEYSTORE_PASSWORD`, `RELEASE_KEY_ALIAS`, `RELEASE_KEY_PASSWORD`; pass them with
 `secrets: inherit`.
 
@@ -201,8 +187,8 @@ Changes to `main` affect every project at once, so:
 
 1. Make the change on a branch and open a PR.
 2. To try it before merging, point a test PR in a consuming repo at the branch
-   (`...android_pr_build.yml@my-branch`), then switch it back to `@main`. If the change is to a script in
-   `scripts/`, also pass `tools-ref: my-branch` in that caller, or the workflow fetches the script from `main`.
+   (`...android_pr_build.yml@my-branch`), then switch it back to `@main`. A script in `scripts/` that a workflow
+   downloads (the app icon renderer) is always fetched from `main`, so it can only be tried once merged.
 3. Merge, then watch the next real run in a consuming repo.
 
 When a consuming project's CI behaves oddly, the project's own caller files are usually fine; look
