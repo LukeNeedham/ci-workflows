@@ -46,8 +46,9 @@ CALLERS = ["trigger_on_pull_request.yml", "build_main.yml", "delete_prereleases.
 BLOCK_BEGIN = "<!-- ci-workflows:begin (managed by LukeNeedham/ci-workflows, do not edit) -->"
 BLOCK_END = "<!-- ci-workflows:end -->"
 BLOCK_RE = re.compile(re.escape(BLOCK_BEGIN) + r".*?" + re.escape(BLOCK_END) + r"\n?", re.S)
-# The line this block replaces, from when Claude was asked to copy the skill by hand
-OLD_BULLET_RE = re.compile(r"^- Before starting work, check that .*?docs/skill\.md`\.\n", re.S | re.M)
+# The instruction this block replaces, from when Claude was asked to copy the skill by hand: a bullet or a
+# paragraph of its own, with the blank line after it
+OLD_BULLET_RE = re.compile(r"^(?:- )?Before starting work, check that .*?docs/skill\.md`\.\n\n?", re.S | re.M)
 
 
 # ---------------------------------------------------------------------------------------------------
@@ -115,12 +116,13 @@ def claude_block():
 
 
 def sync_claude_md(app_dir):
-    """Puts the managed block into the app's CLAUDE.md, replacing the old copy-it-by-hand line. Returns changed paths."""
+    """Puts the managed block into the app's CLAUDE.md and removes the old copy-it-by-hand instruction. Returns changed paths."""
     path = app_dir / "CLAUDE.md"
     block = claude_block()
     text = path.read_text() if path.is_file() else "# Instructions for Claude\n\n"
     if BLOCK_RE.search(text):
-        new = BLOCK_RE.sub(lambda _: block, text, count=1)
+        # The instruction contradicts the block, so it goes even when the block is already there
+        new = OLD_BULLET_RE.sub("", BLOCK_RE.sub(lambda _: block, text, count=1))
     elif OLD_BULLET_RE.search(text):
         new = OLD_BULLET_RE.sub(lambda _: block, text, count=1)
     else:
