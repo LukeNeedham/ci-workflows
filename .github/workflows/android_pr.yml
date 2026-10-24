@@ -82,9 +82,9 @@ jobs:
             git push origin "HEAD:refs/heads/$BRANCH"
           }
 
-  # The screenshots of the README: one per page of the app, rendered on the JVM (Robolectric, Roborazzi) from the
-  # <Name>PageContentScreenshot composable of every page, by scripts/render_screenshots.sh (docs/screenshots.md), and
-  # committed to the PR branch into docs/screenshots/ when they differ. An app that has no such composable yet, or
+  # The screenshots of the README, rendered on the JVM (Robolectric, Roborazzi) from the @Preview of every composable
+  # of the app's screenshot package, by scripts/render_screenshots.sh (docs/screenshots.md), and committed to the PR
+  # branch into docs/screenshots/ when they differ. An app that has no such package yet, or
   # has `screenshots: false` in its readme.yml (no UI worth showing), skips the job.
   screenshots:
     needs: config
@@ -104,8 +104,8 @@ jobs:
           if grep -qE '^screenshots:[[:space:]]*false' readme.yml 2>/dev/null; then
             echo "readme.yml says screenshots: false"
             echo "skip=true" >> "$GITHUB_OUTPUT"
-          elif ! grep -rqs --include='*.kt' 'PageContentScreenshot' app/src/main; then
-            echo "::warning::No <Name>PageContentScreenshot composable yet. See docs/screenshots.md in LukeNeedham/ci-workflows."
+          elif ! find app/src -path '*/screenshot/*.kt' -print -quit | grep -q .; then
+            echo "::warning::No screenshot package yet (a screenshot/ folder of Kotlin files in the app's package). See docs/screenshots.md in LukeNeedham/ci-workflows."
             echo "skip=true" >> "$GITHUB_OUTPUT"
           fi
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Renders the README screenshots of the Android app in the current directory into docs/screenshots/, from the
-# <Name>PageContentScreenshot composables of the app (docs/screenshots.md in LukeNeedham/ci-workflows).
+# @Preview composables of the app's screenshot package (docs/screenshots.md in LukeNeedham/ci-workflows).
 #
 #   curl -fsSL https://raw.githubusercontent.com/LukeNeedham/ci-workflows/main/scripts/render_screenshots.sh | bash
 #
@@ -21,6 +21,6 @@ rm -rf docs/screenshots
   "$@"
 
 if ! ls docs/screenshots/*.png > /dev/null 2>&1; then
-  echo "The screenshot test rendered nothing. Every page needs a <Name>PageContentScreenshot composable (docs/screenshots.md)." >&2
+  echo "The screenshot test rendered nothing. The app needs a screenshot package with a @Preview per screenshot (docs/screenshots.md)." >&2
   exit 1
 fi
