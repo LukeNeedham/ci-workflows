@@ -13,7 +13,7 @@ on:
 
 env:
   # The branch of ci-workflows that the screenshot and README scripts are fetched from
-  TOOLS_REF: claude/standard-readme-format-382cvu # TEMPORARY, while ci-workflows#39 is tried out: back to main
+  TOOLS_REF: main
 
 jobs:
   # Provides the settings every app shares, and says whether this run has anything to do. The other jobs wait for it.
