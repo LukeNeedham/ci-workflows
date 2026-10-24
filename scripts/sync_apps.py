@@ -208,8 +208,8 @@ def main():
         sys.exit("SYNC_TOKEN is not set. See docs/sync.md for the token it needs.")
     apps = json.loads((TOOLS / "apps.json").read_text())
     if args.apps:
-        wanted = {a.strip().lower() for a in args.apps.split(",")}
-        apps = [a for a in apps if a["name"].lower() in wanted or a["repo"].lower() in wanted]
+        wanted = {a.strip() for a in args.apps.split(",")}
+        apps = [a for a in apps if a["name"] in wanted or a["repo"] in wanted]
         if not apps:
             sys.exit(f"No app in apps.json matches {args.apps}")
 

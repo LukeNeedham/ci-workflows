@@ -35,7 +35,7 @@ A run fails (and GitHub emails you) if any app failed, after trying all of them.
 
 | Field | Meaning |
 |---|---|
-| `name`, `repo` | The app's name and its `owner/name`. The only fields: every app gets everything, and nothing is configured per app |
+| `name`, `repo` | The app's name and its `owner/name`, **spelled exactly as on GitHub** (`LukeNeedham/Stickerboard`, not `stickerboard`): nothing matches names case-insensitively, including `--apps`. The only fields: every app gets everything, and nothing is configured per app |
 
 **A new app:** add it here (this is also the list "all consuming apps" means), then run *Sync Apps* for it. Its
 first sync PR adds the callers, the skill and the `CLAUDE.md` block.
