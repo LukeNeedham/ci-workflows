@@ -64,7 +64,7 @@ same secret. It is only ever sent to `github.com` and `api.github.com`, and is m
 ```
 SYNC_TOKEN=github_pat_... python3 scripts/sync_apps.py            # every app
 python3 scripts/sync_apps.py --dry-run --apps AppHub              # clone, show the changes, push nothing
-python3 -m unittest discover -s internal-scripts                  # the tests (needs pyyaml)
+python3 -m unittest discover -s tests                  # the tests (needs pyyaml)
 python3 scripts/generate_readme.py path/to/app --repo owner/name  # render an app's README.md (needs pyyaml)
 ```
 
@@ -74,9 +74,13 @@ python3 scripts/generate_readme.py path/to/app --repo owner/name  # render an ap
 
 [`sync_apps.yml`](../.github/workflows/sync_apps.yml) runs on a push to `main` that changes `skills/**`, `callers/**`,
 `apps.json` or **`scripts/**`** (the whole folder: the scripts that the workflows and actions run on the apps, and the
-sync itself), every Monday, and by hand. The folder `internal-scripts/` (the tests) is not in that list: nothing in it
-reaches an app, so changing it starts no sync. A script that is used only inside this repo belongs there, not in
-`scripts/`; the `test` job of the workflow runs for both.
+sync itself), every Monday, and by hand.
+
+**What `scripts/` means: a change here reaches every app's CI.** It is not "the folder of scripts" but the code that
+the shared workflows and actions run inside the apps, so any change to it can change an app's build, and starts a sync.
+That is why the whole folder is the trigger, with no list of files to keep up to date. Everything else that is only
+for this repo, namely the tests in `tests/`, is outside it and starts no sync; a script used only inside this repo
+belongs in `tests/` (or another folder), not in `scripts/`. The `test` job of the workflow runs for both.
 
 ## Changing what is synced
 
@@ -86,7 +90,7 @@ setting that belongs to an app goes into `DEFAULTS` in `scripts/app_config.py`.
 
 ## Workflows only call scripts
 
-The logic of every workflow is in `scripts/`, tested in `internal-scripts/`; a `run:` is a call or a few lines. The
+The logic of every workflow is in `scripts/`, tested in `tests/`; a `run:` is a call or a few lines. The
 workflows that run in an app (`android_pr_build.yml`, `android_pr_cleanup.yml`, `android_release.yml`) start with the
 action [`ci-scripts`](../.github/actions/ci-scripts/action.yml), which sets `CI_SCRIPTS` to the `scripts/` of the same
 version of this repo. Values from the event (a branch name, the notes) go in through `env:`, never straight into the

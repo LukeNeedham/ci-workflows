@@ -2,7 +2,7 @@ name: CI scripts
 description: >
   Sets CI_SCRIPTS to the scripts/ directory of this repo at the version of this action, for the steps that follow, so a
   workflow that runs in an app can call `python3 "$CI_SCRIPTS/<script>.py"`. The logic of the workflows is in those
-  scripts (tested in internal-scripts/); the workflows only call them.
+  scripts (tested in tests/); the workflows only call them.
 
 runs:
   using: composite

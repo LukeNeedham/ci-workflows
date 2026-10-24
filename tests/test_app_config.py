@@ -1,4 +1,4 @@
-"""Tests for app_config.py. Run: python3 -m unittest discover -s internal-scripts"""
+"""Tests for app_config.py. Run: python3 -m unittest discover -s tests"""
 
 import json
 import os

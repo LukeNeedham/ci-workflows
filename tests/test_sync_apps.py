@@ -1,4 +1,4 @@
-"""Tests for sync_apps.py. Run: python3 -m unittest discover -s internal-scripts"""
+"""Tests for sync_apps.py. Run: python3 -m unittest discover -s tests"""
 
 import tempfile
 import unittest

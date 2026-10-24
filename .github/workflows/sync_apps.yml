@@ -4,8 +4,8 @@ name: Sync Apps
 # block in the app's CLAUDE.md. For each app that differs it opens (or updates) one PR, "Sync from
 # ci-workflows". The logic is scripts/sync_apps.py; setup, including the SYNC_TOKEN secret, is docs/sync.md.
 #
-# What starts a sync is the whole of scripts/ (the scripts that the workflows and actions run on the apps, and the
-# sync itself), the skill, the callers and apps.json. internal-scripts/ (the tests) never does: nothing in it
+# What starts a sync is the whole of scripts/: a change there reaches every app's CI (the code that the workflows
+# and actions run on the apps, and the sync itself), the skill, the callers and apps.json. tests/ (the tests) never does: nothing in it
 # reaches an app.
 
 on:
@@ -28,7 +28,7 @@ on:
     # The tests run for anything they test, including the scripts of the actions
     paths:
       - 'scripts/**'
-      - 'internal-scripts/**'
+      - 'tests/**'
       - 'apps.json'
       - 'callers/**'
       - 'skills/**'
@@ -46,7 +46,7 @@ jobs:
       - name: Test the scripts
         run: |
           pip install --quiet pyyaml
-          python3 -m unittest discover -s internal-scripts
+          python3 -m unittest discover -s tests
 
   sync:
     needs: test
