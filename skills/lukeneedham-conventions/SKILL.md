@@ -60,10 +60,12 @@ is built the same way (`docs/app-config.md` in `ci-workflows`), so there is noth
   delegates; it has no preview. `XPageContent` is `internal` and stateless (state down, events up, no ViewModel, Koin
   or network) and has the general previews for development (`XPageContentPreview`).
 - **README screenshots live together in one package, `<app package>.screenshot`, in `src/debug`**: one file per page
-  that deserves a screenshot, named after the page (`HomePage.kt`), holding the page's mock data (private to the file)
-  and a `@Preview` composable (`HomePageScreenshot`) that renders `HomePageContent` with it. More previews in the file
-  = more screenshots of the page; no file = no screenshot. Data shared by pages goes in `SharedMockData.kt` only. The
-  package has a `README.md` (template: `docs/screenshot-readme-template.md` in `LukeNeedham/ci-workflows`).
+  that deserves a screenshot, named after the page (`HomePage.kt`). Each screenshot is a **private `@Preview` composable
+  that owns its mock data** (inside its body) and renders `HomePageContent` with it (`HomePageScreenshot`). More previews
+  in the file = more screenshots of the page; no file = no screenshot.
+- **Nothing is shared between screenshots, nor with the general previews or the app**: no shared mock-data file, no
+  top-level `val`, `object` or helper, nothing non-private in the package; CI fails on it. The package has a `README.md`
+  (template: `docs/screenshot-readme-template.md` in `LukeNeedham/ci-workflows`).
 - **CI renders every `@Preview` of that package** (Robolectric + Roborazzi, JVM, no emulator) into
   `docs/screenshots/<composable name without Screenshot>.png` and commits it to the PR branch: never take or edit them
   by hand. The dependencies, the test and the Gradle setup live in `LukeNeedham/ci-workflows` (`scripts/screenshots/`,

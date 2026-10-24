@@ -12,6 +12,14 @@ base="https://raw.githubusercontent.com/LukeNeedham/ci-workflows/${TOOLS_REF:-ma
 tools="$(mktemp -d)"
 curl -fsSL "$base/screenshots.init.gradle" -o "$tools/screenshots.init.gradle"
 curl -fsSL "$base/PageScreenshotTest.kt.template" -o "$tools/PageScreenshotTest.kt.template"
+curl -fsSL "$base/check_screenshot_package.py" -o "$tools/check_screenshot_package.py"
+
+# Every screenshot owns its data: nothing in the package may be shared (docs/screenshots.md)
+files="$(find app/src -path '*/screenshot/*.kt' -not -path '*/build/*')"
+if [ -n "$files" ]; then
+  # shellcheck disable=SC2086
+  python3 "$tools/check_screenshot_package.py" $files
+fi
 
 # Start from nothing, so that a page that was removed or renamed drops out
 rm -rf docs/screenshots

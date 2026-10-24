@@ -20,12 +20,13 @@ class ScreenshotsSetupTest(unittest.TestCase):
         self.assertIn("replace('{{PACKAGE}}'", init)
         self.assertIn("screenshots.template", init)
         sh = (SCRIPTS / "render_screenshots.sh").read_text()
-        for name in ("screenshots.init.gradle", "PageScreenshotTest.kt.template", "-Pscreenshots.template"):
+        for name in ("screenshots.init.gradle", "PageScreenshotTest.kt.template", "-Pscreenshots.template", "check_screenshot_package.py"):
             self.assertIn(name, sh)
 
     def test_the_block_tells_claude_about_the_screenshot_package(self):
         block = s.claude_block()
         self.assertIn("package `screenshot`", block)
+        self.assertIn("nothing is shared", block)
         self.assertNotIn("AppScreenshotMockData", block)
 
 
