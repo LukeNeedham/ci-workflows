@@ -42,7 +42,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: LukeNeedham/ci-workflows/.github/actions/app-icon@main
+      - uses: LukeNeedham/ci-workflows/.github/actions/app-icon@claude/standard-readme-format-382cvu
 
   # The screenshots of the README, rendered on the JVM from the @Preview of every composable of the app's
   # screenshot package and committed to the PR branch into docs/screenshots/ when they differ. An app that has no
@@ -55,7 +55,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: LukeNeedham/ci-workflows/.github/actions/screenshots@main
+      - uses: LukeNeedham/ci-workflows/.github/actions/screenshots@claude/standard-readme-format-382cvu
         with:
           java-version: ${{ needs.config.outputs.java-version }}
 
@@ -70,7 +70,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: LukeNeedham/ci-workflows/.github/actions/readme@main
+      - uses: LukeNeedham/ci-workflows/.github/actions/readme@claude/standard-readme-format-382cvu
 
   build:
     needs: config
