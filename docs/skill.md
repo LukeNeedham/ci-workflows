@@ -15,8 +15,8 @@ Never edit an app's copy by hand: change it here. The app's `CLAUDE.md` carries 
 
 ## Adding it to an app
 
-Add the app to [`apps.json`](../apps.json) and run *Sync Apps*: the first PR adds the skill, the callers and the
-`CLAUDE.md` block. Set `"skill": false` for an app that should not have it.
+Add the app to [`apps.json`](../apps.json) and run *Sync Apps*: the first PR adds the skill, the four callers and the
+`CLAUDE.md` block. Every app has the skill.
 
 ## Changing the conventions
 

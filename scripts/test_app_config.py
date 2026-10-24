@@ -1,0 +1,120 @@
+"""Tests for app_config.py. Run: python3 -m unittest discover -s scripts"""
+
+import json
+import os
+import re
+import subprocess
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+
+import app_config as c
+
+TOOLS = Path(__file__).resolve().parent.parent
+SKILL_FILE = ".claude/skills/lukeneedham-conventions/SKILL.md"
+
+
+def run(repo="LukeNeedham/Demo", event="pull_request", action="synchronize", base="main", files=()):
+    return c.run(repo, event, action, base, list(files))[0]
+
+
+class Settings(unittest.TestCase):
+    def test_every_app_gets_the_standard_settings(self):
+        out = run()
+        self.assertEqual("app/build/outputs/apk/debug/app-debug.apk", out["apk-path"])
+        self.assertEqual("assembleDebug", out["gradle-task"])
+        self.assertEqual("17", out["java-version"])
+        self.assertEqual("zulu", out["java-distribution"])
+        self.assertEqual("Europe/Amsterdam", out["timezone"])
+        self.assertEqual("assembleRelease", out["release-gradle-task"])
+        self.assertEqual("app/build/outputs/apk/release/app-release.apk", out["release-apk-path"])
+
+    def test_the_comment_id_and_the_release_asset_come_from_the_repo_name(self):
+        out = run(repo="LukeNeedham/LT-Companion")
+        self.assertEqual("lt-companion-app-link", out["comment-header"])
+        self.assertEqual("LT-Companion.apk", out["asset-name"])
+
+    def test_the_outputs_are_what_the_action_declares(self):
+        text = (TOOLS / ".github/actions/app-config/action.yml").read_text()
+        outputs = text.split("\noutputs:\n")[1].split("\nruns:\n")[0]
+        self.assertEqual(set(re.findall(r"(?m)^  ([a-z-]+):$", outputs)), set(run()))
+
+
+class Skipping(unittest.TestCase):
+    def skip(self, **kwargs):
+        return run(**kwargs)["skip"]
+
+    def test_a_pr_that_changes_only_the_skill_is_skipped(self):
+        self.assertEqual("true", self.skip(files=[SKILL_FILE, ".claude/skills/other/notes.md"]))
+
+    def test_one_other_file_in_the_pr_builds_it(self):
+        self.assertEqual("false", self.skip(files=[SKILL_FILE, "app/src/Main.kt"]))
+
+    def test_other_files_under_claude_still_build(self):
+        self.assertEqual("false", self.skip(files=[".claude/settings.json"]))
+        self.assertEqual("false", self.skip(files=["CLAUDE.md"]))
+
+    def test_a_pr_with_no_known_files_builds(self):
+        self.assertEqual("false", self.skip(files=[]))
+
+    def test_a_closing_pr_is_not_skipped_for_its_files(self):
+        self.assertEqual("false", self.skip(action="closed", files=[SKILL_FILE]))
+
+    def test_only_prs_into_main_are_built(self):
+        self.assertEqual("false", self.skip(base="main", files=["app/Main.kt"]))
+        for base in ("master", "develop", "release/1.0"):
+            self.assertEqual("true", self.skip(base=base, files=["app/Main.kt"]), base)
+            self.assertEqual("true", self.skip(base=base, action="closed"), base)
+
+    def test_a_manual_run_is_never_skipped(self):
+        self.assertEqual("false", self.skip(event="workflow_dispatch", base="", files=[SKILL_FILE]))
+
+
+class Cli(unittest.TestCase):
+    def test_it_writes_the_outputs_to_github_output(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            files = Path(tmp, "files.txt")
+            files.write_text(SKILL_FILE + "\n")
+            out = Path(tmp, "out.txt")
+            subprocess.run(
+                [sys.executable, str(TOOLS / "scripts" / "app_config.py"), "--repo", "LukeNeedham/FlagTutor",
+                 "--event", "pull_request", "--action", "opened", "--base", "main", "--files", str(files)],
+                env={**os.environ, "GITHUB_OUTPUT": str(out)}, check=True, capture_output=True,
+            )
+            lines = out.read_text().splitlines()
+        self.assertIn("skip=true", lines)
+        self.assertIn("apk-path=app/build/outputs/apk/debug/app-debug.apk", lines)
+
+
+class Workflows(unittest.TestCase):
+    def test_the_shared_workflows_take_no_settings_as_inputs(self):
+        # Every app is built the same way; an input of that name would be a per-app setting again
+        for name in ("android_pr", "android_main_build", "android_release"):
+            text = (TOOLS / ".github" / "workflows" / f"{name}.yml").read_text().split("\njobs:\n")[0]
+            for key in list(c.SETTINGS) + ["comment-header", "asset-name", "branches"]:
+                self.assertNotRegex(text, rf"(?m)^      {re.escape(key)}:", f"{name} {key}")
+
+    def test_the_release_workflow_checks_its_setup_before_it_tags_anything(self):
+        text = (TOOLS / ".github/workflows/android_release.yml").read_text()
+        for secret in ("RELEASE_KEYSTORE_BASE64", "RELEASE_KEYSTORE_PASSWORD", "RELEASE_KEY_ALIAS", "RELEASE_KEY_PASSWORD"):
+            self.assertRegex(text, rf"(?m)^      {secret}:\n(.*\n)*?        required: false", secret)
+        self.assertLess(text.index("Check the app is set up for releases"), text.index("Tag this commit"))
+
+
+class AppsFile(unittest.TestCase):
+    apps = json.loads((TOOLS / "apps.json").read_text())
+
+    def test_an_entry_is_just_a_name_and_a_repo(self):
+        # Nothing is configured per app: every app is built the same way
+        self.assertTrue(self.apps)
+        for entry in self.apps:
+            self.assertEqual({"name", "repo"}, set(entry), entry)
+            self.assertRegex(entry["repo"], r"^[\w.-]+/[\w.-]+$")
+            self.assertTrue(entry["name"])
+        # Names are compared exactly, so two entries must not differ only by case
+        self.assertEqual(len(self.apps), len({a["repo"].lower() for a in self.apps}))
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -53,8 +53,8 @@ Things to know:
 - **PRs from forks** cannot be committed to. There the job fails with instructions to run the script
   yourself.
 - **A manual run** (`workflow_dispatch`) cannot commit: it fails if `app-icon.png` is out of date.
-- **Script changes** apply to every app at once (it is fetched from `main`). To test one, set `tools-ref`
-  to your branch in a caller (see the README).
+- **Script changes** apply to every app at once (it is fetched from `main`). It is always fetched
+  from `main`, so it can only be tried once merged.
 
 ## Previewing it locally
 

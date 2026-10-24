@@ -2,44 +2,31 @@ name: Android PR
 
 # Reusable workflow: the whole PR flow in one call. Builds and comments on the PR while it is open,
 # and cleans up its build releases when it is closed. It simply picks android_pr_build.yml or
-# android_pr_cleanup.yml from the event, so a project needs one caller job instead of two.
+# android_pr_cleanup.yml from the event, so a project needs one caller job instead of two. Nothing runs for a
+# PR that targets a branch other than main, or that changes only the Claude skill (see config).
 #
-# Caller example: examples/trigger_on_pull_request.yml
+# Caller: callers/trigger_on_pull_request.yml. It has no settings: every app is built the same way.
 
 on:
+  # No inputs: every app is built the same way (docs/app-config.md)
   workflow_call:
-    # The defaults for the whole PR flow live here and only here: they are passed on explicitly to
-    # android_pr_build.yml and android_pr_cleanup.yml, whose inputs are all required. apk-path has no
-    # default because it depends on the project.
-    inputs:
-      gradle-task:
-        description: Gradle task that produces the APK
-        type: string
-        default: assembleDebug
-      apk-path:
-        description: Path to the built APK, relative to the repo root (depends on the project, so no default)
-        type: string
-        required: true
-      java-version:
-        type: string
-        default: '17'
-      java-distribution:
-        type: string
-        default: zulu
-      timezone:
-        description: Timezone used for the timestamps
-        type: string
-        default: Europe/Amsterdam
-      comment-header:
-        description: Sticky comment id
-        type: string
-        default: example-app-link
-      tools-ref:
-        description: Branch or tag of LukeNeedham/ci-workflows to fetch scripts/ from. Leave as main; set it to a branch only to test a script change
-        type: string
-        default: main
 
 jobs:
+  # Provides the settings every app shares, and says whether this run has anything to do. The other jobs wait for it.
+  config:
+    runs-on: ubuntu-latest
+    outputs:
+      skip: ${{ steps.config.outputs.skip }}
+      apk-path: ${{ steps.config.outputs.apk-path }}
+      gradle-task: ${{ steps.config.outputs.gradle-task }}
+      java-version: ${{ steps.config.outputs.java-version }}
+      java-distribution: ${{ steps.config.outputs.java-distribution }}
+      timezone: ${{ steps.config.outputs.timezone }}
+      comment-header: ${{ steps.config.outputs.comment-header }}
+    steps:
+      - id: config
+        uses: LukeNeedham/ci-workflows/.github/actions/app-config@main
+
   # Every app exposes its icon at a fixed path, app-icon.png in the repo root, so tooling such as the app
   # hub can fetch it. It is generated from the app's adaptive launcher icon, so it cannot drift: this job
   # renders it on every PR and, when it differs, commits it to the PR branch. The path is fixed and cannot
@@ -47,7 +34,8 @@ jobs:
   # Pushes made with the workflow token do not start new workflow runs, so there is no loop; they also
   # mean the checks do not run again on that commit (the APK does not contain app-icon.png).
   app-icon:
-    if: github.event_name != 'pull_request' || github.event.action != 'closed'
+    needs: config
+    if: needs.config.outputs.skip != 'true' && (github.event_name != 'pull_request' || github.event.action != 'closed')
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -59,12 +47,10 @@ jobs:
           ref: ${{ github.head_ref || github.ref_name }}
 
       - name: Render the app icon
-        env:
-          TOOLS_REF: ${{ inputs.tools-ref }}
         run: |
           sudo apt-get install -y --no-install-recommends libcairo2 > /dev/null
           pip install --quiet cairosvg pillow
-          curl -fsSL "https://raw.githubusercontent.com/LukeNeedham/ci-workflows/${TOOLS_REF}/scripts/render_app_icon.py" \
+          curl -fsSL "https://raw.githubusercontent.com/LukeNeedham/ci-workflows/main/scripts/render_app_icon.py" \
             -o "$RUNNER_TEMP/render_app_icon.py"
           python3 "$RUNNER_TEMP/render_app_icon.py" .
 
@@ -97,7 +83,8 @@ jobs:
   # committed to the PR branch into docs/screenshots/ when they differ. An app that has not set this up yet, or
   # has `screenshots: false` in its readme.yml (no UI worth showing), skips the job.
   screenshots:
-    if: github.event_name != 'pull_request' || github.event.action != 'closed'
+    needs: config
+    if: needs.config.outputs.skip != 'true' && (github.event_name != 'pull_request' || github.event.action != 'closed')
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -122,8 +109,8 @@ jobs:
         if: steps.wanted.outputs.skip != 'true'
         uses: actions/setup-java@v4
         with:
-          java-version: ${{ inputs.java-version }}
-          # Not the input: Zulu resolves to a CRaC build here, under which the Robolectric native runtime aborted at random
+          java-version: ${{ needs.config.outputs.java-version }}
+          # Not the shared distribution: Zulu resolves to a CRaC build here, under which the Robolectric native runtime aborted at random
           distribution: temurin
 
       - name: Set up Gradle
@@ -174,8 +161,8 @@ jobs:
   # branch when it differs. An app without a readme.yml yet only gets a warning.
   readme:
     # After the screenshots, which it shows: both commit to the PR branch, and this one starts from their commit
-    needs: screenshots
-    if: ${{ !cancelled() && (github.event_name != 'pull_request' || github.event.action != 'closed') }}
+    needs: [config, screenshots]
+    if: ${{ !cancelled() && needs.config.outputs.skip != 'true' && (github.event_name != 'pull_request' || github.event.action != 'closed') }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -187,8 +174,6 @@ jobs:
 
       - name: Render README.md from readme.yml
         id: render
-        env:
-          TOOLS_REF: ${{ inputs.tools-ref }}
         run: |
           if [ ! -f readme.yml ]; then
             echo "::warning file=README.md::There is no readme.yml. Write one from docs/readme-template.yml in LukeNeedham/ci-workflows; CI then generates README.md from it."
@@ -196,7 +181,7 @@ jobs:
             exit 0
           fi
           pip install --quiet pyyaml
-          curl -fsSL "https://raw.githubusercontent.com/LukeNeedham/ci-workflows/${TOOLS_REF}/scripts/generate_readme.py" \
+          curl -fsSL "https://raw.githubusercontent.com/LukeNeedham/ci-workflows/main/scripts/generate_readme.py" \
             -o "$RUNNER_TEMP/generate_readme.py"
           python3 "$RUNNER_TEMP/generate_readme.py" . --repo "${{ github.repository }}"
 
@@ -225,17 +210,19 @@ jobs:
           }
 
   build:
+    needs: config
     # Everything except a PR being closed
-    if: github.event_name != 'pull_request' || github.event.action != 'closed'
+    if: needs.config.outputs.skip != 'true' && (github.event_name != 'pull_request' || github.event.action != 'closed')
     uses: LukeNeedham/ci-workflows/.github/workflows/android_pr_build.yml@main
     with:
-      gradle-task: ${{ inputs.gradle-task }}
-      apk-path: ${{ inputs.apk-path }}
-      java-version: ${{ inputs.java-version }}
-      java-distribution: ${{ inputs.java-distribution }}
-      timezone: ${{ inputs.timezone }}
-      comment-header: ${{ inputs.comment-header }}
+      gradle-task: ${{ needs.config.outputs.gradle-task }}
+      apk-path: ${{ needs.config.outputs.apk-path }}
+      java-version: ${{ needs.config.outputs.java-version }}
+      java-distribution: ${{ needs.config.outputs.java-distribution }}
+      timezone: ${{ needs.config.outputs.timezone }}
+      comment-header: ${{ needs.config.outputs.comment-header }}
 
   cleanup:
-    if: github.event_name == 'pull_request' && github.event.action == 'closed'
+    needs: config
+    if: needs.config.outputs.skip != 'true' && github.event_name == 'pull_request' && github.event.action == 'closed'
     uses: LukeNeedham/ci-workflows/.github/workflows/android_pr_cleanup.yml@main

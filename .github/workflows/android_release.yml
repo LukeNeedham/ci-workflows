@@ -9,8 +9,9 @@ name: Android Release
 # the project must apply. The same script reads the signing key from the environment variables this
 # workflow sets from the secrets below.
 #
-# Caller example: examples/release.yml
-# The caller must grant `contents: write` and pass the secrets (`secrets: inherit` does it).
+# Caller: callers/release.yml. Every app has it; it has no settings besides the version and notes.
+# The caller must grant `contents: write` and pass the secrets (`secrets: inherit` does it). An app that is not
+# set up for releases (secrets, the Gradle script) fails in the first step with a message that says what is missing.
 
 on:
   workflow_call:
@@ -23,40 +24,54 @@ on:
         description: Release notes. Empty lists the merged PRs
         type: string
         default: ''
-      gradle-task:
-        description: Gradle task that produces the signed APK
-        type: string
-        default: assembleRelease
-      apk-path:
-        description: Path to the built APK, relative to the repo root (depends on the project)
-        type: string
-        default: app/build/outputs/apk/release/app-release.apk
-      asset-name:
-        description: File name of the APK on the release. Empty uses the repository name, e.g. Android-Dock.apk
-        type: string
-        default: ''
-      java-version:
-        type: string
-        default: '17'
-      java-distribution:
-        type: string
-        default: zulu
+      # The build settings are not inputs: every app is built the same way (docs/app-config.md).
+    # Not `required`: an app that is not set up for releases still has this caller, and GitHub's own message for
+    # a missing required secret is easy to miss. The first step below says what is missing instead.
     secrets:
       RELEASE_KEYSTORE_BASE64:
         description: The keystore file, base64 encoded on one line
-        required: true
+        required: false
       RELEASE_KEYSTORE_PASSWORD:
-        required: true
+        required: false
       RELEASE_KEY_ALIAS:
-        required: true
+        required: false
       RELEASE_KEY_PASSWORD:
-        required: true
+        required: false
 
 jobs:
   release:
     runs-on: ubuntu-latest
     steps:
+      - id: config
+        uses: LukeNeedham/ci-workflows/.github/actions/app-config@main
+
       - uses: actions/checkout@v4
+
+      # Every app has this caller, but only an app that was set up for releases can run it. Fail first, with
+      # everything that is missing in one message, before anything is tagged or built.
+      - name: Check the app is set up for releases
+        env:
+          KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: |
+          guide="https://github.com/LukeNeedham/ci-workflows/blob/main/docs/setup.md#3-permanent-releases-optional"
+          failed=0
+          missing=()
+          [ -n "$KEYSTORE_BASE64" ] || missing+=(RELEASE_KEYSTORE_BASE64)
+          [ -n "$KEYSTORE_PASSWORD" ] || missing+=(RELEASE_KEYSTORE_PASSWORD)
+          [ -n "$KEY_ALIAS" ] || missing+=(RELEASE_KEY_ALIAS)
+          [ -n "$KEY_PASSWORD" ] || missing+=(RELEASE_KEY_PASSWORD)
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "::error title=This repo cannot publish a release yet::Missing repo secrets: ${missing[*]}. Add them under Settings > Secrets and variables > Actions. How: $guide"
+            failed=1
+          fi
+          if ! grep -rqs --include='*.gradle' --include='*.gradle.kts' 'android-release\.gradle' .; then
+            echo "::error title=This repo cannot publish a release yet::The app's build.gradle.kts does not apply gradle/android-release.gradle, which sets the version from the tag and the release signing. How: $guide"
+            failed=1
+          fi
+          exit $failed
 
       - name: Check the version
         env:
@@ -83,8 +98,8 @@ jobs:
 
       - uses: actions/setup-java@v4
         with:
-          distribution: ${{ inputs.java-distribution }}
-          java-version: ${{ inputs.java-version }}
+          distribution: ${{ steps.config.outputs.java-distribution }}
+          java-version: ${{ steps.config.outputs.java-version }}
 
       - uses: gradle/actions/setup-gradle@v4
 
@@ -104,13 +119,17 @@ jobs:
           RELEASE_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
           RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
           RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
-          GRADLE_TASK: ${{ inputs.gradle-task }}
+          GRADLE_TASK: ${{ steps.config.outputs.release-gradle-task }}
         run: ./gradlew "$GRADLE_TASK" --no-daemon
 
       - name: Check the APK is signed
         env:
-          APK_PATH: ${{ inputs.apk-path }}
+          APK_PATH: ${{ steps.config.outputs.release-apk-path }}
         run: |
+          if [ ! -f "$APK_PATH" ]; then
+            echo "::error title=The release APK was not built::Expected it at $APK_PATH. Every app builds its release APK there (module app, ./gradlew assembleRelease)."
+            exit 1
+          fi
           apksigner="$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)apksigner"
           "$apksigner" verify --print-certs "$APK_PATH"
 
@@ -119,8 +138,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ inputs.version }}
           NOTES: ${{ inputs.notes }}
-          APK_PATH: ${{ inputs.apk-path }}
-          ASSET_NAME: ${{ inputs.asset-name || format('{0}.apk', github.event.repository.name) }}
+          APK_PATH: ${{ steps.config.outputs.release-apk-path }}
+          ASSET_NAME: ${{ steps.config.outputs.asset-name }}
         run: |
           cp "$APK_PATH" "$ASSET_NAME"
           if [ -n "$NOTES" ]; then notes=(--notes "$NOTES"); else notes=(--generate-notes); fi

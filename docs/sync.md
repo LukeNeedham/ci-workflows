@@ -8,22 +8,19 @@ Claude: nothing needs to remember to copy anything.
 | What | Where in the app | How |
 |---|---|---|
 | The Claude skill | `.claude/skills/lukeneedham-conventions/` | Mirrored exactly: files that no longer exist here are deleted |
-| The callers | `.github/workflows/`: `trigger_on_pull_request.yml`, `build_main.yml`, `delete_prereleases.yml` | Rendered from [`examples/`](../examples), **keeping the app's own settings** (see below) |
+| The callers | `.github/workflows/`: `trigger_on_pull_request.yml`, `build_main.yml`, `delete_prereleases.yml`, `release.yml` | Copied **byte for byte** from [`callers/`](../callers), **all four to every app**. They hold no settings, so every app has identical files. `release.yml` fails with a clear message in an app that is not set up for releases |
 | A note for Claude | A block in the app's `CLAUDE.md`, between `ci-workflows:begin` and `ci-workflows:end` | Replaced each time. Also tells Claude to always paste the PR's AppHub link into the chat when work completes (`CLAUDE.md` is always loaded, unlike the skill). The old "copy the skill by hand" line is replaced by it. The rest of `CLAUDE.md` is the app's |
 
 Not synced: the app's `readme.yml`, which is handwritten, and its `README.md`, which the PR build generates from it
-([readme.md](readme.md)); the sync only reports, in its run summary, which apps have no valid `readme.yml`. Also not synced: `release.yml` (it needs the app's signing secrets, so an app opts in with `callers`, below), the
-library version, and anything else in the app.
+([readme.md](readme.md)); the sync only reports, in its run summary, which apps have no valid `readme.yml`. Also not
+synced: the library version, and anything else in the app.
 
-**An app's own settings stay.** In a caller, the `with:` settings `apk-path`, `gradle-task`, `java-version`,
-`java-distribution`, `timezone` and `comment-header`, and the `branches:` list, are read from the app's
-current file and put into the new one. `build_main.yml` takes any it lacks from the app's PR caller, so
-`apk-path` is set once. An app with no caller yet gets the example's `apk-path` and a `comment-header` of
-`<repo name>-app-link`. To set one from here instead, use `inputs` in `apps.json`.
+**The callers hold no settings.** Every app is built the same way ([app-config.md](app-config.md)), so there is
+nothing to configure per app. The sync overwrites whatever the app has in a caller file, so an edit made in an app is lost.
 
 ## When it runs
 
-[`sync_apps.yml`](../.github/workflows/sync_apps.yml) runs when `skills/`, `examples/`, `apps.json` or the script
+[`sync_apps.yml`](../.github/workflows/sync_apps.yml) runs when `skills/`, `callers/`, `apps.json` or the script
 change on `main`, every Monday, and by hand (*Actions → Sync Apps → Run workflow*, optionally for some apps).
 For each app that differs it pushes the branch `sync/ci-workflows` and opens a PR, **Sync from ci-workflows**; if
 that PR is already open it is updated (the branch is force-pushed: it belongs to the sync). Nothing is pushed to
@@ -35,17 +32,12 @@ A run fails (and GitHub emails you) if any app failed, after trying all of them.
 ## apps.json
 
 ```json
-{"name": "AppHub", "repo": "LukeNeedham/AppHub", "library": true}
+{"name": "AppHub", "repo": "LukeNeedham/AppHub"}
 ```
 
-| Field | Default | Meaning |
-|---|---|---|
-| `name`, `repo` | required | The app's name and its `owner/name` |
-| `library` | `false` | Whether it uses the shared library: for [consuming-apps.md](consuming-apps.md), not used by the sync |
-| `skill` | `true` | `false`: do not sync the skill |
-| `callers` | the three above | The caller files to sync, from `examples/` (add `release.yml` here); `[]` for none |
-| `inputs` | none | Settings to force in the callers, such as `{"apk-path": "app/build/outputs/apk/debug/x.apk"}` |
-| `branches` | the app's own | The branches the PR caller builds PRs for |
+| Field | Meaning |
+|---|---|
+| `name`, `repo` | The app's name and its `owner/name`, **spelled exactly as on GitHub** (`LukeNeedham/Stickerboard`, not `stickerboard`): nothing matches names case-insensitively, including `--apps`. The only fields: every app gets everything, and nothing is configured per app |
 
 **A new app:** add it here (this is also the list "all consuming apps" means), then run *Sync Apps* for it. Its
 first sync PR adds the callers, the skill and the `CLAUDE.md` block.
@@ -80,6 +72,6 @@ python3 scripts/generate_readme.py path/to/app --repo owner/name  # render an ap
 
 ## Changing what is synced
 
-Change the file in `skills/` or `examples/` and merge: the next run opens the PRs. To sync something new (another
-caller, say), add it to `examples/` and to `DEFAULT_CALLERS` in the script, and to `docs/setup.md`. The
-settings that belong to an app are `INPUT_KEYS` in the script.
+Change the file in `skills/` or `callers/` and merge: the next run opens the PRs. To sync something new (another
+caller, say), add it to `callers/` and to `CALLERS` in the script, and to `docs/setup.md`. A new
+setting that belongs to an app goes into `DEFAULTS` in `scripts/app_config.py`.

@@ -92,20 +92,22 @@ Permanent, signed **release** builds are separate (own key, kept in repo secrets
 Every app uses the shared workflows in this repo. Follow **[setup.md](setup.md)**, which has the
 details. In short, for a new app:
 
-1. Copy [`examples/trigger_on_pull_request.yml`](../examples/trigger_on_pull_request.yml) to
-   `.github/workflows/trigger_on_pull_request.yml`. Set `apk-path` to
-   `app/build/outputs/apk/debug/app-debug.apk` and give `comment-header` a unique id such as
-   `<app>-app-link`.
-2. Copy [`examples/delete_prereleases.yml`](../examples/delete_prereleases.yml) to
-   `.github/workflows/delete_prereleases.yml`.
-3. Copy [`examples/build_main.yml`](../examples/build_main.yml) to `.github/workflows/build_main.yml` and set
-   `apk-path` to the same value. AppHub builds `main` on demand through it, so keep the file name.
-4. Add the app to [`apps.json`](../apps.json) ([consuming-apps.md](consuming-apps.md)). CI then gives it the Claude
-   skill and the `CLAUDE.md` block and keeps the callers above in line, through a "Sync from ci-workflows" PR
+1. Copy [`callers/trigger_on_pull_request.yml`](../callers/trigger_on_pull_request.yml) to
+   `.github/workflows/trigger_on_pull_request.yml`, unchanged. The callers have no settings.
+2. Copy [`callers/delete_prereleases.yml`](../callers/delete_prereleases.yml) to
+   `.github/workflows/delete_prereleases.yml`, unchanged.
+3. Copy [`callers/build_main.yml`](../callers/build_main.yml) to `.github/workflows/build_main.yml`, unchanged.
+   AppHub builds `main` on demand through it, so keep the file name.
+4. Copy [`callers/release.yml`](../callers/release.yml) to `.github/workflows/release.yml`, unchanged. Every app has
+   it. It fails at once, with a clear message, until the app has the release key and the Gradle script
+   ([setup.md](setup.md#3-permanent-releases-optional)); only do that when the user wants installable releases (the
+   four repo secrets are for the user to add).
+5. Add the app to [`apps.json`](../apps.json) ([consuming-apps.md](consuming-apps.md)), **in the same change as
+   the callers**: just its `name` and `repo`, there is nothing else to configure ([app-config.md](app-config.md)). The
+   app has to follow the standard: module `:app`, so the debug APK is
+   `app/build/outputs/apk/debug/app-debug.apk`, and the default branch `main`. CI then gives it the Claude skill and
+   the `CLAUDE.md` block and keeps the callers above in line, through a "Sync from ci-workflows" PR
    ([sync.md](sync.md)): the callers are copied by hand only this once, so that the app's first PR has CI.
-5. Optional, when the user wants installable releases: the release workflow
-   ([setup.md](setup.md#3-permanent-releases-optional)). It needs a release key and four repo secrets
-   that only the user can add.
 6. `ci-workflows` is a public repo, so don't worry about access.
 
 Open a PR: CI first comments with an **AppHub** link (`https://www.lukeneedham.com/apphub/pr/<repo name>/<number>`,
@@ -188,30 +190,29 @@ Defaults for a normal app. If the user asks for something else, do that instead.
 
 ## 7. The shared library
 
-Every Compose app uses the shared library (`common/`): logger, crash handler, and the debug, logs
-and crashes pages. Follow **[using-the-library.md](using-the-library.md)** to add it, and use
+**Every app uses the shared library** (`common/`), Compose or not: logger and crash handler, and the optional debug,
+logs and crashes pages. Follow **[using-the-library.md](using-the-library.md)** to add it, and use
 `Logger` rather than `Log` or `println`.
 
-**Every app has a settings page**, even with nothing else on it. It holds the library's `DebugButton`
-(never a floating button on the main page). The app's package and version are shown by the library's debug page, not the settings page. See
-[Every app has a settings page](using-the-library.md#every-app-has-a-settings-page).
+The debug pages are optional. An app that shows them puts the library's `DebugButton` on a settings page (never a
+floating button on the main page); see [A settings page](using-the-library.md#a-settings-page).
 
 ## Apps that are not Compose
 
 Some apps are too small for the above, such as the Krillion web-game wrapper: one `WebView` in one
-activity. Still do steps 1 to 5 (project, **debug keystore**, **CI workflows**, **app icon**, **README**), keep it to a single
-activity, and skip the rest. Say which sections you skipped and why.
+activity. Still do steps 1 to 5 (project, **debug keystore**, **CI workflows**, **app icon**, **README**) and the **shared
+library** (logger and crash handler, no debug pages), keep it to a single activity, and skip the rest. Say which
+sections you skipped and why. Such an app, with no UI worth showing, sets `screenshots: false` in its `readme.yml`.
 
 ## Done checklist
 
 - [ ] Package is `com.lukeneedham.<app>`; versions match this repo
 - [ ] `app/debug.keystore` committed and used by the `debug` signing config
-- [ ] `trigger_on_pull_request.yml`, `build_main.yml` (and `delete_prereleases.yml`) copied and configured
+- [ ] All four callers copied unchanged (`trigger_on_pull_request.yml`, `build_main.yml`, `delete_prereleases.yml`, `release.yml`), module `:app`, default branch `main`
 - [ ] Adaptive launcher icon in place (CI then generates `app-icon.png` at the repo root on the first PR)
 - [ ] Every page is an `XPage` + `XPageContent` with a `XPageContentPreview`; screenshot test set up ([screenshots.md](screenshots.md)), or `screenshots: false`
 - [ ] Handwritten `readme.yml` ([readme.md](readme.md)); CI generates `README.md` from it
 - [ ] Single activity, Compose, Navigation 3, MVVM, Koin for DI, Coil 3 for images, or a stated reason for each departure
 - [ ] [app-conventions.md](app-conventions.md) followed: strings in `strings.xml`, own `AppTheme` (no `MaterialTheme`), a preview per composable, 48dp touch targets
-- [ ] Shared library added, UI wrapped in `ProvideDebugSettings`
-- [ ] Settings page exists, with the `DebugButton` (not a floating button)
+- [ ] Shared library added, `DebugKit.init` called first, `Logger` used (debug pages optional)
 - [ ] PR opened, CI green, AppHub link pasted to the user

@@ -1,8 +1,8 @@
 # Setting up a project
 
 How to start using these workflows in a new project, or move an existing project over to them. The
-caller files are below, ready to copy. Parts you must or may change per project are marked
-`CONFIGURE`; everything else should be copied as is.
+caller files are in [`callers/`](../callers) and have no settings: copy them as they are (all four). For an app
+in `apps.json` the [sync](sync.md) copies the callers by itself.
 
 For what each workflow does, its inputs and the PR comment it posts, see the
 [README](../README.md).
@@ -13,10 +13,10 @@ A project keeps small **caller** files in its own `.github/workflows/`; the step
 GitHub does not let a shared workflow choose its own triggers or permissions, so each caller owns:
 
 - **when it runs** (`on:`),
-- **what it may do** (`permissions:`),
-- **which settings to pass** (`with:`).
+- **what it may do** (`permissions:`).
 
-Everything else is shared, so a fix here reaches every project.
+Everything else is shared, so a fix here reaches every project. There are no per-project settings: every
+project is built the same way ([app-config.md](app-config.md)).
 
 ## Before you start
 
@@ -37,23 +37,16 @@ Everything else is shared, so a fix here reaches every project.
 Builds the APK on every PR push, comments the download link, and deletes the PR's builds when it
 closes.
 
-**File:** [`examples/trigger_on_pull_request.yml`](../examples/trigger_on_pull_request.yml): copy it to
-`.github/workflows/trigger_on_pull_request.yml` in your project. Lines marked `CONFIGURE` are the
-ones to adjust.
+**File:** [`callers/trigger_on_pull_request.yml`](../callers/trigger_on_pull_request.yml): copy it, unchanged, to
+`.github/workflows/trigger_on_pull_request.yml` in your project. There is nothing to edit in it.
 
-Keep as is: `name`, the `types` list, `permissions`, `uses`.
+### Settings
 
-### Settings to configure
+There are none: every app is built the same way ([app-config.md](app-config.md)). The debug APK has to be at
+`app/build/outputs/apk/debug/app-debug.apk` (module `:app`), and PRs are built when they go to `main`.
 
-| Setting | Where | Default | Change it when |
-|---|---|---|---|
-| `branches` | `on.pull_request` | `main` | your PRs target a different branch |
-| `apk-path` | `with:` | **none, required** | always: it is the path to the APK your build writes. Find it by running the build locally |
-| `gradle-task` | `with:` | `assembleDebug` | you want another variant (for example `assembleStaging`); update `apk-path` to match |
-| `java-version` | `with:` | `17` | your Gradle build needs another JDK |
-| `java-distribution` | `with:` | `zulu` | you need another JDK distribution |
-| `timezone` | `with:` | `Europe/Amsterdam` | you want timestamps in another timezone |
-| `comment-header` | `with:` | `example-app-link` | one PR needs more than one APK comment (give each a different id) |
+A PR that changes only the Claude skill (`.claude/skills/`) does not build; see
+[app-config.md](app-config.md#runs-that-do-nothing).
 
 ### Other jobs in the same file
 
@@ -66,7 +59,7 @@ A manual button that deletes **every** pre-release and tag in the repo. Useful o
 (to clear old builds the cleanup never saw) and for builds from manual runs, which have no PR to
 clean them up.
 
-**File:** [`examples/delete_prereleases.yml`](../examples/delete_prereleases.yml): copy it to
+**File:** [`callers/delete_prereleases.yml`](../callers/delete_prereleases.yml): copy it, unchanged, to
 `.github/workflows/delete_prereleases.yml` in your project.
 
 Nothing to configure. Run it from the *Actions* tab. It only deletes pre-releases, never full
@@ -85,7 +78,8 @@ comes from a git tag (`0.3.0`, no `v`), which the workflow creates.
    and remove the app's own `versionCode`, `versionName` and release signing config; the script
    sets them. Builds then need network to fetch the script the first time, and
    `--refresh-dependencies` picks up a changed script on a machine that cached the old one.
-2. **Copy** [`examples/release.yml`](../examples/release.yml) to `.github/workflows/release.yml`.
+2. **`release.yml`** is already in the app (every app has it, from the sync). Until steps 1 and 3 are done, running it
+   fails in its first step, before anything is tagged, with an error that lists what is missing.
 3. **Make a signing key** and add four repo secrets (*Settings → Secrets and variables → Actions*):
    `RELEASE_KEYSTORE_BASE64` (the keystore, base64 on one line), `RELEASE_KEYSTORE_PASSWORD`,
    `RELEASE_KEY_ALIAS`, `RELEASE_KEY_PASSWORD`. Keep a copy of the key somewhere safe: an app signed
@@ -102,8 +96,8 @@ A manual build of the default branch that keeps its APK for one day, as a workfl
 *Build main* button for every repo that has it, starts the run through the API, reports its progress, and
 offers the APK to install. It can also be run from the *Actions* tab.
 
-**File:** [`examples/build_main.yml`](../examples/build_main.yml): copy it to
-`.github/workflows/build_main.yml` in your project and set `apk-path` to the same value as in section 1.
+**File:** [`callers/build_main.yml`](../callers/build_main.yml): copy it, unchanged, to
+`.github/workflows/build_main.yml` in your project.
 **Keep the file name**: AppHub starts `build_main.yml` on `main`. It must be on `main` before it can be run.
 
 Starting it from AppHub needs a GitHub token with **Actions: Read and write** on the repo; downloading the
@@ -111,32 +105,30 @@ APK needs *Actions: Read*. See the AppHub README for creating one.
 
 ## Setting up a new project
 
-1. Copy `examples/trigger_on_pull_request.yml` to `.github/workflows/trigger_on_pull_request.yml`
-   and set `apk-path` (and anything else marked `CONFIGURE`).
-2. Optionally copy `examples/delete_prereleases.yml` to `.github/workflows/delete_prereleases.yml`.
-   Copy `examples/build_main.yml` to `.github/workflows/build_main.yml` and set its `apk-path` (section 4),
-   so AppHub can build main.
-3. Commit both on a branch and open a PR to the target branch.
+1. Add the project to [`apps.json`](../apps.json): its `name` and `repo`.
+2. Copy the four files of `callers/` (`trigger_on_pull_request.yml`, `build_main.yml` so AppHub can build main,
+   `delete_prereleases.yml` and `release.yml`) to `.github/workflows/` in the project, unchanged. After the first
+   copy the [sync](sync.md) keeps them in line.
+3. Commit them on a branch and open a PR to the target branch.
 4. [Check it works](#check-that-it-works).
 
 ## Migrating an existing project
 
 Assuming the project already builds an APK on pull requests with its own workflow(s).
 
-1. **Collect the project's current settings** from the old workflow, because they become the
-   `with:` values:
-   - the Gradle task it runs → `gradle-task`
-   - where the APK ends up → `apk-path`
-   - the JDK version and distribution → `java-version`, `java-distribution`
-   - the branch(es) it triggers on → `branches`
-2. **Replace the old build workflow** with the file from section 1, filled in with those values.
-   Keep any jobs in it that the shared workflows do not cover in the same `jobs:` block.
+1. **Make the project follow the standard** ([app-config.md](app-config.md)), because the workflows have no
+   settings: module `:app` (so the debug APK is at `app/build/outputs/apk/debug/app-debug.apk`), JDK 17, and
+   `main` as the branch PRs go to. Rename the module or the default branch first if they differ.
+2. **Replace the old build workflow** with `callers/trigger_on_pull_request.yml`, unchanged. Keep any jobs in
+   it that the shared workflows do not cover in the same `jobs:` block.
 3. **Delete the old cleanup workflow**, if there is one: the cleanup now runs from the same file.
    Make sure the project has exactly one workflow reacting to PR closes, otherwise releases are
    deleted twice.
 4. **Check branch protection.** The checks are now named `<caller job> / build / build` (caller
    job / shared wrapper job / build job), so `android / build / build` with the file above. If a
-   rule requires the old check name, update it, or PRs will wait for a check that no longer exists.
+   rule requires the old check name, update it, or PRs will wait for a check that no longer exists. A PR that
+   does not build (see [app-config.md](app-config.md#runs-that-do-nothing)) never reports `android / build / build`,
+   so require `android / build`.
 5. **Replace the manual delete workflow**, if the project has one, with section 2.
 6. **Open a PR** and [check it works](#check-that-it-works).
 7. **Clear the old releases** once it works: run *Delete Pre-releases* (section 2) to remove builds
@@ -163,7 +155,8 @@ On the PR you opened:
 |---|---|
 | The run fails immediately with no jobs | The caller file is invalid, or a permission it requests is not allowed. Check the *Actions* run page for the message; confirm `permissions:` is as above and that the repo may use this repo's workflows (private repos need *Access* enabled here) |
 | No comment appears on the PR | The caller is missing `pull-requests: write`, or the PR comes from a fork (forks get a read-only token) |
-| The release step fails with "no files found" | `apk-path` is wrong. Build locally and use the real path, relative to the repo root |
+| The build step cannot find the APK | The project does not follow the standard: the debug APK has to be at `app/build/outputs/apk/debug/app-debug.apk`, so the module must be `:app` ([app-config.md](app-config.md)) |
+| The run is skipped | The PR changes only `.claude/skills/`, or does not target `main` ([app-config.md](app-config.md#runs-that-do-nothing)) |
 | Releases are not deleted when the PR closes | `closed` is missing from the caller's `types` list |
 | The PR waits forever for a check | Branch protection still requires the old check name (see migration step 4) |
 | Old PR builds are still listed | They predate the cleanup: run *Delete Pre-releases* |

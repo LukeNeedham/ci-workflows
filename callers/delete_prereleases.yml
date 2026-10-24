@@ -1,0 +1,12 @@
+# Copied from LukeNeedham/ci-workflows (callers/delete_prereleases.yml). Do not edit it here: change it there.
+name: Delete Pre-releases
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  delete-prereleases:
+    uses: LukeNeedham/ci-workflows/.github/workflows/delete_prereleases.yml@main
