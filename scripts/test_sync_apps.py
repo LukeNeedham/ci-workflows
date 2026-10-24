@@ -89,6 +89,20 @@ class SyncApp(unittest.TestCase):
         self.assertIn(s.BLOCK_BEGIN, text)
         self.assertIn("- Another rule.", text)
 
+    def test_the_old_instruction_goes_even_when_the_block_is_already_there(self):
+        old = ("Before starting work, check that `.claude/skills/lukeneedham-conventions` matches `skills/lukeneedham-conventions`"
+               " on `main` of `LukeNeedham/ci-workflows`; if not, copy it over and include that in this work's PR."
+               " See that repo's `docs/skill.md`.\n")
+        self.write("CLAUDE.md", "# Instructions\n\n- Rule.\n\n" + old + "\n" + s.BLOCK_BEGIN + "\nstale\n" + s.BLOCK_END + "\n")
+
+        s.sync_claude_md(self.dir)
+
+        text = (self.dir / "CLAUDE.md").read_text()
+        self.assertNotIn("Before starting work", text)
+        self.assertEqual(1, text.count(s.BLOCK_BEGIN))
+        self.assertIn("- Rule.\n\n" + s.BLOCK_BEGIN, text)
+        self.assertEqual([], s.sync_claude_md(self.dir))
+
     def test_an_existing_block_is_replaced_not_added_again(self):
         self.write("CLAUDE.md", "# Instructions\n\n" + s.BLOCK_BEGIN + "\nstale\n" + s.BLOCK_END + "\n\n- Rule.\n")
 
