@@ -46,7 +46,7 @@ jobs:
 
   # The screenshots of the README, rendered on the JVM from the @Preview of every composable of the app's
   # screenshot package and committed to the PR branch into docs/screenshots/ when they differ. An app that has no
-  # such package yet, or `screenshots: false` in its readme.yml, skips it. The steps are in
+  # such package (a WebView wrapper, whose screenshots are committed by hand) skips it. The steps are in
   # .github/actions/screenshots (docs/screenshots.md).
   screenshots:
     needs: config

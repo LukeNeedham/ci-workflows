@@ -23,15 +23,14 @@ class ScreenshotsWantedTest(unittest.TestCase):
     def test_an_app_with_a_screenshot_package_has_screenshots_to_render(self):
         self.assertIsNone(w.skip_reason(self.app("name: A\n", ["screenshot/HomePage.kt"])))
 
-    def test_screenshots_false_skips_without_a_warning(self):
-        why, warning = w.skip_reason(self.app("name: A\nscreenshots: false\n", ["screenshot/HomePage.kt"]))
-        self.assertIn("screenshots: false", why)
-        self.assertFalse(warning)
-
-    def test_no_screenshot_package_skips_with_a_warning(self):
-        why, warning = w.skip_reason(self.app("name: A\n", ["other/HomePage.kt"]))
+    def test_an_app_without_a_package_renders_nothing_and_keeps_its_hand_committed_screenshots(self):
+        why = w.skip_reason(self.app("name: A\n", ["other/HomePage.kt"]))
         self.assertIn("No screenshot package", why)
-        self.assertTrue(warning)
+        self.assertIn("committed by hand", why)
+
+    def test_there_is_no_option_to_go_without_screenshots(self):
+        # readme.yml is not read at all: a leftover `screenshots: false` changes nothing
+        self.assertIsNone(w.skip_reason(self.app("name: A\nscreenshots: false\n", ["screenshot/HomePage.kt"])))
 
     def test_the_package_is_a_screenshot_folder_outside_the_build_output(self):
         app = self.app(None, ["screenshot/A.kt", "deeper/screenshot/B.kt", "screenshots/C.kt"])

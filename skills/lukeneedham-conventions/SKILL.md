@@ -51,7 +51,7 @@ below are enough.
   the PR branch. **Never edit `README.md`; edit `readme.yml`.**
 - `readme.yml` is handwritten data with **only what is specific to the app**: name, tagline, description (with the
   app's highlights; no feature list, no limits), `license`, and optionally `user.install`, `user.steps`,
-  `developer.notes` (only app-specific setup), `sections`, `screenshots: false`. **Not** the minimum Android version (the
+  `developer.notes` (only app-specific setup), `sections`. **Not** the minimum Android version (the
   generator reads `minSdk` from `app/build.gradle.kts`), the generic developer setup, nor the architecture or project
   structure (the same in every app, from these conventions). Skeleton: `docs/readme-template.yml` there. If it is
   missing, write it once from the template; update it in the same PR as any change a reader would notice. After a push,
@@ -78,8 +78,9 @@ below are enough.
   `docs/screenshots/<composable name without Screenshot>.png` and commits it to the PR branch: never take or edit them
   by hand. The dependencies, the test and the Gradle setup live in `LukeNeedham/ci-workflows` (`scripts/screenshots/`,
   `docs/screenshots.md`): the app only needs `ui-tooling-preview` and the package, no Roborazzi, no test class.
-- Required for every app with a UI (at least one screenshot); `screenshots: false` in `readme.yml` is only for one with
-  none (a WebView wrapper).
+- **Every app has screenshots in `docs/screenshots/`, at least one, with no option to go without** (the README
+  generator always reads that folder). An app that cannot render previews (a WebView wrapper, no Compose) has no
+  `screenshot` package: it commits at least one screenshot there by hand, and CI leaves it alone.
 
 ## Architecture
 - Single activity (`ComponentActivity`), Jetpack Compose, no XML, no fragments.

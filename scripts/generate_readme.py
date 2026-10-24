@@ -4,7 +4,8 @@
 The layout lives here, the content in the app. Needs PyYAML.
 
 The screenshots are not listed in readme.yml: they are the PNGs of docs/screenshots/, which CI renders from the
-app's screenshot package (docs/screenshots.md). They are required, unless readme.yml says `screenshots: false`.
+app's screenshot package (docs/screenshots.md), or committed by hand for an app that cannot render previews. Every app
+has at least one: there is no option to go without.
 The minimum Android version is not in readme.yml either: it is read from the minSdk of app/build.gradle.kts.
 
     python3 generate_readme.py [app_dir] [--repo owner/name] [--check]
@@ -26,7 +27,7 @@ SOURCE = "readme.yml"
 HEADER = f"<!-- Generated from {SOURCE} by LukeNeedham/ci-workflows (docs/readme.md). Edit {SOURCE}, not this file. -->"
 REQUIRED_TEXT = ["name", "tagline", "description", "license"]
 SCREENSHOTS = "docs/screenshots"
-KNOWN = {"name", "tagline", "description", "screenshots", "user", "developer", "sections", "license"}
+KNOWN = {"name", "tagline", "description", "user", "developer", "sections", "license"}
 BUILD_FILE = "app/build.gradle.kts"
 CATALOG = "gradle/libs.versions.toml"
 # The Android version name of each API level
@@ -105,11 +106,12 @@ def problems(data, screenshots=None):
     developer = data.get("developer")
     if developer is not None and (not isinstance(developer, dict) or set(developer) - {"notes"}):
         found.append("`developer` can only have `notes`: what is specific to this app")
-    if "screenshots" in data and data["screenshots"] is not False:
-        found.append("`screenshots` can only be `false` (an app with no UI worth showing); the screenshots are rendered by CI into docs/screenshots/")
-    elif screenshots is not None and data.get("screenshots") is not False and not screenshots:
-        found.append("the app has no screenshots: set up the page previews and the screenshot test (docs/screenshots.md in "
-                     "LukeNeedham/ci-workflows), or set `screenshots: false` if the app has no UI worth showing")
+    if "screenshots" in data:
+        found.append("the `screenshots` option is gone: every app has screenshots in docs/screenshots/, which the README shows")
+    elif screenshots is not None and not screenshots:
+        found.append("the app has no screenshots in docs/screenshots/: every app has at least one. Add a screenshot package "
+                     "(docs/screenshots.md in LukeNeedham/ci-workflows), or, for an app that cannot render previews, "
+                     "commit a screenshot into docs/screenshots/")
     for i, section in enumerate(data.get("sections") or []):
         if not isinstance(section, dict) or not section.get("title") or not section.get("body"):
             found.append(f"`sections[{i}]` needs `title` and `body`")
@@ -150,7 +152,7 @@ def render(data, repo, min_sdk, screenshots=(), compile_sdk=None):
         str(data["description"]).strip(),
         "",
     ]
-    if screenshots and data.get("screenshots") is not False:
+    if screenshots:
         out += ["## Screenshots", "", *[f'<img src="{s}" width="240" alt="{alt_text(s)}">' for s in screenshots], ""]
     out += [
         "## Getting started as a user",

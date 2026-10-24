@@ -131,7 +131,7 @@ the app. **Not the minimum Android version, the setup or the architecture**: the
 `README.md` from it in the standard layout ([readme.md](readme.md)) and commits it to the PR branch, so never edit
 `README.md`. The icon in it is the CI-generated `app-icon.png`, so there is nothing to add for it.
 
-**Screenshots are required** (except for an app with no UI worth showing, which sets `screenshots: false`): add a
+**Every app has screenshots, with no option to go without**: add a
 `screenshot` package in `src/debug`, with a file for each page that has screenshots (a page can have several, or none;
 each screenshot is a `@Preview` that owns its mock data and renders the page's content) and a README
 ([screenshots.md](screenshots.md)). CI then renders every preview of the package
@@ -213,7 +213,7 @@ floating button on the main page); see [A settings page](using-the-library.md#a-
 Some apps are too small for the above, such as the Krillion web-game wrapper: one `WebView` in one
 activity. Still do steps 1 to 5 (project, **debug keystore**, **CI workflows**, **app icon**, **README**) and the **shared
 library** (logger and crash handler, no debug pages), keep it to a single activity, and skip the rest. Say which
-sections you skipped and why. Such an app, with no UI worth showing, sets `screenshots: false` in its `readme.yml`.
+sections you skipped and why. Such an app has no `screenshot` package (no Compose, no `@Preview`): it commits at least one screenshot into `docs/screenshots/` by hand, and CI leaves it alone.
 
 ## Done checklist
 
@@ -221,7 +221,7 @@ sections you skipped and why. Such an app, with no UI worth showing, sets `scree
 - [ ] `app/debug.keystore` committed and used by the `debug` signing config
 - [ ] All four callers copied unchanged (`trigger_on_pull_request.yml`, `build_main.yml`, `delete_prereleases.yml`, `release.yml`), module `:app`, default branch `main`
 - [ ] Adaptive launcher icon in place (CI then generates `app-icon.png` at the repo root on the first PR)
-- [ ] Every page is an `XPage` + `XPageContent`, named and split as in [pages.md](pages.md); a `screenshot` package with the screenshots worth showing (any number per page, none for some pages, at least one in all) and its README ([screenshots.md](screenshots.md)), or `screenshots: false`
+- [ ] Every page is an `XPage` + `XPageContent`, named and split as in [pages.md](pages.md); a `screenshot` package with the screenshots worth showing (any number per page, none for some pages, at least one in all) and its README ([screenshots.md](screenshots.md)), or, for an app that cannot render previews, at least one hand-committed screenshot in `docs/screenshots/`
 - [ ] Handwritten `readme.yml` ([readme.md](readme.md)); CI generates `README.md` from it
 - [ ] Single activity, Compose, Navigation 3, MVVM, Koin for DI, Coil 3 for images, or a stated reason for each departure
 - [ ] [app-conventions.md](app-conventions.md) followed: strings in `strings.xml`, own `AppTheme` (no `MaterialTheme`), a preview per composable, 48dp touch targets

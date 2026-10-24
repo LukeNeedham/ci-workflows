@@ -13,8 +13,8 @@ description: |                  # required: what the app is and who it is for, w
   A short paragraph, or two separated by a blank line. Mention the main things the app does here:
   there is no feature list.
 
-# screenshots: false            # only for an app with no UI worth showing (a WebView wrapper). Every other app has
-#                               # screenshots, rendered by CI from its screenshot package into docs/screenshots/
+# There is no screenshots field: every app has screenshots in docs/screenshots/, which the README shows. CI renders
+# them from the app's screenshot package; an app that cannot (a WebView wrapper) commits at least one by hand.
 
 # user:
 #   install: Download the APK from the Releases page.   # optional: replaces the default first step (install from AppHub or Releases)

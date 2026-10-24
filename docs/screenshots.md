@@ -4,8 +4,10 @@ The README of every app with a UI shows screenshots of the app: of the pages wor
 composables of the app's `screenshot` package**, never taken by hand, and committed to `docs/screenshots/`. This page
 is the pattern and how it works. The README side is [readme.md](readme.md).
 
-An app with no UI worth showing (the Krillion WebView wrapper) opts out with `screenshots: false` in its
-`readme.yml` and skips all of this. Every other app needs at least one screenshot: its `readme.yml` is invalid without.
+**Every app has screenshots, with no option to go without**: the README generator always reads `docs/screenshots/`, and
+an app with none cannot have a README. An app that cannot render previews, such as the Krillion WebView wrapper (no
+Compose, so no `@Preview`), has no `screenshot` package: it commits at least one screenshot into `docs/screenshots/` by
+hand, and CI leaves it alone.
 
 **The app holds almost nothing for it**: the dependencies, the test and the Gradle setup live here, in
 [`scripts/screenshots/`](../scripts/screenshots), so a version bump reaches every app at once. The app only has its
@@ -45,7 +47,7 @@ private fun HomePageScreenshot() {
 - **A page can have any number of screenshots**: several previews in its file, each with its own data
   (`HomePageScreenshot`, `HomeEmptyPageScreenshot`), as many as are worth showing. **A page can have none**: a page
   with no file has no screenshot, so leave out the pages that are not worth showing. The app needs at least one
-  screenshot in all, not one per page.
+  screenshot in all, not one per page, and always at least one: there is no option to go without.
 - **Nothing is shared.** Every screenshot owns its data, so that changing one never changes another, and the
   screenshots are independent of the app and of the general previews:
   - not between pages, and not between the screenshots of one page: a second screenshot has its own copy of what it
@@ -69,8 +71,8 @@ The `screenshots` job of [`android_pr.yml`](../.github/workflows/android_pr.yml)
 [`scripts/`](../scripts) from its own checkout (so they are always the version of the action, never fetched from
 elsewhere):
 
-1. [`screenshots_wanted.py`](../scripts/screenshots_wanted.py) skips the job, with a warning, if the app has no
-   `screenshot` package with Kotlin files yet, or if `readme.yml` says `screenshots: false`.
+1. [`screenshots_wanted.py`](../scripts/screenshots_wanted.py) skips the job, with a notice, if the app has no
+   `screenshot` package with Kotlin files: its screenshots in `docs/screenshots/` are committed by hand, and stay.
 2. [`render_screenshots.py`](../scripts/render_screenshots.py) runs in the app. It uses the Gradle init script
    [`screenshots.init.gradle`](../scripts/screenshots/screenshots.init.gradle), the test
    [template](../scripts/screenshots/PageScreenshotTest.kt.template) and the

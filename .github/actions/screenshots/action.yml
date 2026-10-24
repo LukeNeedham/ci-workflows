@@ -2,8 +2,8 @@ name: Screenshots
 description: >
   Renders the README screenshots of the app into docs/screenshots/, from the @Preview composables of its
   `screenshot` package, and commits them to the branch of the pull request when they differ. Skips an app that has
-  no such package yet, or `screenshots: false` in its readme.yml. Used by the `screenshots` job of android_pr.yml; see
-  docs/screenshots.md. The job needs `contents: write`.
+  no such package (a WebView wrapper): its screenshots in docs/screenshots/ are committed by hand and left alone. Used by
+  the `screenshots` job of android_pr.yml; see docs/screenshots.md. The job needs `contents: write`.
 
 inputs:
   java-version:

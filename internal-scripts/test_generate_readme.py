@@ -86,14 +86,18 @@ class GenerateReadmeTest(unittest.TestCase):
         self.assertNotIn("apphub", text.lower().replace("app-icon", ""))
         self.assertIn("See [LICENSE](LICENSE).", render())
 
-    def test_screenshots_are_required_unless_the_app_opts_out(self):
+    def test_every_app_has_screenshots_and_there_is_no_option_to_go_without(self):
         self.assertTrue(any("no screenshots" in f for f in g.problems(data(), [])))
-        d = data()
-        d["screenshots"] = False
-        self.assertEqual([], g.problems(d, []))
-        self.assertNotIn("Screenshots", render(d))
-        d["screenshots"] = [{"path": "a.png"}]
-        self.assertTrue(any("can only be `false`" in f for f in g.problems(d, ["x.png"])))
+        self.assertEqual([], g.problems(data(), ["docs/screenshots/Home.png"]))
+        for value in (False, True, [{"path": "a.png"}]):
+            d = data()
+            d["screenshots"] = value
+            found = "\n".join(g.problems(d, ["docs/screenshots/Home.png"]))
+            self.assertIn("the `screenshots` option is gone", found)
+
+    def test_the_screenshots_section_lists_every_image_of_the_folder(self):
+        text = render()
+        self.assertEqual(2, text.count("<img src=\"docs/screenshots/"))
 
     def test_problems_name_what_is_missing(self):
         text = "\n".join(g.problems({"name": "X", "extra": 1}))
