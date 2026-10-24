@@ -112,6 +112,7 @@ class AppsFile(unittest.TestCase):
             self.assertEqual({"name", "repo"}, set(entry), entry)
             self.assertRegex(entry["repo"], r"^[\w.-]+/[\w.-]+$")
             self.assertTrue(entry["name"])
+        # Names are compared exactly, so two entries must not differ only by case
         self.assertEqual(len(self.apps), len({a["repo"].lower() for a in self.apps}))
 
 
