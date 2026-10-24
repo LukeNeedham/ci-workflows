@@ -17,8 +17,9 @@ picked up and understood the same way. The layout lives **here**; the content li
    - **the architecture is not described in the README**: it is the same in every app and enforced by the shared
      conventions of this repo ([pages.md](pages.md), [app-conventions.md](app-conventions.md), the Claude skill), so the
      generated developer section only points to them.
-3. The `readme` job of [`android_pr.yml`](../.github/workflows/android_pr.yml) runs the script on every PR, like
-   the [app icon](app-icon.md) job, and **commits `README.md` to the PR branch** when it differs.
+3. The `readme` job of [`android_pr.yml`](../.github/workflows/android_pr.yml), whose steps are the composite action
+   [`.github/actions/readme`](../.github/actions/readme/action.yml), runs the script on every PR, like the
+   [app icon](app-icon.md) job, and **commits `README.md` to the PR branch** when it differs.
 
 So: **edit `readme.yml`, never `README.md`** (it carries a "generated" comment and is overwritten). The content is
 handwritten; only the layout is generated. When the app changes in a way a reader would notice (what it does, how it
@@ -63,9 +64,9 @@ Not needed, since CI does it, but to see the result before pushing (from the app
 
 ```
 pip install pyyaml
-curl -fsSL https://raw.githubusercontent.com/LukeNeedham/ci-workflows/main/scripts/generate_readme.py -o /tmp/generate_readme.py
-python3 /tmp/generate_readme.py            # writes README.md
-python3 /tmp/generate_readme.py --check    # writes nothing, exits 1 if README.md is out of date
+git clone --depth 1 https://github.com/LukeNeedham/ci-workflows /tmp/ci-workflows
+python3 /tmp/ci-workflows/scripts/generate_readme.py .            # writes README.md
+python3 /tmp/ci-workflows/scripts/generate_readme.py . --check    # writes nothing, exits 1 if README.md is out of date
 ```
 
 ## Rollout and reporting

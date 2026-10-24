@@ -2,7 +2,7 @@ import sys
 import unittest
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent / "screenshots"))
+import _paths  # noqa: F401
 import check_screenshot_package as c
 
 GOOD = '''package com.lukeneedham.demo.screenshot

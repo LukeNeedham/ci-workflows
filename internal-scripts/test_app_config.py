@@ -1,4 +1,4 @@
-"""Tests for app_config.py. Run: python3 -m unittest discover -s scripts"""
+"""Tests for app_config.py. Run: python3 -m unittest discover -s internal-scripts"""
 
 import json
 import os
@@ -9,6 +9,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+import _paths  # noqa: F401
 import app_config as c
 
 TOOLS = Path(__file__).resolve().parent.parent

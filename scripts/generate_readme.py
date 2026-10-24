@@ -219,6 +219,8 @@ def main():
     parser.add_argument("app_dir", nargs="?", default=".")
     parser.add_argument("--repo")
     parser.add_argument("--check", action="store_true", help="write nothing; exit 1 if README.md is out of date")
+    parser.add_argument("--skip-if-missing", action="store_true",
+                        help="an app without a readme.yml yet only gets a warning, and keeps its README.md")
     args = parser.parse_args()
     app_dir = Path(args.app_dir)
     try:
@@ -226,7 +228,11 @@ def main():
     except yaml.YAMLError as e:
         sys.exit(f"{SOURCE} is not valid YAML: {e}")
     if data is None:
-        sys.exit(f"{app_dir / SOURCE} does not exist. Copy docs/readme-template.yml from LukeNeedham/ci-workflows.")
+        message = f"There is no {SOURCE}. Write one from docs/readme-template.yml in LukeNeedham/ci-workflows; CI then generates README.md from it."
+        if args.skip_if_missing:
+            print(f"::warning file=README.md::{message}")
+            return
+        sys.exit(message)
     shots = screenshot_files(app_dir)
     found = problems(data, shots)
     if found:

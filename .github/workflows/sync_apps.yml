@@ -3,6 +3,10 @@ name: Sync Apps
 # Keeps every app in apps.json in line with this repo: the Claude skill, the workflow callers and a managed
 # block in the app's CLAUDE.md. For each app that differs it opens (or updates) one PR, "Sync from
 # ci-workflows". The logic is scripts/sync_apps.py; setup, including the SYNC_TOKEN secret, is docs/sync.md.
+#
+# What starts a sync is the whole of scripts/ (the scripts that the workflows and actions run on the apps, and the
+# sync itself), the skill, the callers and apps.json. internal-scripts/ (the tests) never does: nothing in it
+# reaches an app.
 
 on:
   push:
@@ -11,8 +15,7 @@ on:
       - 'skills/**'
       - 'callers/**'
       - 'apps.json'
-      - 'scripts/sync_apps.py'
-      - 'scripts/generate_readme.py'
+      - 'scripts/**'
   schedule:
     - cron: '17 5 * * 1'   # weekly, to catch an app that drifted
   workflow_dispatch:
@@ -22,11 +25,14 @@ on:
         type: string
         default: ''
   pull_request:
+    # The tests run for anything they test, including the scripts of the actions
     paths:
       - 'scripts/**'
+      - 'internal-scripts/**'
       - 'apps.json'
       - 'callers/**'
       - 'skills/**'
+      - '.github/actions/**'
       - '.github/workflows/sync_apps.yml'
 
 permissions:
@@ -40,7 +46,7 @@ jobs:
       - name: Test the scripts
         run: |
           pip install --quiet pyyaml
-          python3 -m unittest discover -s scripts
+          python3 -m unittest discover -s internal-scripts
 
   sync:
     needs: test

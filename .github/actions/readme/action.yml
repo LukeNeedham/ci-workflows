@@ -1,0 +1,37 @@
+name: README
+description: >
+  Renders README.md, at the root of the app, from its readme.yml in the standard layout, and commits it to the branch
+  of the pull request when it differs. An app without a readme.yml yet only gets a warning. Used by the `readme` job
+  of android_pr.yml; see docs/readme.md. The job needs `contents: write`.
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/checkout@v4
+      with:
+        repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+        ref: ${{ github.head_ref || github.ref_name }}
+
+    - name: Render README.md from readme.yml
+      shell: bash
+      env:
+        ACTION_PATH: ${{ github.action_path }}
+        REPO: ${{ github.repository }}
+      run: |
+        pip install --quiet pyyaml
+        python3 "$ACTION_PATH/../../../scripts/generate_readme.py" . --repo "$REPO" --skip-if-missing
+
+    - name: Commit README.md if it changed
+      shell: bash
+      env:
+        ACTION_PATH: ${{ github.action_path }}
+        IS_PR: ${{ github.event_name == 'pull_request' }}
+        IS_FORK: ${{ github.event.pull_request.head.repo.full_name != github.repository }}
+        BRANCH: ${{ github.head_ref }}
+      run: |
+        python3 "$ACTION_PATH/../../../scripts/commit_generated.py" \
+          --paths README.md \
+          --what README.md \
+          --source readme.yml \
+          --regenerate "scripts/generate_readme.py (see docs/readme.md)" \
+          --message "Regenerate README.md from readme.yml"

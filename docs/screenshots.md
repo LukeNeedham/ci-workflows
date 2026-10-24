@@ -61,22 +61,25 @@ private fun HomePageScreenshot() {
 ## What CI does
 
 The `screenshots` job of [`android_pr.yml`](../.github/workflows/android_pr.yml) runs on every PR, before the
-[README](readme.md) job:
+[README](readme.md) job. Its steps are the composite action
+[`.github/actions/screenshots`](../.github/actions/screenshots/action.yml), which runs the Python scripts of
+[`scripts/`](../scripts) from its own checkout (so they are always the version of the action, never fetched from
+elsewhere):
 
-1. It skips, with a warning, if the app has no `screenshot` package with Kotlin files yet, or if `readme.yml` says
-   `screenshots: false`.
-2. It runs [`scripts/render_screenshots.sh`](../scripts/render_screenshots.sh) in the app. The script fetches the
-   Gradle init script [`screenshots.init.gradle`](../scripts/screenshots/screenshots.init.gradle), the test
+1. [`screenshots_wanted.py`](../scripts/screenshots_wanted.py) skips the job, with a warning, if the app has no
+   `screenshot` package with Kotlin files yet, or if `readme.yml` says `screenshots: false`.
+2. [`render_screenshots.py`](../scripts/render_screenshots.py) runs in the app. It uses the Gradle init script
+   [`screenshots.init.gradle`](../scripts/screenshots/screenshots.init.gradle), the test
    [template](../scripts/screenshots/PageScreenshotTest.kt.template) and the
-   [package check](../scripts/screenshots/check_screenshot_package.py), fails if the package shares anything,
-   deletes `docs/screenshots/`, and runs
+   [package check](../scripts/screenshots/check_screenshot_package.py) next to it, fails if the package shares
+   anything, deletes `docs/screenshots/`, and runs
    `./gradlew testDebugUnitTest --tests '*PageScreenshotTest' --init-script …`.
 3. The init script, applied only for that run, adds the test dependencies (Roborazzi, Robolectric, the Compose test
    rule, the preview scanner), turns on resources for unit tests, and generates `PageScreenshotTest` from the
    template, for the app's namespace. The test renders every preview of the `screenshot` package on the JVM
    (Robolectric native graphics, no emulator) at a fixed phone size and writes the PNGs. It fails if nothing was rendered.
-4. If the PNGs differ from the committed ones, the job **commits them to the PR branch** (like the app icon and the
-   README): pull the bot's commit before pushing again.
+4. [`commit_generated.py`](../scripts/commit_generated.py), shared with the app icon and README actions, **commits the
+   PNGs to the PR branch** if they differ from the committed ones: pull the bot's commit before pushing again.
 
 PRs from forks cannot be committed to, so there the job fails if the screenshots are out of date. The job runs on a
 Temurin JDK, because the Zulu build that `setup-java` resolves to is a CRaC build under which the Robolectric native
@@ -91,10 +94,11 @@ Only this, once:
   no test class.
 - The `screenshot` package, with its README.
 
-To see the screenshots without CI, from the app's root (needs the Android SDK):
+To see the screenshots without CI (needs the Android SDK), clone ci-workflows once and point the script at the app:
 
 ```
-curl -fsSL https://raw.githubusercontent.com/LukeNeedham/ci-workflows/main/scripts/render_screenshots.sh | bash
+git clone --depth 1 https://github.com/LukeNeedham/ci-workflows /tmp/ci-workflows
+python3 /tmp/ci-workflows/scripts/render_screenshots.py --app path/to/app
 ```
 
 ## Notes

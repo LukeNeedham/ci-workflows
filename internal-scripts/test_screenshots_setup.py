@@ -1,9 +1,12 @@
 import unittest
 from pathlib import Path
 
+import _paths  # noqa: F401
 import sync_apps as s
 
-SCRIPTS = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parent.parent
+SCRIPTS = ROOT / "scripts"
+ACTIONS = ROOT / ".github" / "actions"
 
 
 class ScreenshotsSetupTest(unittest.TestCase):
@@ -19,9 +22,18 @@ class ScreenshotsSetupTest(unittest.TestCase):
         init = (SCRIPTS / "screenshots" / "screenshots.init.gradle").read_text()
         self.assertIn("replace('{{PACKAGE}}'", init)
         self.assertIn("screenshots.template", init)
-        sh = (SCRIPTS / "render_screenshots.sh").read_text()
-        for name in ("screenshots.init.gradle", "PageScreenshotTest.kt.template", "-Pscreenshots.template", "check_screenshot_package.py"):
-            self.assertIn(name, sh)
+        render = (SCRIPTS / "render_screenshots.py").read_text()
+        for name in ("screenshots.init.gradle", "PageScreenshotTest.kt.template", "-Pscreenshots.template", "problems"):
+            self.assertIn(name, render)
+
+    def test_each_action_runs_scripts_that_exist(self):
+        for action in ("app-icon", "screenshots", "readme"):
+            text = (ACTIONS / action / "action.yml").read_text()
+            self.assertIn("using: composite", text, action)
+            used = {name for name in __import__("re").findall(r"scripts/([\w.]+\.py)", text)}
+            self.assertTrue(used, action)
+            for script in used:
+                self.assertTrue((SCRIPTS / script).is_file(), f"{action} runs scripts/{script}, which does not exist")
 
     def test_the_block_tells_claude_about_the_screenshot_package(self):
         block = s.claude_block()

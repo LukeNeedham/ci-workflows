@@ -75,8 +75,10 @@ the `config` job provides the values to the build. The same job skips the whole 
 
 The `app-icon` job renders `app-icon.png` (a 512x512 circle on a transparent background) from the app's
 adaptive launcher icon on every PR and commits it to the PR branch when it differs
-([app-icon.md](docs/app-icon.md)). The path is fixed, not an input. It fetches
-[`scripts/render_app_icon.py`](scripts/render_app_icon.py) from this repo at run time.
+([app-icon.md](docs/app-icon.md)). The path is fixed, not an input. The `screenshots` and `readme` jobs do the same for
+`docs/screenshots/` and `README.md`. Each of the three is a composite action in
+[`.github/actions/`](.github/actions) that runs the Python scripts of [`scripts/`](scripts) from its own checkout; the
+jobs of `android_pr.yml` only call them.
 
 `closed` has to be among the caller's `pull_request` types: that is the event that triggers the
 cleanup. Everything else (`opened`, `reopened`, `synchronize`) runs the build. A manual run
@@ -199,8 +201,8 @@ Changes to `main` affect every project at once, so:
 
 1. Make the change on a branch and open a PR.
 2. To try it before merging, point a test PR in a consuming repo at the branch
-   (`...android_pr_build.yml@my-branch`), then switch it back to `@main`. A script in `scripts/` that a workflow
-   downloads (the app icon renderer) is always fetched from `main`, so it can only be tried once merged.
+   (`...android_pr_build.yml@my-branch`), then switch it back to `@main`. A composite action that a workflow calls
+   (`.github/actions/...@main`) has its own `@main` in the workflow: point it at the branch too while you try it.
 3. Merge, then watch the next real run in a consuming repo.
 
 When a consuming project's CI behaves oddly, the project's own caller files are usually fine; look

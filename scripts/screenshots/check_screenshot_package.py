@@ -12,9 +12,16 @@ Prints what is wrong and exits 1 if anything is.
 
 import re
 import sys
+from pathlib import Path
 
 PREVIEW_FUNCTION = re.compile(r"private fun \w+\(\s*\)\s*\{?\s*$")
 ANNOTATION_ONLY = re.compile(r"@\w+(\.\w+)*(\([^)]*\))?\s*$")
+
+
+def package_files(app_dir):
+    """The Kotlin files of the screenshot package of the app at [app_dir]: those in a `screenshot` folder under app/src."""
+    src = Path(app_dir) / "app" / "src"
+    return sorted(p for p in src.rglob("*.kt") if p.parent.name == "screenshot" and "build" not in p.relative_to(src).parts)
 
 
 def problems(text):

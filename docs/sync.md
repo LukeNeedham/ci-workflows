@@ -64,11 +64,19 @@ same secret. It is only ever sent to `github.com` and `api.github.com`, and is m
 ```
 SYNC_TOKEN=github_pat_... python3 scripts/sync_apps.py            # every app
 python3 scripts/sync_apps.py --dry-run --apps AppHub              # clone, show the changes, push nothing
-python3 -m unittest discover -s scripts                           # the tests (needs pyyaml)
+python3 -m unittest discover -s internal-scripts                  # the tests (needs pyyaml)
 python3 scripts/generate_readme.py path/to/app --repo owner/name  # render an app's README.md (needs pyyaml)
 ```
 
 `--dry-run` needs no token for a public repo.
+
+## What starts a sync
+
+[`sync_apps.yml`](../.github/workflows/sync_apps.yml) runs on a push to `main` that changes `skills/**`, `callers/**`,
+`apps.json` or **`scripts/**`** (the whole folder: the scripts that the workflows and actions run on the apps, and the
+sync itself), every Monday, and by hand. The folder `internal-scripts/` (the tests) is not in that list: nothing in it
+reaches an app, so changing it starts no sync. A script that is used only inside this repo belongs there, not in
+`scripts/`; the `test` job of the workflow runs for both.
 
 ## Changing what is synced
 

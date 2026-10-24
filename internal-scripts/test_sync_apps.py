@@ -1,9 +1,10 @@
-"""Tests for sync_apps.py. Run: python3 -m unittest discover -s scripts"""
+"""Tests for sync_apps.py. Run: python3 -m unittest discover -s internal-scripts"""
 
 import tempfile
 import unittest
 from pathlib import Path
 
+import _paths  # noqa: F401
 import sync_apps as s
 
 TOOLS = s.TOOLS

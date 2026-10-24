@@ -6,6 +6,7 @@ from pathlib import Path
 
 import yaml
 
+import _paths  # noqa: F401
 import generate_readme as g
 
 TEMPLATE = Path(__file__).resolve().parent.parent / "docs" / "readme-template.yml"
