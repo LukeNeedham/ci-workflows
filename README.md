@@ -49,6 +49,12 @@ Every app keeps its README content in a handwritten `readme.yml`; CI renders `RE
 (icon, name, description, getting started as a user and as a developer, license and so on), so the layout is
 enforced from here: **[docs/readme.md](docs/readme.md)**, skeleton in [docs/readme-template.yml](docs/readme-template.yml).
 
+## Pages
+
+Every page of every app is an `XPage` (gets the ViewModel and the navigation, no UI) plus an `internal`, stateless
+`XPageContent` (all the UI, with the previews): **[docs/pages.md](docs/pages.md)**, including how to migrate an existing
+app. The README screenshots are rendered from them by CI: [docs/screenshots.md](docs/screenshots.md).
+
 ## Setting up a project
 
 **See [docs/setup.md](docs/setup.md)** for the caller files to copy (they need no editing), how a project's settings

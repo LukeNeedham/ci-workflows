@@ -26,7 +26,9 @@ class ScreenshotsSetupTest(unittest.TestCase):
     def test_the_block_tells_claude_about_the_screenshot_package(self):
         block = s.claude_block()
         self.assertIn("package `screenshot`", block)
-        self.assertIn("nothing is shared", block)
+        self.assertIn("is shared between screenshots", block)
+        self.assertIn("docs/pages.md", block)
+        self.assertIn("never `XScreen`", block)
         self.assertNotIn("AppScreenshotMockData", block)
 
 

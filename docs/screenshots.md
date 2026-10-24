@@ -13,33 +13,10 @@ pages and its `screenshot` package.
 
 ## The page pattern
 
-Every page (screen) of an app is **two composables**:
-
-```kotlin
-/** The page: gets its ViewModel, collects the state and delegates. No preview, nothing else. */
-@Composable
-fun HomePage(onOpenSettings: () -> Unit) {
-    val viewModel = koinViewModel<HomeViewModel>()
-    val state by viewModel.uiState.collectAsStateWithLifecycle()
-    HomePageContent(state = state, onRefresh = viewModel::refresh, onOpenSettings = onOpenSettings)
-}
-
-/** All of the page's UI: state down, events up. No ViewModel, no Koin. `internal`, so the screenshots can use it. */
-@Composable
-internal fun HomePageContent(state: HomeUiState, onRefresh: () -> Unit, onOpenSettings: () -> Unit) { /* ... */ }
-
-/** For Android Studio, whatever helps while building the page: empty, loading, error, dark. */
-@Preview
-@Composable
-private fun HomePageContentPreview() {
-    AppTheme { HomePageContent(state = HomeUiState(isLoading = false), onRefresh = {}, onOpenSettings = {}) }
-}
-```
-
-- **`XPage`** holds the ViewModel (and one-off event collection, lifecycle effects) and passes state and callbacks on.
-  It is **not previewable**: it needs Koin and a ViewModel.
-- **`XPageContent`** renders everything and takes only state and callbacks, so it can be previewed with fake state.
-- **`XPageContentPreview`**, next to the page, are the general previews, for development. Nothing renders them in CI.
+The screenshots rely on how every page is built, defined in **[pages.md](pages.md)**: each page is an `XPage` (it gets
+the ViewModel; no preview) and an `internal`, stateless `XPageContent` (all the UI, with the general previews
+`XPageContentPreview`). A screenshot renders the `XPageContent` of its page with mock data, and is separate from the
+general previews.
 
 ## The `screenshot` package
 

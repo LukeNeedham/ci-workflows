@@ -125,9 +125,11 @@ changes. Do not create or edit it by hand. See [app-icon.md](app-icon.md).
 ## 5. README
 
 Write the app's **`readme.yml`** by hand, from [readme-template.yml](readme-template.yml): name, tagline,
-description (with the highlights of what the app does; no feature list), minimum Android version, structure and license. CI renders `README.md` from it in the
-standard layout ([readme.md](readme.md)) and commits it to the PR branch, so never edit `README.md`. The icon in it
-is the CI-generated `app-icon.png`, so there is nothing to add for it.
+description (with the highlights of what the app does; no feature list) and license, plus anything specific to developing
+the app. **Not the minimum Android version, the setup or the architecture**: the generator reads the minimum Android version from
+`minSdk` of the project and supplies the generic setup, and the architecture is the same in every app (below). CI renders
+`README.md` from it in the standard layout ([readme.md](readme.md)) and commits it to the PR branch, so never edit
+`README.md`. The icon in it is the CI-generated `app-icon.png`, so there is nothing to add for it.
 
 **Screenshots are required** (except for an app with no UI worth showing, which sets `screenshots: false`): add a
 `screenshot` package in `src/debug`, with one file per page that deserves a screenshot (its mock data and a `@Preview` that renders
@@ -139,9 +141,11 @@ ci-workflows.
 
 Defaults for a normal app. If the user asks for something else, do that instead.
 
-- **Pages are `XPage` + `XPageContent`.** Each screen is a thin `XPage` composable that gets the ViewModel and
-  delegates to a stateless, previewable `XPageContent`; the README screenshots of the pages are previews in the
-  `screenshot` package ([screenshots.md](screenshots.md#the-page-pattern)).
+- **Pages are `XPage` + `XPageContent`, always** ([pages.md](pages.md)). Each screen is a thin, public `XPage`
+  composable that gets the ViewModel, collects the state and handles navigation as lambdas, and delegates all UI to an
+  `internal`, stateless `XPageContent` (state down, events up) that has the previews. Never `XScreen`, `XContent` or a
+  screen that mixes the two. The README screenshots of the pages are previews in the `screenshot` package
+  ([screenshots.md](screenshots.md)).
 - **Single activity.** One `MainActivity` (extending `ComponentActivity`) hosts the whole UI. Screens
   are composables, never extra activities or fragments.
 - **Jetpack Compose, themed by the app's own `AppTheme`** (a hand-made composition local, never
@@ -213,7 +217,7 @@ sections you skipped and why. Such an app, with no UI worth showing, sets `scree
 - [ ] `app/debug.keystore` committed and used by the `debug` signing config
 - [ ] All four callers copied unchanged (`trigger_on_pull_request.yml`, `build_main.yml`, `delete_prereleases.yml`, `release.yml`), module `:app`, default branch `main`
 - [ ] Adaptive launcher icon in place (CI then generates `app-icon.png` at the repo root on the first PR)
-- [ ] Every page is an `XPage` + `XPageContent`; a `screenshot` package with a file per screenshotted page and its README ([screenshots.md](screenshots.md)), or `screenshots: false`
+- [ ] Every page is an `XPage` + `XPageContent`, named and split as in [pages.md](pages.md); a `screenshot` package with a file per screenshotted page and its README ([screenshots.md](screenshots.md)), or `screenshots: false`
 - [ ] Handwritten `readme.yml` ([readme.md](readme.md)); CI generates `README.md` from it
 - [ ] Single activity, Compose, Navigation 3, MVVM, Koin for DI, Coil 3 for images, or a stated reason for each departure
 - [ ] [app-conventions.md](app-conventions.md) followed: strings in `strings.xml`, own `AppTheme` (no `MaterialTheme`), a preview per composable, 48dp touch targets
