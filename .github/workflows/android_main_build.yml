@@ -23,7 +23,7 @@ jobs:
       cancel-in-progress: true
     steps:
       - id: config
-        uses: LukeNeedham/ci-workflows/.github/actions/app-config@claude/standard-readme-format-382cvu
+        uses: LukeNeedham/ci-workflows/.github/actions/app-config@main
 
       - uses: actions/checkout@v4
 

@@ -43,11 +43,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - id: config
-        uses: LukeNeedham/ci-workflows/.github/actions/app-config@claude/standard-readme-format-382cvu
+        uses: LukeNeedham/ci-workflows/.github/actions/app-config@main
 
       - uses: actions/checkout@v4
 
-      - uses: LukeNeedham/ci-workflows/.github/actions/ci-scripts@claude/standard-readme-format-382cvu
+      - uses: LukeNeedham/ci-workflows/.github/actions/ci-scripts@main
 
       # Every app has this caller, but only an app that was set up for releases can run it. Fail first, with
       # everything that is missing in one message, before anything is tagged or built.
