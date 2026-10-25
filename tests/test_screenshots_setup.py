@@ -37,6 +37,7 @@ class ScreenshotsSetupTest(unittest.TestCase):
         # Gradle must always run the test: skipping it as up to date would render nothing
         self.assertIn("outputs.upToDateWhen { false }", init)
         self.assertIn("outputs.cacheIf { false }", init)
+        self.assertIn("exceptionFormat 'full'", init)  # a failing preview says why in the CI log
         test = (SCRIPTS / "screenshots" / "test" / "PageScreenshotTest.kt").read_text()
         self.assertIn('captureRoboImage("build/screenshots/', test)
         render = (SCRIPTS / "render_screenshots.py").read_text()
