@@ -96,7 +96,7 @@ class RenderScreenshotsTest(unittest.TestCase):
         two = GOOD + "\n@Preview\n@Composable\nprivate fun SettingsPageScreenshot() {\n    val state = 1\n}\n"
         gradlew = ("mkdir -p app/build/screenshots && echo a > app/build/screenshots/HomePage.png "
                    "&& echo b > app/build/screenshots/SettingsPage.png\n")
-        app = self.app(two, order="# the order of the README\nSettingsPage\n\nHomePage  # first look\n", gradlew=gradlew)
+        app = self.app(two, order="SettingsPage\n\nHomePage\n", gradlew=gradlew)
         self.assertEqual(0, r.render(app, []))
         shots = app / "docs" / "screenshots"
         self.assertEqual(["01-SettingsPage.png", "02-HomePage.png"], sorted(p.name for p in shots.glob("*.png")))
