@@ -184,7 +184,8 @@ Defaults for a normal app. If the user asks for something else, do that instead.
 - **MVVM with unidirectional data flow.** Each screen has a `ViewModel` exposing one immutable
   `UiState` as a `StateFlow`; the composable collects it with `collectAsStateWithLifecycle()` and
   sends user actions as plain function calls up to the ViewModel. State goes down, events go up.
-  Composables hold no business logic.
+  Composables hold no business logic. **One ViewModel per screen, never shared between screens** ([pages.md](pages.md#names-and-files)):
+  state that several screens need lives in a repository (a Koin `single`), not in a ViewModel they have in common.
 - **Coroutines and Flow** for async work; `viewModelScope` for work tied to a screen.
 - **Layers.** UI (composables + ViewModels) → domain/data (repositories). Keep Android types out of
   the lower layer so it can be unit-tested on the JVM.
