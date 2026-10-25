@@ -69,6 +69,12 @@ allprojects {
             // take it from the build cache, or nothing would be rendered
             outputs.upToDateWhen { false }
             outputs.cacheIf { false }
+            // A failing preview must say why in the CI log: the whole chain of causes, not only the first exception
+            testLogging {
+                exceptionFormat 'full'
+                showCauses true
+                showStackTraces true
+            }
         }
     }
 }
