@@ -19,6 +19,8 @@ class ScreenshotsSetupTest(unittest.TestCase):
         self.assertIn('scanPackageTrees("${System.getProperty("screenshots.package")}.screenshot")', test)
         self.assertNotIn("Preview()", test)
         self.assertIn("require(names.distinct()", test)
+        # Every screenshot is rendered in inspection mode, as in Android Studio, so no screenshot wraps itself for it
+        self.assertIn("LocalInspectionMode provides true", test)
         self.assertFalse(list((SCRIPTS / "screenshots").glob("*.template")))
 
     def test_the_init_script_sets_the_namespace_and_the_script_hands_over_the_test(self):

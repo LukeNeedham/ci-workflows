@@ -1,6 +1,8 @@
 package com.lukeneedham.screenshots
 
 import android.app.Application
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onRoot
 import com.github.takahirom.roborazzi.captureRoboImage
@@ -31,7 +33,9 @@ class PageScreenshotTest(private val preview: ComposablePreview<AndroidPreviewIn
 
     @Test
     fun render() {
-        composeRule.setContent { preview() }
+        // Inspection mode, as in Android Studio: the pages skip what a preview cannot do (Koin, playing video), so the
+        // screenshots of an app need no wrapper of their own for it
+        composeRule.setContent { CompositionLocalProvider(LocalInspectionMode provides true) { preview() } }
         // The tests run in the app module's directory
         composeRule.onRoot().captureRoboImage("build/screenshots/${preview.methodName.removeSuffix(SUFFIX)}.png")
     }
