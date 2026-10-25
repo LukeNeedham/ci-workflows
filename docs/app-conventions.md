@@ -65,13 +65,21 @@ object AppTheme {
 
 ## Composables and previews
 
+<a id="previews"></a>
+
 - **One composable per file**, named after it, with its `@Preview` in the same file. Skip this for
   trivial composables (a few lines, used by one parent only): keep those next to their parent.
+- **A preview is a `private` function in the file of its composable, named `preview`.** A file with several previews
+  (other data: empty, loading, error) keeps `preview` for the main one and adds a differentiator to the others:
+  `previewEmpty`, `previewLoading`. It is `private` so that the same name in every file never clashes, and the name says
+  nothing about the composable because the file does. The previews of the `screenshot` package are the exception: they
+  are named `XScreenshot`, since their names are unique across the package and become the images and the lines of
+  `order.txt` ([screenshots.md](screenshots.md)).
 - **Every composable has a preview, except trivial ones.** Previews wrap the content in `AppTheme` and
   use fake `UiState` / sample data, so they need no ViewModel, Koin or network.
 - **Every page is an `XPage` and an `XPageContent`**, defined in [pages.md](pages.md): `XPage` holds its `XViewModel` and
   delegates all UI to the stateless, `internal` `XPageContent` (state down, events up), which always has at least one `private` general preview in its file
-  (`XPageContentPreview`), all in the file `XPage.kt`. Any README screenshots are separate (a page can have several, or none): a file per page that has some in the
+  (`private fun preview()`), all in the file `XPage.kt`. Any README screenshots are separate (a page can have several, or none): a file per page that has some in the
   app's `screenshot` package, with its own mock data ([screenshots.md](screenshots.md)).
 
 ## One-off events

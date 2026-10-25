@@ -67,7 +67,7 @@ below are enough.
   it gets its ViewModel, always named **`XViewModel`** (`koinViewModel<XViewModel>()`), collects the state, handles
   lifecycle and one-off events, turns navigation into lambdas, and only calls `XPageContent`; no preview.
   `XPageContent` is `internal` and stateless (an `XUiState` and one lambda per action; no ViewModel, Koin, `Flow` or
-  navigator) and **always has at least one `private` `@Preview` in the same file** (`XPageContentPreview`, more if they help). All of it is in `XPage.kt`, the ViewModel and state in
+  navigator) and **always has at least one `private` `@Preview` in the same file** (named `preview`; see Previews below). All of it is in `XPage.kt`, the ViewModel and state in
   `XViewModel.kt`. Never `XScreen`, `XContent` or `XView`. **The navigation key is always `XNavKey`**
   (`entry<XNavKey> { XPage(...) }`; never `X`, `XKey` or `XRoute`).
 - **README screenshots live in one package, `<app package>.screenshot`, in `src/debug`**: a file per page that has
@@ -104,6 +104,9 @@ below are enough.
   the composable, take only the typeface from the theme.
 - **One composable per file with its `@Preview`** (fake `UiState`, wrapped in `AppTheme`), and a preview for
   every composable; trivial ones can sit next to their parent and skip both.
+- **Previews:** a preview is a `private fun preview()` in the file of its composable; with several in a file, the main
+  one is `preview` and the others `preview` plus a differentiator (`previewEmpty`, `previewLoading`). (The `screenshot`
+  package is the exception: `XScreenshot`, unique across the package.)
 - **One-off events** go through a `Channel` exposed as a `Flow` (`receiveAsFlow()`), never in `UiState`.
 - **Touch targets** at least 48dp by 48dp for anything clickable: `Modifier.minimumInteractiveComponentSize()`.
 - **Release builds are minified** (`isMinifyEnabled = true`, `isShrinkResources = true`) with keep rules.

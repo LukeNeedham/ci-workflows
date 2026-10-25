@@ -21,8 +21,7 @@ pages and its `screenshot` package.
 ## The page pattern
 
 The screenshots rely on how every page is built, defined in **[pages.md](pages.md)**: each page is an `XPage` (it gets
-the ViewModel; no preview) and an `internal`, stateless `XPageContent` (all the UI, with the general previews
-`XPageContentPreview`). A screenshot renders the `XPageContent` of its page with mock data, and is separate from the
+the ViewModel; no preview) and an `internal`, stateless `XPageContent` (all the UI, with its general `preview` functions). A screenshot renders the `XPageContent` of its page with mock data, and is separate from the
 general previews.
 
 ## The `screenshot` package
@@ -71,7 +70,7 @@ private fun HomePageScreenshot() {
   screenshots are independent of the app and of the general previews:
   - not between pages, and not between the screenshots of one page: a second screenshot has its own copy of what it
     shows, even if it looks the same;
-  - not with the general previews (`XPageContentPreview`), nor with any sample data of the app.
+  - not with the general `preview` functions, nor with any sample data of the app.
 
   So a file holds **nothing at the top level but private `@Preview` composables** without parameters, with the data and
   any helper inside the body. A top-level `val`, `object` or helper function, or a non-private declaration, would be a way
