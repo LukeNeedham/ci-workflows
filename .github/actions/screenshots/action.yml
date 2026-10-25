@@ -1,64 +1,41 @@
 name: Screenshots
 description: >
-  Renders the README screenshots of the app into docs/screenshots/, from the @Preview composables of its
-  `screenshot` package, and commits them to the branch of the pull request when they differ. Skips an app that has
-  no such package (a WebView wrapper): its screenshots in docs/screenshots/ are committed by hand and left alone. Used by
-  the `screenshots` job of android_pr.yml; see docs/screenshots.md. The job needs `contents: write`.
+  Commits the README screenshots to the branch of the pull request when they differ from the ones in docs/screenshots/.
+  The build job of android_pr_build.yml renders them (from the @Preview composables of the app's `screenshot` package,
+  in the same Gradle run as the APK) and uploads them as the artifact `screenshots`; this action takes them from there.
+  Used by the `screenshots` job of android_pr.yml; see docs/screenshots.md. The job needs `contents: write`.
 
 inputs:
-  java-version:
-    description: The JDK version of the app's builds
+  state:
+    description: 'What the build job made of the screenshots: rendered, or failed'
     required: true
 
 runs:
   using: composite
   steps:
-    - uses: actions/checkout@v4
-      with:
-        repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
-        ref: ${{ github.head_ref || github.ref_name }}
+    - uses: LukeNeedham/ci-workflows/.github/actions/checkout-pr-branch@main
 
-    - name: Check that the app has screenshots to render
-      id: wanted
+    - name: Stop if the screenshots could not be rendered
+      if: inputs.state != 'rendered'
+      shell: bash
+      run: |
+        echo "::error::The screenshots could not be rendered: see the 'Render the screenshots' step of the build job"
+        exit 1
+
+    - uses: actions/download-artifact@v4
+      with:
+        name: screenshots
+        path: ${{ runner.temp }}/screenshots
+
+    - name: Replace docs/screenshots with the rendered ones
       shell: bash
       env:
-        ACTION_PATH: ${{ github.action_path }}
-      run: python3 "$ACTION_PATH/../../../scripts/screenshots_wanted.py" .
-
-    # Temurin, not the shared distribution: the Zulu build that setup-java resolves to is a CRaC build, under which
-    # the Robolectric native runtime aborted at random
-    - name: Set up JDK
-      if: steps.wanted.outputs.skip != 'true'
-      uses: actions/setup-java@v4
-      with:
-        java-version: ${{ inputs.java-version }}
-        distribution: temurin
-
-    - name: Set up Gradle
-      if: steps.wanted.outputs.skip != 'true'
-      uses: gradle/actions/setup-gradle@v4
-      with:
-        cache-read-only: ${{ github.event_name == 'pull_request' && github.base_ref == github.event.repository.default_branch }}
-
-    - name: Render the screenshots
-      if: steps.wanted.outputs.skip != 'true'
-      shell: bash
-      env:
-        ACTION_PATH: ${{ github.action_path }}
-      run: python3 "$ACTION_PATH/../../../scripts/render_screenshots.py" --no-daemon --build-cache
+        RENDERED: ${{ runner.temp }}/screenshots
+      run: |
+        rm -rf docs/screenshots
+        mkdir -p docs
+        cp -r "$RENDERED" docs/screenshots
 
     - name: Commit the screenshots if they changed
-      if: steps.wanted.outputs.skip != 'true'
       shell: bash
-      env:
-        ACTION_PATH: ${{ github.action_path }}
-        IS_PR: ${{ github.event_name == 'pull_request' }}
-        IS_FORK: ${{ github.event.pull_request.head.repo.full_name != github.repository }}
-        BRANCH: ${{ github.head_ref }}
-      run: |
-        python3 "$ACTION_PATH/../../../scripts/commit_generated.py" \
-          --paths docs/screenshots \
-          --what "The screenshots" \
-          --source "the screenshot previews" \
-          --regenerate "scripts/render_screenshots.py (see docs/screenshots.md)" \
-          --message "Regenerate the screenshots from the page previews"
+      run: python3 "$CI_SCRIPTS/commit_generated.py" screenshots

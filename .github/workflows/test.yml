@@ -1,0 +1,36 @@
+name: Test
+
+# The tests of the scripts (tests/) and a lint of the workflows. The workflows cannot be run before they are merged
+# (they call each other at @main), so actionlint is the check that catches a typo in one of them.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths:
+      - 'scripts/**'
+      - 'tests/**'
+      - 'apps.json'
+      - 'callers/**'
+      - 'skills/**'
+      - 'docs/**'
+      - '.github/**'
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Test the scripts
+        run: |
+          pip install --quiet pyyaml
+          python3 -m unittest discover -s tests
+
+      - name: Lint the workflows
+        run: |
+          bash <(curl -fsSL https://raw.githubusercontent.com/rhysd/actionlint/v1.7.7/scripts/download-actionlint.bash) 1.7.7
+          ./actionlint -color

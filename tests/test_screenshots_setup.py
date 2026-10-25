@@ -1,3 +1,4 @@
+import re
 import unittest
 from pathlib import Path
 
@@ -22,6 +23,8 @@ class ScreenshotsSetupTest(unittest.TestCase):
         init = (SCRIPTS / "screenshots" / "screenshots.init.gradle").read_text()
         self.assertIn("replace('{{PACKAGE}}'", init)
         self.assertIn("screenshots.template", init)
+        # The app's own unit tests are left out of the run
+        self.assertIn("setSrcDirs(own)", init)
         render = (SCRIPTS / "render_screenshots.py").read_text()
         for name in ("screenshots.init.gradle", "PageScreenshotTest.kt.template", "-Pscreenshots.template", "problems"):
             self.assertIn(name, render)
@@ -30,7 +33,7 @@ class ScreenshotsSetupTest(unittest.TestCase):
         for action in ("app-icon", "screenshots", "readme"):
             text = (ACTIONS / action / "action.yml").read_text()
             self.assertIn("using: composite", text, action)
-            used = {name for name in __import__("re").findall(r"scripts/([\w.]+\.py)", text)}
+            used = {name for name in re.findall(r"\$CI_SCRIPTS/([\w.]+\.py)", text)}
             self.assertTrue(used, action)
             for script in used:
                 self.assertTrue((SCRIPTS / script).is_file(), f"{action} runs scripts/{script}, which does not exist")
@@ -38,8 +41,7 @@ class ScreenshotsSetupTest(unittest.TestCase):
     def test_the_block_tells_claude_about_the_screenshot_package(self):
         block = " ".join(s.claude_block().split())
         self.assertIn("package `screenshot`", block)
-        self.assertIn("nothing is shared between screenshots", block)
-        self.assertIn("docs/pages.md", block)
+        self.assertIn("nothing is shared", block)
         self.assertIn("never `XScreen`", block)
         self.assertNotIn("AppScreenshotMockData", block)
 

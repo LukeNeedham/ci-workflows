@@ -8,6 +8,12 @@ outputs:
   skip:
     description: 'true when the run has nothing to do: the PR targets a branch other than main, or changes only the Claude skill'
     value: ${{ steps.config.outputs.skip }}
+  generate:
+    description: 'true when the run builds and generates files: a pull request that is not closed, or a manual run, that is not skipped'
+    value: ${{ steps.config.outputs.generate }}
+  cleanup:
+    description: 'true when the run cleans up the build releases of a pull request that was closed'
+    value: ${{ steps.config.outputs.cleanup }}
   apk-path:
     value: ${{ steps.config.outputs.apk-path }}
   gradle-task:

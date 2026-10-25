@@ -47,7 +47,7 @@ private fun HomePageScreenshot() {
 - **A page can have any number of screenshots**: several previews in its file, each with its own data
   (`HomePageScreenshot`, `HomeEmptyPageScreenshot`), as many as are worth showing. **A page can have none**: a page
   with no file has no screenshot, so leave out the pages that are not worth showing. The app needs at least one
-  screenshot in all, not one per page, and always at least one: there is no option to go without.
+  screenshot in all, not one per page, and always at least one.
 - **Nothing is shared.** Every screenshot owns its data, so that changing one never changes another, and the
   screenshots are independent of the app and of the general previews:
   - not between pages, and not between the screenshots of one page: a second screenshot has its own copy of what it
@@ -65,30 +65,36 @@ private fun HomePageScreenshot() {
 
 ## What CI does
 
-The `screenshots` job of [`android_pr.yml`](../.github/workflows/android_pr.yml) runs on every PR, before the
-[README](readme.md) job. Its steps are the composite action
-[`.github/actions/screenshots`](../.github/actions/screenshots/action.yml), which runs the Python scripts of
-[`scripts/`](../scripts) from its own checkout (so they are always the version of the action, never fetched from
-elsewhere):
+The screenshots are made by **two jobs of [`android_pr.yml`](../.github/workflows/android_pr.yml)**, so that the app is
+compiled once: the `build` job renders them right after the APK, and the `screenshots` job commits them.
 
-1. [`screenshots_wanted.py`](../scripts/screenshots_wanted.py) skips the job, with a notice, if the app has no
-   `screenshot` package with Kotlin files: its screenshots in `docs/screenshots/` are committed by hand, and stay.
-2. [`render_screenshots.py`](../scripts/render_screenshots.py) runs in the app. It uses the Gradle init script
-   [`screenshots.init.gradle`](../scripts/screenshots/screenshots.init.gradle), the test
-   [template](../scripts/screenshots/PageScreenshotTest.kt.template) and the
-   [package check](../scripts/screenshots/check_screenshot_package.py) next to it, fails if the package shares
-   anything, deletes `docs/screenshots/`, and runs
-   `./gradlew testDebugUnitTest --tests '*PageScreenshotTest' --init-script …`.
-3. The init script, applied only for that run, adds the test dependencies (Roborazzi, Robolectric, the Compose test
-   rule, the preview scanner), turns on resources for unit tests, and generates `PageScreenshotTest` from the
-   template, for the app's namespace. The test renders every preview of the `screenshot` package on the JVM
-   (Robolectric native graphics, no emulator) at a fixed phone size and writes the PNGs. It fails if nothing was rendered.
-4. [`commit_generated.py`](../scripts/commit_generated.py), shared with the app icon and README actions, **commits the
-   PNGs to the PR branch** if they differ from the committed ones: pull the bot's commit before pushing again.
+1. In the `build` job ([`android_pr_build.yml`](../.github/workflows/android_pr_build.yml)), after the APK is built and
+   published (so the APK is never held up by the screenshots):
+   - [`screenshots_wanted.py`](../scripts/screenshots_wanted.py) skips the rendering, with a notice, if the app has no
+     `screenshot` package with Kotlin files: its screenshots in `docs/screenshots/` are committed by hand, and stay.
+   - [`render_screenshots.py`](../scripts/render_screenshots.py) fails if the package shares anything, deletes
+     `docs/screenshots/`, and runs `./gradlew testDebugUnitTest --tests '*PageScreenshotTest' --init-script …`, with the
+     Gradle init script [`screenshots.init.gradle`](../scripts/screenshots/screenshots.init.gradle) and the test
+     [template](../scripts/screenshots/PageScreenshotTest.kt.template) next to it.
+   - The init script, applied only for that run, adds the test dependencies (Roborazzi, Robolectric, the Compose test
+     rule, the preview scanner), turns on resources for unit tests, and generates `PageScreenshotTest` from the template,
+     for the app's namespace. **That test is the only unit test of the run**: the app's own unit tests are left out of the
+     source set, so a broken test of the app cannot fail the screenshots. It renders every preview of the `screenshot`
+     package on the JVM (Robolectric native graphics, no emulator) at a fixed phone size and writes the PNGs. It fails if
+     nothing was rendered.
+   - The PNGs are uploaded as the artifact `screenshots`. A failure of the rendering **does not fail the build** (the APK is
+     fine); the `screenshots` job fails instead.
+2. The `screenshots` job ([`.github/actions/screenshots`](../.github/actions/screenshots/action.yml)) is skipped when
+   nothing was rendered. Otherwise it checks out the PR branch, replaces `docs/screenshots/` with the artifact and
+   [`commit_generated.py`](../scripts/commit_generated.py) (shared with the app icon and README actions) **commits the PNGs
+   to the PR branch** if they differ from the committed ones: pull the bot's commit before pushing again. If the rendering
+   failed, the job fails and points at the `Render the screenshots` step of the build job.
 
-PRs from forks cannot be committed to, so there the job fails if the screenshots are out of date. The job runs on a
-Temurin JDK, because the Zulu build that `setup-java` resolves to is a CRaC build under which the Robolectric native
-runtime aborted at random.
+The images are rendered from the merge commit that the build checks out, and committed to the PR branch.
+
+PRs from forks cannot be committed to, so there the job fails if the screenshots are out of date. The build runs on a
+Temurin JDK (the shared setting), because the Zulu build that `setup-java` resolves to is a CRaC build under which the
+Robolectric native runtime aborted at random.
 
 ## In the app
 

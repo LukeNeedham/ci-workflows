@@ -26,7 +26,7 @@ class Settings(unittest.TestCase):
         self.assertEqual("app/build/outputs/apk/debug/app-debug.apk", out["apk-path"])
         self.assertEqual("assembleDebug", out["gradle-task"])
         self.assertEqual("17", out["java-version"])
-        self.assertEqual("zulu", out["java-distribution"])
+        self.assertEqual("temurin", out["java-distribution"])
         self.assertEqual("Europe/Amsterdam", out["timezone"])
         self.assertEqual("assembleRelease", out["release-gradle-task"])
         self.assertEqual("app/build/outputs/apk/release/app-release.apk", out["release-apk-path"])
@@ -40,6 +40,23 @@ class Settings(unittest.TestCase):
         text = (TOOLS / ".github/actions/app-config/action.yml").read_text()
         outputs = text.split("\noutputs:\n")[1].split("\nruns:\n")[0]
         self.assertEqual(set(re.findall(r"(?m)^  ([a-z-]+):$", outputs)), set(run()))
+
+
+class Jobs(unittest.TestCase):
+    def jobs(self, **kwargs):
+        out = run(**kwargs)
+        return out["generate"], out["cleanup"]
+
+    def test_an_open_pr_and_a_manual_run_build_and_generate(self):
+        self.assertEqual(("true", "false"), self.jobs(event="pull_request", action="synchronize"))
+        self.assertEqual(("true", "false"), self.jobs(event="workflow_dispatch", action=""))
+
+    def test_a_closed_pr_cleans_up_and_generates_nothing(self):
+        self.assertEqual(("false", "true"), self.jobs(event="pull_request", action="closed"))
+
+    def test_a_skipped_run_does_neither(self):
+        self.assertEqual(("false", "false"), self.jobs(event="pull_request", action="opened", base="develop"))
+        self.assertEqual(("false", "false"), self.jobs(event="pull_request", action="closed", base="develop"))
 
 
 class Skipping(unittest.TestCase):

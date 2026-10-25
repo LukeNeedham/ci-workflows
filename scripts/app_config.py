@@ -29,7 +29,7 @@ SETTINGS = {
     "apk-path": "app/build/outputs/apk/debug/app-debug.apk",
     "gradle-task": "assembleDebug",
     "java-version": "17",
-    "java-distribution": "zulu",
+    "java-distribution": "temurin",
     "timezone": "Europe/Amsterdam",
     "release-gradle-task": "assembleRelease",
     "release-apk-path": "app/build/outputs/apk/release/app-release.apk",
@@ -74,7 +74,14 @@ def run(repo, event, action, base, files):
     """The outputs for the workflow, and the lines to tell the user in the log."""
     reason = skip_reason(event, action, base, files)
     log = [f"::notice::Nothing to do: {reason}."] if reason else []
-    return {"skip": "true" if reason else "false", **settings(repo)}, log
+    closed = event == "pull_request" and action == "closed"
+    todo = {
+        "skip": reason is not None,
+        # What the jobs of android_pr.yml do: everything but a closed PR builds and generates; a closed PR cleans up
+        "generate": reason is None and not closed,
+        "cleanup": reason is None and closed,
+    }
+    return {**{k: "true" if v else "false" for k, v in todo.items()}, **settings(repo)}, log
 
 
 def main():

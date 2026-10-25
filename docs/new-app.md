@@ -126,13 +126,15 @@ changes. Do not create or edit it by hand. See [app-icon.md](app-icon.md).
 ## 5. README
 
 Write the app's **`readme.yml`** by hand, from [readme-template.yml](readme-template.yml): name, tagline,
-description (with the highlights of what the app does; no feature list) and license, plus anything specific to developing
-the app. **Not the minimum Android version, the setup or the architecture**: the generator reads the minimum Android version from
-`minSdk` of the project and supplies the generic setup, and the architecture is the same in every app (below). CI renders
+description (with the highlights of what the app does; no feature list), plus `links` (Play Store, F-Droid, the production
+web deploy) if it has any and anything specific to developing the app. **Not the minimum Android version, the license, the
+setup or the architecture**: the generator reads the minimum Android version from `minSdk` of the project and the license from
+the **`LICENSE` file, which every app has** (an app without a license gets `Copyright (c) <year> Luke Needham. All rights
+reserved.`), supplies the generic setup, and the architecture is the same in every app (below). CI renders
 `README.md` from it in the standard layout ([readme.md](readme.md)) and commits it to the PR branch, so never edit
 `README.md`. The icon in it is the CI-generated `app-icon.png`, so there is nothing to add for it.
 
-**Every app has screenshots, with no option to go without**: add a
+**Every app has screenshots**: add a
 `screenshot` package in `src/debug`, with a file for each page that has screenshots (a page can have several, or none;
 each screenshot is a `@Preview` that owns its mock data and renders the page's content) and a README
 ([screenshots.md](screenshots.md)). CI then renders every preview of the package

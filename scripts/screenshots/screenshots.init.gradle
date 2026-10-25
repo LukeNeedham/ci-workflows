@@ -44,7 +44,13 @@ allprojects {
                 file.text = template.text.replace('{{PACKAGE}}', namespace)
             }
         }
-        android.sourceSets.test.java.srcDir(generatedDir)
+        // The run renders screenshots and nothing else, so the test source set holds only the generated test: the app's
+        // own unit tests are not compiled, and a broken one cannot fail the screenshots
+        android.sourceSets.matching { it.name ==~ /test([A-Z].*)?/ }.configureEach { sourceSet ->
+            def own = sourceSet.name == 'test' ? [generatedDir.get().asFile] : []
+            sourceSet.java.setSrcDirs(own)
+            sourceSet.extensions.findByName('kotlin')?.setSrcDirs(own)
+        }
         tasks.configureEach { task ->
             if (task.name ==~ /compile.*UnitTestKotlin/) task.dependsOn(generate)
         }

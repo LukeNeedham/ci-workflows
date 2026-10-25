@@ -5,8 +5,8 @@ name: Sync Apps
 # ci-workflows". The logic is scripts/sync_apps.py; setup, including the SYNC_TOKEN secret, is docs/sync.md.
 #
 # What starts a sync is the whole of scripts/: a change there reaches every app's CI (the code that the workflows
-# and actions run on the apps, and the sync itself), the skill, the callers and apps.json. tests/ (the tests) never does: nothing in it
-# reaches an app.
+# and actions run on the apps, and the sync itself), the skill, the callers and apps.json. tests/ never does:
+# nothing in it reaches an app. The tests run in test.yml.
 
 on:
   push:
@@ -24,33 +24,12 @@ on:
         description: Only these apps, comma-separated names or repos. Empty syncs all
         type: string
         default: ''
-  pull_request:
-    # The tests run for anything they test, including the scripts of the actions
-    paths:
-      - 'scripts/**'
-      - 'tests/**'
-      - 'apps.json'
-      - 'callers/**'
-      - 'skills/**'
-      - '.github/actions/**'
-      - '.github/workflows/sync_apps.yml'
 
 permissions:
   contents: read
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Test the scripts
-        run: |
-          pip install --quiet pyyaml
-          python3 -m unittest discover -s tests
-
   sync:
-    needs: test
-    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     # One sync at a time: two would push the same branches
     concurrency:

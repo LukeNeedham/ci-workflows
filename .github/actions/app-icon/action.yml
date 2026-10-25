@@ -7,33 +7,15 @@ description: >
 runs:
   using: composite
   steps:
-    # The PR's own branch, not the merge commit, so the result can be pushed back to it
-    - uses: actions/checkout@v4
-      with:
-        repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
-        ref: ${{ github.head_ref || github.ref_name }}
+    - uses: LukeNeedham/ci-workflows/.github/actions/checkout-pr-branch@main
 
-    # The scripts are in this action's own checkout, three directories up
     - name: Render the app icon
       shell: bash
-      env:
-        ACTION_PATH: ${{ github.action_path }}
       run: |
         sudo apt-get install -y --no-install-recommends libcairo2 > /dev/null
         pip install --quiet cairosvg pillow
-        python3 "$ACTION_PATH/../../../scripts/render_app_icon.py" .
+        python3 "$CI_SCRIPTS/render_app_icon.py" .
 
     - name: Commit the app icon if it changed
       shell: bash
-      env:
-        ACTION_PATH: ${{ github.action_path }}
-        IS_PR: ${{ github.event_name == 'pull_request' }}
-        IS_FORK: ${{ github.event.pull_request.head.repo.full_name != github.repository }}
-        BRANCH: ${{ github.head_ref }}
-      run: |
-        python3 "$ACTION_PATH/../../../scripts/commit_generated.py" \
-          --paths app-icon.png \
-          --what app-icon.png \
-          --source "the adaptive launcher icon" \
-          --regenerate "scripts/render_app_icon.py (see docs/app-icon.md)" \
-          --message "Regenerate app-icon.png from the adaptive launcher icon"
+      run: python3 "$CI_SCRIPTS/commit_generated.py" app-icon

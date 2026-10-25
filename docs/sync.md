@@ -79,8 +79,9 @@ sync itself), every Monday, and by hand.
 **What `scripts/` means: a change here reaches every app's CI.** It is not "the folder of scripts" but the code that
 the shared workflows and actions run inside the apps, so any change to it can change an app's build, and starts a sync.
 That is why the whole folder is the trigger, with no list of files to keep up to date. Everything else that is only
-for this repo, namely the tests in `tests/`, is outside it and starts no sync; a script used only inside this repo
-belongs in `tests/` (or another folder), not in `scripts/`. The `test` job of the workflow runs for both.
+for this repo, namely the tests in `tests/`, is outside it and starts no sync; a script used only inside this repo does
+not belong in `scripts/`. The tests, and a lint of the workflows (actionlint), run in
+[`test.yml`](../.github/workflows/test.yml).
 
 ## Changing what is synced
 

@@ -14,18 +14,43 @@ BUILD = 'android {\n    compileSdk = 36\n    defaultConfig {\n        minSdk = 2
 SHOTS = ["docs/screenshots/HomePage.png", "docs/screenshots/PullRequestPage.png"]
 
 
+class app:
+    """A folder with the files that the README needs from the project: a screenshot and a LICENSE."""
+
+    def __init__(self, screenshots=True, license="MIT License\n"):
+        self.screenshots, self.license = screenshots, license
+
+    def __enter__(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        folder = Path(self.tmp.name)
+        if self.screenshots:
+            (folder / "docs" / "screenshots").mkdir(parents=True)
+            (folder / "docs" / "screenshots" / "HomePage.png").write_bytes(b"png")
+        if self.license is not None:
+            (folder / "LICENSE").write_text(self.license)
+        return folder
+
+    def __exit__(self, *exc):
+        self.tmp.cleanup()
+
+
 def data():
     return yaml.safe_load(TEMPLATE.read_text())
 
 
+def facts(**kwargs):
+    return g.Facts(**{"min_sdk": 26, "compile_sdk": 36, "screenshots": SHOTS, "license": "MIT", **kwargs})
+
+
 def render(d=None, **kwargs):
-    return g.render(d or data(), "LukeNeedham/Demo", 26, kwargs.pop("screenshots", SHOTS), kwargs.pop("compile_sdk", 36))
+    return g.render(d or data(), "LukeNeedham/Demo", facts(**kwargs))
 
 
 class GenerateReadmeTest(unittest.TestCase):
     def test_the_template_is_valid(self):
         self.assertEqual([], g.problems(data()))
-        self.assertEqual([], g.problems(data(), ["docs/screenshots/HomePage.png"]))
+        with app() as folder:
+            self.assertEqual([], g.problems(data(), folder))
 
     def test_the_layout_is_the_standard_one(self):
         text = render()
@@ -35,12 +60,13 @@ class GenerateReadmeTest(unittest.TestCase):
         self.assertLess(text.index("app-icon.png"), text.index("# Demo App"))
         self.assertIn("git clone https://github.com/LukeNeedham/Demo.git", text)
         self.assertIn("Edit readme.yml", text)
+        self.assertIn("JDK 17", text)
 
     def test_the_minimum_android_version_and_platform_come_from_the_project(self):
         text = render()
         self.assertIn("Requires Android 8.0 (API 26) or newer.", text)
         self.assertIn("Android SDK (platform 36)", text)
-        self.assertIn("Requires Android API 99 or newer.", g.render(data(), "LukeNeedham/Demo", 99, SHOTS))
+        self.assertIn("Requires Android API 99 or newer.", render(min_sdk=99))
         self.assertIn("the Android SDK, for example", render(compile_sdk=None))
 
     def test_the_architecture_is_not_in_the_readme_data_but_pointed_to(self):
@@ -75,25 +101,78 @@ class GenerateReadmeTest(unittest.TestCase):
                                          "Create local.properties.", "## Privacy", "## Contributing")]
         self.assertEqual(sorted(order), order)
 
-    def test_a_closed_app_links_no_license_file_and_install_can_be_replaced(self):
+    def test_the_install_step_can_be_replaced(self):
         d = data()
-        d["license"] = "All rights reserved"
         d["user"] = {"install": "Get the APK from a PR."}
         text = render(d)
-        self.assertNotIn("LICENSE", text)
-        self.assertTrue(text.rstrip().endswith("All rights reserved."))
         self.assertIn("1. Get the APK from a PR.", text)
         self.assertNotIn("apphub", text.lower().replace("app-icon", ""))
-        self.assertIn("See [LICENSE](LICENSE).", render())
+
+    def test_the_license_is_the_one_of_the_license_file_and_always_linked(self):
+        self.assertTrue(render(license="MIT").rstrip().endswith("MIT. See [LICENSE](LICENSE)."))
+        self.assertTrue(render(license="All rights reserved").rstrip().endswith("All rights reserved. See [LICENSE](LICENSE)."))
+
+    def test_the_license_is_no_field_of_the_data(self):
+        d = data()
+        d["license"] = "MIT"
+        self.assertIn("`license` is not a field", "\n".join(g.problems(d)))
+
+    def test_the_license_file_is_required_and_named_by_its_wording(self):
+        with app(license=None) as folder:
+            self.assertIn("no LICENSE file", "\n".join(g.problems(data(), folder)))
+        with app(license="  \n") as folder:
+            self.assertIn("no LICENSE file", "\n".join(g.problems(data(), folder)))
+        cases = {
+            "MIT License\n\nCopyright (c) 2025 Someone\n": "MIT",
+            "Apache License\n Version 2.0, January 2004": "Apache 2.0",
+            "                    GNU GENERAL PUBLIC LICENSE\n                       Version 3, 29 June 2007": "GPL 3.0",
+            "Copyright (c) 2026 Luke Needham. All rights reserved.\n": "All rights reserved",
+            "Some custom terms\nand more": "Some custom terms",
+        }
+        for text, name in cases.items():
+            self.assertEqual(name, g.license_name(text), text)
+
+    def test_links_sit_under_the_tagline_and_the_stores_are_offered_to_install_from(self):
+        d = data()
+        d["links"] = {"play-store": "https://play.google.com/x", "f-droid": "https://f-droid.org/y",
+                      "web": "https://demo.example.com", "other": [{"title": "Privacy", "url": "https://example.com/p"}]}
+        self.assertEqual([], g.problems(d))
+        text = render(d)
+        line = "[Google Play](https://play.google.com/x) · [F-Droid](https://f-droid.org/y) · [Web app](https://demo.example.com) · [Privacy](https://example.com/p)"
+        self.assertIn(line, text)
+        self.assertLess(text.index("# Demo App"), text.index(line))
+        self.assertLess(text.index(line), text.index("## Description"))
+        self.assertIn("1. Install it from [Google Play](https://play.google.com/x) or [F-Droid](https://f-droid.org/y), or get the latest build",
+                      text)
+        self.assertNotIn("·", render())
+
+    def test_bad_links_are_reported(self):
+        for links, expected in (({"play-store": "http://plain.example.com"}, "`links.play-store` must be an https URL"),
+                                ({"steam": "https://x.com"}, "unknown field `links.steam`"),
+                                ({"other": [{"title": "x"}]}, "`links.other[0]` needs"), ("https://x.com", "`links` must be a mapping")):
+            d = data()
+            d["links"] = links
+            self.assertIn(expected, "\n".join(g.problems(d)))
+
+    def test_free_text_cannot_add_a_section(self):
+        d = data()
+        d["description"] = "Text.\n\n## Features\n\n- a\n\n```\n# a comment in code\n```\n\n### Fine"
+        found = "\n".join(g.problems(d))
+        self.assertIn("`description` has the heading `## Features`", found)
+        self.assertNotIn("a comment in code", found)
+        self.assertNotIn("Fine", found)
+        d["description"] = "Text."
+        d["developer"] = {"notes": "# Notes"}
+        d["sections"] = [{"title": "Privacy", "body": "## Inner"}]
+        found = "\n".join(g.problems(d))
+        self.assertIn("`developer.notes` has the heading", found)
+        self.assertIn("`sections[0].body` has the heading", found)
 
     def test_every_app_has_screenshots_and_there_is_no_option_to_go_without(self):
-        self.assertTrue(any("no screenshots" in f for f in g.problems(data(), [])))
-        self.assertEqual([], g.problems(data(), ["docs/screenshots/Home.png"]))
-        for value in (False, True, [{"path": "a.png"}]):
-            d = data()
-            d["screenshots"] = value
-            found = "\n".join(g.problems(d, ["docs/screenshots/Home.png"]))
-            self.assertIn("the `screenshots` option is gone", found)
+        with app(screenshots=False) as folder:
+            self.assertTrue(any("no screenshots" in f for f in g.problems(data(), folder)))
+        with app() as folder:
+            self.assertEqual([], g.problems(data(), folder))
 
     def test_the_screenshots_section_lists_every_image_of_the_folder(self):
         text = render()
@@ -101,7 +180,7 @@ class GenerateReadmeTest(unittest.TestCase):
 
     def test_problems_name_what_is_missing(self):
         text = "\n".join(g.problems({"name": "X", "extra": 1}))
-        for expected in ("unknown field `extra`", "`tagline` is required", "`description` is required", "`license` is required"):
+        for expected in ("unknown field `extra`", "`tagline` is required", "`description` is required"):
             self.assertIn(expected, text)
 
 
@@ -146,15 +225,16 @@ class CommandLineTest(unittest.TestCase):
             app = Path(tmp)
             run = lambda *a: subprocess.run([sys.executable, script, tmp, "--repo", "LukeNeedham/Demo", *a], capture_output=True, text=True)
             (app / "readme.yml").write_text(TEMPLATE.read_text())
-            self.assertEqual(1, run().returncode)  # no screenshots yet
+            self.assertEqual(1, run().returncode)  # no screenshots and no LICENSE yet
             (app / "docs" / "screenshots").mkdir(parents=True)
             (app / "docs" / "screenshots" / "HomePage.png").write_bytes(b"png")
+            (app / "LICENSE").write_text("MIT License\n")
             self.assertIn("minimum Android version", run().stderr)  # no build file to read the minimum Android version from
             (app / "app").mkdir()
             (app / "app" / "build.gradle.kts").write_text(BUILD)
             self.assertEqual(1, run("--check").returncode)
             self.assertEqual(0, run().returncode)
-            self.assertEqual(g.render(data(), "LukeNeedham/Demo", 26, ["docs/screenshots/HomePage.png"], 36), (app / "README.md").read_text())
+            self.assertEqual(g.render(data(), "LukeNeedham/Demo", facts(screenshots=("docs/screenshots/HomePage.png",))), (app / "README.md").read_text())
             self.assertEqual(0, run("--check").returncode)
             (app / "README.md").write_text("edited by hand\n")
             self.assertEqual(1, run("--check").returncode)

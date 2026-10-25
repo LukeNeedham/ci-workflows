@@ -12,7 +12,7 @@ get an option to differ from it.
 | Debug APK | `app/build/outputs/apk/debug/app-debug.apk` |
 | Release APK | `app/build/outputs/apk/release/app-release.apk` (`assembleRelease`), published as `<RepoName>.apk` |
 | Branch | `main`. PRs into any other branch are not built |
-| JDK | 17, Zulu |
+| JDK | 17, Temurin |
 | Timezone of the timestamps | `Europe/Amsterdam` |
 | PR comment id | `<repo name, lower case>-app-link` |
 | Library | The shared library ([library.md](library.md)), with `DebugKit.init` called first thing and `Logger` used for logging. The debug pages are optional |

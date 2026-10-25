@@ -34,10 +34,16 @@ on:
         description: Sticky comment id
         type: string
         required: true
+    outputs:
+      screenshots:
+        description: 'What became of the README screenshots: rendered (uploaded as the artifact screenshots), failed, or skipped (nothing to render)'
+        value: ${{ jobs.build.outputs.screenshots }}
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      screenshots: ${{ steps.shots.outcome == 'success' && 'rendered' || (steps.shots.outcome == 'failure' && 'failed' || 'skipped') }}
     # A newer push to the same PR cancels the running build, so an older build cannot finish last
     # and overwrite the newer build's comment.
     concurrency:
@@ -144,6 +150,29 @@ jobs:
             - **Commit:** [`${{ steps.prev.outputs.short-sha }}`](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.event.pull_request.head.sha }})
             - **Built:** ${{ steps.meta.outputs.time }}
             - **Run:** [#${{ github.run_number }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+
+      # The README screenshots, rendered after the APK is out, in the same Gradle run (the debug classes are already
+      # built), from the @Preview composables of the app's screenshot package. They are only handed on as an artifact:
+      # the screenshots job of android_pr.yml commits them to the PR branch. A failure does not fail the build (the APK
+      # is fine); the screenshots job fails instead, and says to look here. Skipped for an app without such a package.
+      - name: Check that the app has screenshots to render
+        if: github.event_name == 'pull_request'
+        id: shots-wanted
+        run: python3 "$CI_SCRIPTS/screenshots_wanted.py" .
+
+      - name: Render the screenshots
+        id: shots
+        if: github.event_name == 'pull_request' && steps.shots-wanted.outputs.skip != 'true'
+        continue-on-error: true
+        run: python3 "$CI_SCRIPTS/render_screenshots.py" --no-daemon --build-cache
+
+      - name: Keep the screenshots for the job that commits them
+        if: steps.shots.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots
+          path: docs/screenshots
+          if-no-files-found: error
 
       # Don't leave the comment claiming a build is in progress if the job dies
       # A run cancelled by a newer push must stay quiet: the newer run owns the comment now.

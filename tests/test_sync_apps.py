@@ -116,7 +116,7 @@ class SyncApp(unittest.TestCase):
 
     def test_the_block_tells_claude_the_readme_standard(self):
         s.sync_claude_md(self.dir)
-        self.assertIn("docs/readme.md", (self.dir / "CLAUDE.md").read_text())
+        self.assertIn("docs/readme-template.yml", (self.dir / "CLAUDE.md").read_text())
 
     def test_the_readme_source_is_reported_but_nothing_is_written(self):
         self.assertEqual("readme.yml is missing", s.readme_note(self.dir))
@@ -125,6 +125,8 @@ class SyncApp(unittest.TestCase):
         self.write("readme.yml", (TOOLS / "docs/readme-template.yml").read_text())
         self.assertIn("no screenshots", s.readme_note(self.dir))
         self.write("docs/screenshots/Home.png", "png")
+        self.assertIn("no LICENSE file", s.readme_note(self.dir))
+        self.write("LICENSE", "MIT License\n")
         self.assertEqual("", s.readme_note(self.dir))
         s.sync_app(self.dir)
         self.assertFalse((self.dir / "README.md").exists())

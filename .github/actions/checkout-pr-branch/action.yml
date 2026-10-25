@@ -1,0 +1,15 @@
+name: Check out the PR branch
+description: >
+  Checks out the head branch of the pull request (not the merge commit), so that a file generated from it can be
+  committed back to that branch, and makes the shared scripts available as $CI_SCRIPTS. Used by the actions that
+  generate files: app-icon, screenshots and readme.
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/checkout@v4
+      with:
+        repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+        ref: ${{ github.head_ref || github.ref_name }}
+
+    - uses: LukeNeedham/ci-workflows/.github/actions/ci-scripts@main

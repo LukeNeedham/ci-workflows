@@ -1,7 +1,8 @@
 import subprocess
 import tempfile
 import unittest
-from argparse import Namespace
+import json
+from types import SimpleNamespace
 from pathlib import Path
 
 import _paths  # noqa: F401
@@ -13,8 +14,8 @@ def git(cwd, *args):
 
 
 def args(**kwargs):
-    return Namespace(**{"paths": ["docs/screenshots"], "what": "The screenshots", "source": "the page previews",
-                        "regenerate": "scripts/render_screenshots.py", "message": "Regenerate the screenshots", **kwargs})
+    return SimpleNamespace(**{"paths": ["docs/screenshots"], "what": "The screenshots", "source": "the page previews",
+                              "regenerate": "scripts/render_screenshots.py", "message": "Regenerate the screenshots", **kwargs})
 
 
 class CommitGeneratedTest(unittest.TestCase):
@@ -33,7 +34,10 @@ class CommitGeneratedTest(unittest.TestCase):
         git(self.app, "commit", "-qm", "first")
         git(self.app, "push", "-q", "origin", "HEAD:refs/heads/feature")
         git(self.app, "checkout", "-q", "-B", "feature", "origin/feature")
-        self.pr = {"IS_PR": "true", "IS_FORK": "false", "BRANCH": "feature"}
+        event = Path(self.tmp.name) / "event.json"
+        event.write_text(json.dumps({"pull_request": {"head": {"repo": {"full_name": "o/app"}}}}))
+        self.pr = {"GITHUB_EVENT_NAME": "pull_request", "GITHUB_EVENT_PATH": str(event), "GITHUB_REPOSITORY": "o/app",
+                   "GITHUB_HEAD_REF": "feature", "GITHUB_ACTOR": "luke"}
 
     def tearDown(self):
         self.tmp.cleanup()
@@ -60,9 +64,15 @@ class CommitGeneratedTest(unittest.TestCase):
 
     def test_a_run_that_cannot_commit_fails_with_how_to_regenerate(self):
         (self.app / "docs" / "screenshots" / "Home.png").write_text("two")
-        for env in ({**self.pr, "IS_PR": "false"}, {**self.pr, "IS_FORK": "true"}):
-            self.assertEqual(1, c.run(args(), env, cwd=self.app))
+        for env in ({**self.pr, "GITHUB_EVENT_NAME": "push"}, {**self.pr, "GITHUB_REPOSITORY": "o/other"},
+                    {**self.pr, "GITHUB_ACTOR": "dependabot[bot]"}, {**self.pr, "GITHUB_HEAD_REF": ""}):
+            self.assertEqual(1, c.run(args(), env, cwd=self.app), env)
             self.assertEqual(1, self.commits())
+
+    def test_the_three_kinds_name_what_they_generate(self):
+        self.assertEqual(["app-icon", "readme", "screenshots"], sorted(c.KINDS))
+        for kind in c.KINDS.values():
+            self.assertTrue(kind.paths and kind.what and kind.source and kind.regenerate and kind.message)
 
     def test_a_path_that_never_existed_is_no_change(self):
         self.assertEqual(0, c.run(args(paths=["nothing/here.png"]), self.pr, cwd=self.app))
@@ -79,6 +89,21 @@ class CommitGeneratedTest(unittest.TestCase):
         (self.app / "docs" / "screenshots" / "Home.png").write_text("two")
         self.assertEqual(0, c.run(args(), self.pr, cwd=self.app))
         self.assertEqual(3, self.commits())
+
+    def test_two_races_in_a_row_are_retried_too(self):
+        (self.app / "docs" / "screenshots" / "Home.png").write_text("two")
+        other = Path(self.tmp.name) / "other"
+        git(self.tmp.name, "clone", "-q", "-b", "feature", str(self.remote), str(other))
+        git(other, "config", "user.name", "o")
+        git(other, "config", "user.email", "o@o")
+        # A hook on the remote that lets another job get in before the first push is accepted, then a second time
+        hook = self.remote / "hooks" / "pre-receive"
+        counter = Path(self.tmp.name) / "count"
+        hook.write_text(f"#!/bin/sh\nn=$(cat {counter} 2>/dev/null || echo 0)\necho $((n+1)) > {counter}\n"
+                        f"if [ \"$n\" -lt 2 ]; then echo racing >&2; exit 1; fi\n")
+        hook.chmod(0o755)
+        self.assertEqual(0, c.run(args(), self.pr, cwd=self.app))
+        self.assertEqual("3", counter.read_text().strip())
 
 
 if __name__ == "__main__":

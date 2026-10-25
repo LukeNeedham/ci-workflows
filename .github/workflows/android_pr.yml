@@ -17,7 +17,8 @@ jobs:
   config:
     runs-on: ubuntu-latest
     outputs:
-      skip: ${{ steps.config.outputs.skip }}
+      generate: ${{ steps.config.outputs.generate }}
+      cleanup: ${{ steps.config.outputs.cleanup }}
       apk-path: ${{ steps.config.outputs.apk-path }}
       gradle-task: ${{ steps.config.outputs.gradle-task }}
       java-version: ${{ steps.config.outputs.java-version }}
@@ -35,29 +36,38 @@ jobs:
   # .github/actions/app-icon (docs/app-icon.md).
   # Pushes made with the workflow token do not start new workflow runs, so there is no loop; they also
   # mean the checks do not run again on that commit (the APK does not contain app-icon.png).
+  # The three jobs that commit (this, screenshots and readme) each cancel their own older run for the PR: a run that
+  # a newer push has replaced must not commit files made from the old code on top of the new.
   app-icon:
     needs: config
-    if: needs.config.outputs.skip != 'true' && (github.event_name != 'pull_request' || github.event.action != 'closed')
+    if: needs.config.outputs.generate == 'true'
     runs-on: ubuntu-latest
+    concurrency:
+      group: android-pr-app-icon-${{ github.repository }}-${{ github.event.pull_request.number || github.ref }}
+      cancel-in-progress: true
     permissions:
       contents: write
     steps:
       - uses: LukeNeedham/ci-workflows/.github/actions/app-icon@main
 
-  # The screenshots of the README, rendered on the JVM from the @Preview of every composable of the app's
-  # screenshot package and committed to the PR branch into docs/screenshots/ when they differ. An app that has no
-  # such package (a WebView wrapper, whose screenshots are committed by hand) skips it. The steps are in
-  # .github/actions/screenshots (docs/screenshots.md).
+  # The screenshots of the README. They are rendered by the build job, in the same Gradle run as the APK, from the
+  # @Preview of every composable of the app's screenshot package (an app without such a package, a WebView wrapper,
+  # commits its screenshots by hand and has nothing rendered). This job commits them to the PR branch into
+  # docs/screenshots/ when they differ. It is skipped when nothing was rendered, and fails when the rendering failed.
+  # The steps are in .github/actions/screenshots (docs/screenshots.md).
   screenshots:
-    needs: config
-    if: needs.config.outputs.skip != 'true' && (github.event_name != 'pull_request' || github.event.action != 'closed')
+    needs: [config, build]
+    if: ${{ !cancelled() && needs.config.outputs.generate == 'true' && contains(fromJSON('["rendered","failed"]'), needs.build.outputs.screenshots) }}
     runs-on: ubuntu-latest
+    concurrency:
+      group: android-pr-screenshots-${{ github.repository }}-${{ github.event.pull_request.number || github.ref }}
+      cancel-in-progress: true
     permissions:
       contents: write
     steps:
       - uses: LukeNeedham/ci-workflows/.github/actions/screenshots@main
         with:
-          java-version: ${{ needs.config.outputs.java-version }}
+          state: ${{ needs.build.outputs.screenshots }}
 
   # The README.md of every app is rendered from its readme.yml, in the layout of docs/readme.md, so the format
   # cannot drift. Render on every PR and commit the result to the PR branch when it differs. An app without a
@@ -65,8 +75,11 @@ jobs:
   # branch, and this one starts from their commit. The steps are in .github/actions/readme.
   readme:
     needs: [config, screenshots]
-    if: ${{ !cancelled() && needs.config.outputs.skip != 'true' && (github.event_name != 'pull_request' || github.event.action != 'closed') }}
+    if: ${{ !cancelled() && needs.config.outputs.generate == 'true' }}
     runs-on: ubuntu-latest
+    concurrency:
+      group: android-pr-readme-${{ github.repository }}-${{ github.event.pull_request.number || github.ref }}
+      cancel-in-progress: true
     permissions:
       contents: write
     steps:
@@ -74,8 +87,7 @@ jobs:
 
   build:
     needs: config
-    # Everything except a PR being closed
-    if: needs.config.outputs.skip != 'true' && (github.event_name != 'pull_request' || github.event.action != 'closed')
+    if: needs.config.outputs.generate == 'true'
     uses: LukeNeedham/ci-workflows/.github/workflows/android_pr_build.yml@main
     with:
       gradle-task: ${{ needs.config.outputs.gradle-task }}
@@ -87,5 +99,5 @@ jobs:
 
   cleanup:
     needs: config
-    if: needs.config.outputs.skip != 'true' && github.event_name == 'pull_request' && github.event.action == 'closed'
+    if: needs.config.outputs.cleanup == 'true'
     uses: LukeNeedham/ci-workflows/.github/workflows/android_pr_cleanup.yml@main
