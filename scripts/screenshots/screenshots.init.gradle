@@ -39,7 +39,10 @@ allprojects {
         android.sourceSets.matching { it.name ==~ /test([A-Z].*)?/ }.configureEach { sourceSet ->
             def own = sourceSet.name == 'test' ? [testSources] : []
             sourceSet.java.setSrcDirs(own)
-            sourceSet.extensions.findByName('kotlin')?.setSrcDirs(own)
+            // Kotlin source directories: an extension of the source set with the Kotlin Gradle plugin, a property of it with the
+            // Kotlin support built into AGP 9, where the java directories hold no Kotlin files
+            def kotlinDirs = sourceSet.extensions.findByName('kotlin') ?: (sourceSet.hasProperty('kotlin') ? sourceSet.kotlin : null)
+            kotlinDirs?.setSrcDirs(own)
         }
 
         // The source set model differs between Kotlin plugin versions and still held src/test/kotlin of the app, so the
