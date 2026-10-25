@@ -16,7 +16,7 @@ composable in its own file, and a dialog or sheet is drawn by the `XPageContent`
 | Job | Connects the page to the app: gets its ViewModel (**`XViewModel`**), collects its state, handles lifecycle and one-off events, and turns navigation into plain lambdas | **All of the page's UI** |
 | Takes | What the navigation gives it: the page's arguments and the navigation callbacks (`onBack`, `onOpenDetail`) | The page's `XUiState` and **one lambda per user action** (state down, events up) |
 | Never | Draws any UI of its own: it only calls `XPageContent` | Touches a ViewModel, Koin, a `Flow`, a repository or a navigator; starts work of its own; holds business logic |
-| Previewable | **No**: it needs Koin and a ViewModel | **Yes, always**: every `XPageContent` has at least one `private` `@Preview` composable, named `preview`, in the same file, with fake state |
+| Previewable | **No**: it needs Koin and a ViewModel | **Yes, always**: every `XPageContent` has at least one `private` `@Preview` composable, named `Preview`, in the same file, with fake state |
 
 ```kotlin
 // ui/HomePage.kt
@@ -47,7 +47,7 @@ internal fun HomePageContent(
 /** For Android Studio, whatever helps while building the page: empty, loading, error, dark. */
 @Preview
 @Composable
-private fun preview() {
+private fun Preview() {
     AppTheme { HomePageContent(state = HomeUiState(isLoading = false), onRefresh = {}, onOpenDetail = {}, onOpenSettings = {}) }
 }
 ```
@@ -73,7 +73,7 @@ needed, or passes it to `XPageContent` as a plain parameter ([app-conventions.md
   does not match the page; and its state is `HomeUiState`. **Never** `HomeScreen`, `HomeContent`, `HomeView` or
   `HomeScreenContent` for the composables: the suffix is always `Page` and `PageContent`.
 - **One file per page, `HomePage.kt`, holding `HomePage`, `HomePageContent` and the general previews**
-  (**every `XPageContent` has at least one, and each is `private` in that file, named `preview`**; see
+  (**every `XPageContent` has at least one, and each is `private` in that file, named `Preview`**; see
   [Previews](app-conventions.md#previews) for the name when there are several). The ViewModel and the state are in
   `HomeViewModel.kt`. This is the one exception to "one composable per file" ([app-conventions.md](app-conventions.md#composables-and-previews)).
 - **The navigation key of `XPage` is always `XNavKey`** (`HomePage` is `HomeNavKey`, `PullRequestPage` is
