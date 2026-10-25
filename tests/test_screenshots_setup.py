@@ -25,6 +25,11 @@ class ScreenshotsSetupTest(unittest.TestCase):
         self.assertIn("screenshots.template", init)
         # The app's own unit tests are left out of the run
         self.assertIn("setSrcDirs(own)", init)
+        # Gradle must always run the test: skipping it as up to date would render nothing
+        self.assertIn("outputs.upToDateWhen { false }", init)
+        self.assertIn("outputs.cacheIf { false }", init)
+        template = (SCRIPTS / "screenshots" / "PageScreenshotTest.kt.template").read_text()
+        self.assertIn('captureRoboImage("build/screenshots/', template)
         render = (SCRIPTS / "render_screenshots.py").read_text()
         for name in ("screenshots.init.gradle", "PageScreenshotTest.kt.template", "-Pscreenshots.template", "problems"):
             self.assertIn(name, render)

@@ -72,8 +72,7 @@ compiled once: the `build` job renders them right after the APK, and the `screen
    published (so the APK is never held up by the screenshots):
    - [`screenshots_wanted.py`](../scripts/screenshots_wanted.py) skips the rendering, with a notice, if the app has no
      `screenshot` package with Kotlin files: its screenshots in `docs/screenshots/` are committed by hand, and stay.
-   - [`render_screenshots.py`](../scripts/render_screenshots.py) fails if the package shares anything, deletes
-     `docs/screenshots/`, and runs `./gradlew testDebugUnitTest --tests '*PageScreenshotTest' --init-script …`, with the
+   - [`render_screenshots.py`](../scripts/render_screenshots.py) fails if the package shares anything, and runs `./gradlew testDebugUnitTest --tests '*PageScreenshotTest' --init-script …`, with the
      Gradle init script [`screenshots.init.gradle`](../scripts/screenshots/screenshots.init.gradle) and the test
      [template](../scripts/screenshots/PageScreenshotTest.kt.template) next to it.
    - The init script, applied only for that run, adds the test dependencies (Roborazzi, Robolectric, the Compose test
@@ -81,7 +80,9 @@ compiled once: the `build` job renders them right after the APK, and the `screen
      for the app's namespace. **That test is the only unit test of the run**: the app's own unit tests are left out of the
      source set, so a broken test of the app cannot fail the screenshots. It renders every preview of the `screenshot`
      package on the JVM (Robolectric native graphics, no emulator) at a fixed phone size and writes the PNGs. It fails if
-     nothing was rendered.
+     nothing was rendered. The test always runs (never up to date, never from the build cache), and writes into
+     `app/build/screenshots/`; **only once all of them are rendered does the script replace `docs/screenshots/` with them**,
+     so a failed run leaves the committed screenshots as they are.
    - The PNGs are uploaded as the artifact `screenshots`. A failure of the rendering **does not fail the build** (the APK is
      fine); the `screenshots` job fails instead.
 2. The `screenshots` job ([`.github/actions/screenshots`](../.github/actions/screenshots/action.yml)) is skipped when

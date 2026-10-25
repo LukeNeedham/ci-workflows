@@ -4,7 +4,7 @@
 // hold nothing for it. For the run it adds the test dependencies (the versions are here and only here), turns on
 // Android resources for unit tests, and generates the test class PageScreenshotTest from the template given as the
 // project property screenshots.template. That test renders every @Preview of the screenshot package of the app's
-// namespace to docs/screenshots/<Name>.png.
+// namespace to build/screenshots/<Name>.png of the app module.
 
 allprojects {
     pluginManager.withPlugin('com.android.application') {
@@ -58,6 +58,10 @@ allprojects {
         tasks.withType(Test).configureEach {
             // Roborazzi writes the images it captures only when asked to record
             systemProperty 'roborazzi.test.record', 'true'
+            // The images are the only output that matters, and Gradle does not know them: never skip the run as up to
+            // date or take it from the build cache, or nothing would be rendered
+            outputs.upToDateWhen { false }
+            outputs.cacheIf { false }
         }
     }
 }

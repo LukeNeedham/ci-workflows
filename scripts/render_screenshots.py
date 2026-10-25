@@ -4,8 +4,9 @@ app's screenshot package (docs/screenshots.md in LukeNeedham/ci-workflows).
 
     python3 render_screenshots.py [--app DIR] [gradle arguments...]
 
-It checks that the package shares nothing, deletes docs/screenshots/, and runs the app's Gradle with an init script
-that adds the test dependencies and generates the test (scripts/screenshots/). Needs the Android SDK. The CI
+It checks that the package shares nothing and runs the app's Gradle with an init script that adds the test dependencies
+and generates the test (scripts/screenshots/). The test renders into app/build/screenshots/; only when every
+screenshot is rendered does that replace docs/screenshots/ (so a failed run leaves the committed ones as they are). Needs the Android SDK. The CI
 runs it through the `screenshots` action; to run it yourself, clone ci-workflows and point it at an app:
 
     python3 ci-workflows/scripts/render_screenshots.py --app path/to/app
@@ -40,8 +41,8 @@ def render(app_dir, gradle_args):
         return 1
     if not check_package(app_dir):
         return 1
-    # Start from nothing, so that a page that was removed or renamed drops out
-    shutil.rmtree(app_dir / "docs" / "screenshots", ignore_errors=True)
+    rendered = app_dir / "app" / "build" / "screenshots"
+    shutil.rmtree(rendered, ignore_errors=True)
     result = subprocess.run(
         [str(app_dir / "gradlew"), "testDebugUnitTest", "--tests", "*PageScreenshotTest",
          "--init-script", str(SCREENSHOTS / "screenshots.init.gradle"),
@@ -50,10 +51,15 @@ def render(app_dir, gradle_args):
     )
     if result.returncode != 0:
         return result.returncode
-    if not list((app_dir / "docs" / "screenshots").glob("*.png")):
+    if not list(rendered.glob("*.png")):
         print("The screenshot test rendered nothing. The screenshot package needs a @Preview per screenshot "
               "(docs/screenshots.md).", file=sys.stderr)
         return 1
+    # Replace the committed ones as a whole, so that a page that was removed or renamed drops out
+    target = app_dir / "docs" / "screenshots"
+    shutil.rmtree(target, ignore_errors=True)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copytree(rendered, target)
     return 0
 
 

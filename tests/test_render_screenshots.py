@@ -18,7 +18,7 @@ private fun HomePageScreenshot() {
 
 
 class RenderScreenshotsTest(unittest.TestCase):
-    def app(self, source, gradlew="mkdir -p docs/screenshots && echo png > docs/screenshots/HomePage.png\necho \"$@\" > gradle-args.txt\n"):
+    def app(self, source, gradlew="mkdir -p app/build/screenshots && echo png > app/build/screenshots/HomePage.png\necho \"$@\" > gradle-args.txt\n"):
         tmp = tempfile.TemporaryDirectory()
         self.addCleanup(tmp.cleanup)
         app = Path(tmp.name)
@@ -40,7 +40,7 @@ class RenderScreenshotsTest(unittest.TestCase):
         for expected in ("testDebugUnitTest", "*PageScreenshotTest", "--init-script", "screenshots.init.gradle",
                          "-Pscreenshots.template=", "PageScreenshotTest.kt.template", "--no-daemon"):
             self.assertIn(expected, args)
-        # Start from nothing: the stale image is gone
+        # The rendered set replaces the committed one as a whole: the stale image is gone
         self.assertEqual(["HomePage.png"], [p.name for p in (app / "docs" / "screenshots").glob("*.png")])
 
     def test_a_package_that_shares_something_is_refused_before_gradle_runs(self):
@@ -55,7 +55,21 @@ class RenderScreenshotsTest(unittest.TestCase):
         self.assertEqual(3, r.render(self.app(GOOD, gradlew="exit 3\n"), []))
 
     def test_a_run_that_rendered_nothing_fails(self):
-        self.assertEqual(1, r.render(self.app(GOOD, gradlew="mkdir -p docs/screenshots\n"), []))
+        self.assertEqual(1, r.render(self.app(GOOD, gradlew="mkdir -p app/build/screenshots\n"), []))
+
+    def test_the_committed_screenshots_stay_unless_the_new_ones_are_rendered(self):
+        for gradlew in ("exit 3\n", "mkdir -p app/build/screenshots\n"):
+            app = self.app(GOOD, gradlew=gradlew)
+            (app / "docs" / "screenshots").mkdir(parents=True)
+            (app / "docs" / "screenshots" / "Kept.png").write_text("committed")
+            self.assertNotEqual(0, r.render(app, []))
+            self.assertEqual("committed", (app / "docs" / "screenshots" / "Kept.png").read_text(), gradlew)
+
+    def test_images_left_in_the_build_folder_by_an_earlier_run_do_not_count(self):
+        app = self.app(GOOD, gradlew="exit 0\n")
+        (app / "app" / "build" / "screenshots").mkdir(parents=True)
+        (app / "app" / "build" / "screenshots" / "Old.png").write_text("old")
+        self.assertEqual(1, r.render(app, []))
 
 
 if __name__ == "__main__":

@@ -173,6 +173,8 @@ jobs:
           name: screenshots
           path: docs/screenshots
           if-no-files-found: error
+          # Only a hand-over to the screenshots job: the committed PNGs in docs/screenshots/ are what the README shows
+          retention-days: 1
 
       # Don't leave the comment claiming a build is in progress if the job dies
       # A run cancelled by a newer push must stay quiet: the newer run owns the comment now.
