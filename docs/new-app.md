@@ -146,9 +146,9 @@ ci-workflows.
 
 Defaults for a normal app. If the user asks for something else, do that instead.
 
-- **Pages are `XPage` + `XPageContent`, always** ([pages.md](pages.md)). Each screen is a thin, public `XPage`
+- **Pages are `XPage` + `XPageContent`, always, each in its own file with its `XViewModel` and `XUiState`** ([pages.md](pages.md)). Each screen is a thin, public `XPage`
   composable that gets its `XViewModel` (always named after the page), collects the state and handles navigation as
-  lambdas (its navigation key is always `XNavKey`), and delegates all UI to an
+  lambdas (its route is always `Route.X`), and delegates all UI to an
   `internal`, stateless `XPageContent` (state down, events up) that has the previews. Never `XScreen`, `XContent` or a
   screen that mixes the two. Any README screenshots of a page are previews in the `screenshot` package
   ([screenshots.md](screenshots.md)).
@@ -157,24 +157,27 @@ Defaults for a normal app. If the user asks for something else, do that instead.
 - **Jetpack Compose, themed by the app's own `AppTheme`** (a hand-made composition local, never
   `MaterialTheme`; see [app-conventions.md](app-conventions.md#theme)). No XML layouts.
 - **Navigation 3** (`androidx.navigation3`) for navigation. Destinations are `@Serializable` data
-  objects/classes implementing `NavKey`; the back stack is state the app owns:
+  objects/classes, the members of one `sealed interface Route : NavKey`; the back stack is state the app owns:
 
   ```kotlin
-  @Serializable data object HomeNavKey : NavKey
-  @Serializable data class DetailNavKey(val id: String) : NavKey
+  @Serializable
+  sealed interface Route : NavKey {
+      @Serializable data object Home : Route
+      @Serializable data class Detail(val id: String) : Route
+  }
 
-  val backStack = rememberNavBackStack(HomeNavKey)
+  val backStack = rememberNavBackStack(Route.Home)
   NavDisplay(
       backStack = backStack,
       onBack = { backStack.removeLastOrNull() },
       entryProvider = entryProvider {
-          entry<HomeNavKey> { HomePage(onOpenDetail = { backStack.add(DetailNavKey(it)) }) }
-          entry<DetailNavKey> { key -> DetailPage(id = key.id, onBack = { backStack.removeLastOrNull() }) }
+          entry<Route.Home> { HomePage(onOpenDetail = { backStack.add(Route.Detail(it)) }) }
+          entry<Route.Detail> { route -> DetailPage(id = route.id, onBack = { backStack.removeLastOrNull() }) }
       },
   )
   ```
 
-  **The navigation key of `XPage` is always `XNavKey`** ([pages.md](pages.md)).
+  **The route of `XPage` is always `Route.X`** ([pages.md](pages.md)): `Route.Home` is `HomePage`.
 
   Check the current stable versions and API before using them; Navigation 3 is newer than most
   documentation.

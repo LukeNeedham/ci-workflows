@@ -59,7 +59,7 @@ class ScreenshotsSetupTest(unittest.TestCase):
     def test_the_block_names_the_viewmodel_and_does_not_imply_a_screenshot_per_page(self):
         block = " ".join(s.claude_block().split())
         self.assertIn("`XViewModel`", block)
-        self.assertIn("`XNavKey`", block)
+        self.assertIn("`Route.X`", block)
         self.assertIn("a page can have several, or none", block)
         self.assertNotIn("one file per page", block)
 

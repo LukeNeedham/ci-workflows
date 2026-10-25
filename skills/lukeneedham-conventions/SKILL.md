@@ -69,9 +69,10 @@ below are enough.
   it gets its ViewModel, always named **`XViewModel`** (`koinViewModel<XViewModel>()`), collects the state, handles
   lifecycle and one-off events, turns navigation into lambdas, and only calls `XPageContent`; no preview.
   `XPageContent` is `internal` and stateless (an `XUiState` and one lambda per action; no ViewModel, Koin, `Flow` or
-  navigator) and **always has at least one `private` `@Preview` in the same file** (named `Preview`; see Previews below). All of it is in `XPage.kt`, the ViewModel and state in
-  `XViewModel.kt`. Never `XScreen`, `XContent` or `XView`. **The navigation key is always `XNavKey`**
-  (`entry<XNavKey> { XPage(...) }`; never `X`, `XKey` or `XRoute`).
+  navigator) and **always has at least one `private` `@Preview` in the same file** (named `Preview`; see Previews below). **Each of `XPage`, `XPageContent`, `XViewModel` and `XUiState` is in its own file**
+  (`XPage.kt`, `XPageContent.kt` with the previews, `XViewModel.kt`, `XUiState.kt`). Never `XScreen`, `XContent` or `XView`. **The route is always
+  `Route.X`**, a member of the one `sealed interface Route : NavKey` in `Route.kt` (`Route.Home` is `HomePage`:
+  `entry<Route.Home> { HomePage(...) }`; never `HomeNavKey`, `HomeKey` or `HomeRoute`).
 - **README screenshots live in one package, `<app package>.screenshot`, in `src/debug`**: a file per page that has
   some, named after the page (`HomePage.kt`; more previews = more screenshots, no file = none). Each screenshot is a
   **private `@Preview` composable that owns its mock data** inside its body and renders `HomePageContent` with it
@@ -87,7 +88,7 @@ below are enough.
 
 ## Architecture
 - Single activity (`ComponentActivity`), Jetpack Compose, no XML, no fragments.
-- Navigation 3 (`NavKey` destinations that are `@Serializable`, back stack owned by the app).
+- Navigation 3 (the `@Serializable` members of one `sealed interface Route : NavKey`, back stack owned by the app).
 - MVVM with unidirectional data flow: a `ViewModel` exposes one immutable `UiState` `StateFlow`; composables
   use `collectAsStateWithLifecycle()` and send events up as function calls; no logic in composables.
 - Coroutines + Flow; `viewModelScope` for screen work. UI -> domain/data layers; no Android types in the lower layer.
