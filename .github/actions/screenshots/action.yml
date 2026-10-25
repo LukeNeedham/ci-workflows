@@ -13,7 +13,7 @@ inputs:
 runs:
   using: composite
   steps:
-    - uses: LukeNeedham/ci-workflows/.github/actions/checkout-pr-branch@claude/standard-readme-format-382cvu
+    - uses: LukeNeedham/ci-workflows/.github/actions/checkout-pr-branch@main
 
     - name: Stop if the screenshots could not be rendered
       if: inputs.state != 'rendered'

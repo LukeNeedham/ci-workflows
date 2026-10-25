@@ -50,7 +50,7 @@ jobs:
       group: android-pr-build-${{ github.repository }}-${{ github.event.pull_request.number || github.ref }}
       cancel-in-progress: true
     steps:
-      - uses: LukeNeedham/ci-workflows/.github/actions/ci-scripts@claude/standard-readme-format-382cvu
+      - uses: LukeNeedham/ci-workflows/.github/actions/ci-scripts@main
 
       # The AppHub link depends only on the repo name and the PR number, so it is posted as soon as the job
       # starts and never changes. only_create leaves an existing comment alone: one comment per PR, however
