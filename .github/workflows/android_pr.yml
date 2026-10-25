@@ -10,6 +10,11 @@ name: Android PR
 on:
   # No inputs: every app is built the same way (docs/app-config.md)
   workflow_call:
+    secrets:
+      # A token of the owner, to push the generated files with, so that the checks run on that commit (docs/app-config.md).
+      # Optional: without it the workflow token pushes, and the checks of the new commit wait for approval.
+      GENERATED_COMMIT_TOKEN:
+        required: false
 
 
 jobs:
@@ -34,8 +39,9 @@ jobs:
   # renders it on every PR and, when it differs, commits it to the PR branch. The path is fixed and cannot
   # be overridden: it has to be the same in every app. Runs alongside the build. The steps are in
   # .github/actions/app-icon (docs/app-icon.md).
-  # Pushes made with the workflow token do not start new workflow runs, so there is no loop; they also
-  # mean the checks do not run again on that commit (the APK does not contain app-icon.png).
+  # The push is made with the owner's token (GENERATED_COMMIT_TOKEN), so that the checks run on the new commit; a push with the
+  # workflow token leaves them waiting for approval. That run has nothing to do (app_config.py skips a push that
+  # changes only generated files), so there is no loop and no second build (the APK does not contain app-icon.png).
   # The three jobs that commit (this, screenshots and readme) each cancel their own older run for the PR: a run that
   # a newer push has replaced must not commit files made from the old code on top of the new.
   app-icon:
@@ -49,6 +55,8 @@ jobs:
       contents: write
     steps:
       - uses: LukeNeedham/ci-workflows/.github/actions/app-icon@main
+        with:
+          token: ${{ secrets.GENERATED_COMMIT_TOKEN }}
 
   # The screenshots of the README. They are rendered by the build job, in the same Gradle run as the APK, from the
   # @Preview of every composable of the app's screenshot package (an app without such a package, a WebView wrapper,
@@ -68,6 +76,7 @@ jobs:
       - uses: LukeNeedham/ci-workflows/.github/actions/screenshots@main
         with:
           state: ${{ needs.build.outputs.screenshots }}
+          token: ${{ secrets.GENERATED_COMMIT_TOKEN }}
 
   # The README.md of every app is rendered from its readme.yml, in the layout of docs/readme.md, so the format
   # cannot drift. Render on every PR and commit the result to the PR branch when it differs. An app without a
@@ -84,6 +93,8 @@ jobs:
       contents: write
     steps:
       - uses: LukeNeedham/ci-workflows/.github/actions/readme@main
+        with:
+          token: ${{ secrets.GENERATED_COMMIT_TOKEN }}
 
   build:
     needs: config

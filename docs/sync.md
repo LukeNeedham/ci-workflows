@@ -51,13 +51,33 @@ personal access token, kept as the secret `SYNC_TOKEN` of *this* repo.
    - Resource owner: `LukeNeedham`. Expiration: the longest, 1 year.
    - Repository access: **All repositories** (a new app is then covered without touching the token), or only the apps.
    - Repository permissions: **Contents** read and write, **Pull requests** read and write, **Workflows** read
-     and write. (Metadata read is added by itself.)
+     and write, **Secrets** read and write (to write the token of the next section into the apps). (Metadata read is
+     added by itself.)
 2. In this repo: *Settings → Secrets and variables → Actions → New repository secret*, name `SYNC_TOKEN`,
    value the token.
 3. Run *Sync Apps* by hand to check it.
 
 The token expires: put the date in your calendar. When it does, runs fail with a 401 and need a new token in the
 same secret. It is only ever sent to `github.com` and `api.github.com`, and is masked in the logs.
+
+## The token of the generated commits
+
+CI commits the screenshots, the icon and the README to the branch of a PR. With the workflow token, GitHub holds the
+run that commit starts until someone approves it, so the jobs push with a token of the owner instead when the app has
+the secret `GENERATED_COMMIT_TOKEN` ([app-config.md](app-config.md)). A workflow of this repo cannot hand its secrets
+to the apps (`secrets: inherit` passes the app's own), and a personal account has no secrets shared by all its
+repos, so the sync writes the secret into every app on each run.
+
+1. Create a second **fine-grained** token, so that the one that is in every app can do little: Resource owner
+   `LukeNeedham`, Repository access **All repositories**, Repository permissions **Contents** read and write only.
+   That lets it push to any branch of the apps (which is all the jobs need) but not change workflows, secrets,
+   settings or pull requests.
+2. In this repo: *Settings → Secrets and variables → Actions → New repository secret*, name `GENERATED_COMMIT_TOKEN`,
+   value the token. Give `SYNC_TOKEN` the **Secrets** permission (read and write) too.
+3. Run *Sync Apps* by hand. Its summary says `secret GENERATED_COMMIT_TOKEN set` for each app. Without the secret
+   the sync only prints a notice, and the apps push with the workflow token as before.
+
+A renewed token reaches the apps on the next sync. Run it by hand after changing the secret.
 
 ## Running it yourself
 

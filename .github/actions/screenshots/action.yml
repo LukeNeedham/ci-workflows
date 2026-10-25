@@ -6,6 +6,10 @@ description: >
   Used by the `screenshots` job of android_pr.yml; see docs/screenshots.md. The job needs `contents: write`.
 
 inputs:
+  token:
+    description: 'The token to push the generated files with; empty: the workflow token. See checkout-pr-branch'
+    required: false
+    default: ''
   state:
     description: 'What the build job made of the screenshots: rendered, or failed'
     required: true
@@ -14,6 +18,8 @@ runs:
   using: composite
   steps:
     - uses: LukeNeedham/ci-workflows/.github/actions/checkout-pr-branch@main
+      with:
+        token: ${{ inputs.token }}
 
     - name: Stop if the screenshots could not be rendered
       if: inputs.state != 'rendered'

@@ -10,8 +10,9 @@ regenerate them.
 Runs in the checkout of the PR branch and reads the GitHub environment itself (GITHUB_EVENT_NAME, GITHUB_HEAD_REF,
 GITHUB_REPOSITORY, GITHUB_ACTOR and the event payload). Used by the app-icon, screenshots and readme actions.
 
-A push made with the workflow token does not start new workflow runs, so there is no loop (and the checks do not run
-again on the bot's commit). The three jobs commit to the same branch, so a push that races with another's is retried
+The push is made with whatever token the checkout used: the owner's GENERATED_COMMIT_TOKEN when the app has it, so that the checks
+run on the new commit, else the workflow token (whose commit leaves the checks waiting for approval). Either way there is
+no loop: app_config.py skips a run whose push changed only generated files. The three jobs commit to the same branch, so a push that races with another's is retried
 on top of it, up to PUSH_ATTEMPTS times.
 """
 

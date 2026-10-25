@@ -159,5 +159,48 @@ class Api(unittest.TestCase):
         self.assertEqual("Bearer t", seen["Authorization"])
 
 
+class Secret(unittest.TestCase):
+    def test_a_secret_is_sealed_so_that_only_the_owner_of_the_key_opens_it(self):
+        import base64
+        try:
+            from nacl import encoding, public
+        except ImportError:
+            self.skipTest("PyNaCl is not installed")
+        private = public.PrivateKey.generate()
+        key = private.public_key.encode(encoding.Base64Encoder()).decode()
+        sealed = s.encrypt_secret(key, "github_pat_x")
+        self.assertNotIn("github_pat_x", sealed)
+        self.assertEqual(b"github_pat_x", public.SealedBox(private).decrypt(base64.b64decode(sealed)))
+
+    def test_the_secret_is_written_with_the_key_it_was_sealed_with(self):
+        from unittest import mock
+        calls = []
+
+        def fake_api(token, method, path, body=None):
+            calls.append((token, method, path, body))
+            return {"key": "KEY", "key_id": "7"} if method == "GET" else None
+
+        with mock.patch.object(s, "api", fake_api), mock.patch.object(s, "encrypt_secret", lambda key, value: f"sealed:{key}:{value}"):
+            s.set_app_secret("sync", "o/r", "GENERATED_COMMIT_TOKEN", "v")
+        self.assertEqual(("sync", "GET", "/repos/o/r/actions/secrets/public-key", None), calls[0])
+        self.assertEqual(
+            ("sync", "PUT", "/repos/o/r/actions/secrets/GENERATED_COMMIT_TOKEN", {"encrypted_value": "sealed:KEY:v", "key_id": "7"}),
+            calls[1],
+        )
+
+    def test_without_the_token_or_in_a_dry_run_nothing_is_written(self):
+        from unittest import mock
+        with mock.patch.object(s, "set_app_secret", side_effect=AssertionError("written")):
+            self.assertEqual("", s.sync_secret({"repo": "o/r"}, "sync", None, False))
+            self.assertEqual("", s.sync_secret({"repo": "o/r"}, "sync", "v", True))
+
+    def test_with_the_token_the_result_line_says_so(self):
+        from unittest import mock
+        with mock.patch.object(s, "set_app_secret") as write:
+            note = s.sync_secret({"repo": "o/r"}, "sync", "v", False)
+        write.assert_called_once_with("sync", "o/r", "GENERATED_COMMIT_TOKEN", "v")
+        self.assertEqual(" (secret GENERATED_COMMIT_TOKEN set)", note)
+
+
 if __name__ == "__main__":
     unittest.main()

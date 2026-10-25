@@ -4,11 +4,21 @@ description: >
   committed back to that branch, and makes the shared scripts available as $CI_SCRIPTS. Used by the actions that
   generate files: app-icon, screenshots and readme.
 
+inputs:
+  token:
+    description: >
+      The token to check out with, and so to push the generated files with. A push made with the default workflow
+      token does not start the checks of the new commit (GitHub holds them for approval), while one made with a
+      token of the owner does. Empty: the workflow token.
+    required: false
+    default: ''
+
 runs:
   using: composite
   steps:
     - uses: actions/checkout@v4
       with:
+        token: ${{ inputs.token || github.token }}
         repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
         ref: ${{ github.head_ref || github.ref_name }}
 

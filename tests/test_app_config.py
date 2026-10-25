@@ -16,8 +16,8 @@ TOOLS = Path(__file__).resolve().parent.parent
 SKILL_FILE = ".claude/skills/lukeneedham-conventions/SKILL.md"
 
 
-def run(repo="LukeNeedham/Demo", event="pull_request", action="synchronize", base="main", files=()):
-    return c.run(repo, event, action, base, list(files))[0]
+def run(repo="LukeNeedham/Demo", event="pull_request", action="synchronize", base="main", files=(), push_files=()):
+    return c.run(repo, event, action, base, list(files), list(push_files))[0]
 
 
 class Settings(unittest.TestCase):
@@ -69,6 +69,23 @@ class Skipping(unittest.TestCase):
 
     def test_one_other_file_in_the_pr_builds_it(self):
         self.assertEqual("false", self.skip(files=[SKILL_FILE, "app/src/Main.kt"]))
+
+    def test_a_push_of_only_generated_files_is_skipped_even_in_a_pr_with_code(self):
+        pushed = ["docs/screenshots/01-HomePage.png", "README.md", "app-icon.png", "app/src/debug/kotlin/x/screenshot/README.md"]
+        self.assertEqual("true", self.skip(files=["app/src/Main.kt", *pushed], push_files=pushed))
+
+    def test_one_other_file_in_the_push_builds_it(self):
+        self.assertEqual("false", self.skip(files=["app/src/Main.kt"], push_files=["README.md", "app/src/Main.kt"]))
+
+    def test_a_push_that_cannot_be_listed_builds(self):
+        self.assertEqual("false", self.skip(files=["README.md"], push_files=[]))
+
+    def test_only_a_synchronize_is_skipped_for_its_push(self):
+        self.assertEqual("false", self.skip(action="opened", files=["README.md"], push_files=["README.md"]))
+
+    def test_other_readmes_and_images_are_not_generated(self):
+        for f in ["docs/README.md", "app/README.md", "docs/other.png", "docs/screenshotsx/a.png", "app-icon.png.bak"]:
+            self.assertEqual("false", self.skip(files=[f], push_files=[f]), f)
 
     def test_other_files_under_claude_still_build(self):
         self.assertEqual("false", self.skip(files=[".claude/settings.json"]))

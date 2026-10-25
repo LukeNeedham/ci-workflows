@@ -12,7 +12,7 @@ Requires PyYAML.
 For each app it clones the default branch, makes the changes on the branch `sync/ci-workflows`, and
 force-pushes that branch and opens a PR for it, or updates the PR that is already open.
 
-Needs PyYAML and the environment variable SYNC_TOKEN: a personal access token that may write contents, pull
+Needs PyYAML, PyNaCl (for the secret below) and the environment variable SYNC_TOKEN: a personal access token that may write contents, pull
 requests and workflows on the apps.
 
     python3 scripts/sync_apps.py                   sync every app
@@ -41,6 +41,9 @@ from check_screenshot_package import setup_problems
 TOOLS = Path(__file__).resolve().parent.parent
 SKILL = "lukeneedham-conventions"
 BRANCH = "sync/ci-workflows"
+
+# The Actions secret of every app that holds the token which pushes the files CI generates
+COMMIT_TOKEN_SECRET = "GENERATED_COMMIT_TOKEN"
 # Every app gets every caller. The release one fails with a clear message if the app is not set up for releases
 CALLERS = ["trigger_on_pull_request.yml", "build_main.yml", "delete_prereleases.yml", "release.yml"]
 
@@ -173,6 +176,23 @@ def api(token, method, path, body=None):
         raise RuntimeError(f"{method} {path} returned {e.code}: {e.read().decode()[:300]}") from None
 
 
+def encrypt_secret(public_key, value):
+    """[value] sealed with [public_key] (base64, from GitHub), as GitHub wants a secret: a libsodium sealed box."""
+    from nacl import encoding, public  # only needed here, and only when a secret is set
+
+    key = public.PublicKey(public_key.encode(), encoding.Base64Encoder())
+    return base64.b64encode(public.SealedBox(key).encrypt(value.encode())).decode()
+
+
+def set_app_secret(token, repo, name, value):
+    """Writes the Actions secret [name] of [repo], so that the workflows of the app can read it."""
+    key = api(token, "GET", f"/repos/{repo}/actions/secrets/public-key")
+    api(token, "PUT", f"/repos/{repo}/actions/secrets/{name}", {
+        "encrypted_value": encrypt_secret(key["key"], value),
+        "key_id": key["key_id"],
+    })
+
+
 def pr_body(changed):
     files = "\n".join(f"- `{path}`" for path in sorted(changed))
     return (
@@ -197,8 +217,18 @@ def readme_note(app_dir):
     return "readme.yml is invalid: " + "; ".join(found) if found else ""
 
 
-def sync_remote(app, token, dry_run, work):
+def sync_secret(app, token, commit_token, dry_run):
+    """Gives the app the token that pushes the files CI generates (GENERATED_COMMIT_TOKEN, see docs/app-config.md).
+    Returns a note for the result line, empty when there is nothing to say."""
+    if not commit_token or dry_run:
+        return ""
+    set_app_secret(token, app["repo"], COMMIT_TOKEN_SECRET, commit_token)
+    return f" (secret {COMMIT_TOKEN_SECRET} set)"
+
+
+def sync_remote(app, token, dry_run, work, commit_token=None):
     """Syncs one app on GitHub. Returns a one-line result."""
+    secret = sync_secret(app, token, commit_token, dry_run)
     repo = app["repo"]
     base = os.environ.get("SYNC_GIT_BASE", "https://github.com")
     checkout = Path(work) / repo.replace("/", "_")
@@ -208,7 +238,7 @@ def sync_remote(app, token, dry_run, work):
     note = readme_note(checkout)
     note = f" ({note})" if note else ""
     if not changed:
-        return f"{repo}: up to date{note}"
+        return f"{repo}: up to date{secret}{note}"
     if dry_run:
         git(checkout, "add", "-A")
         return f"{repo}: would change {len(changed)} files{note}\n" + git(checkout, "diff", "--cached", "--stat")
@@ -220,14 +250,14 @@ def sync_remote(app, token, dry_run, work):
     open_prs = api(token, "GET", f"/repos/{repo}/pulls?state=open&head={owner}:{BRANCH}")
     if open_prs:
         api(token, "PATCH", f"/repos/{repo}/pulls/{open_prs[0]['number']}", {"body": pr_body(changed)})
-        return f"{repo}: updated {open_prs[0]['html_url']}{note}"
+        return f"{repo}: updated {open_prs[0]['html_url']}{secret}{note}"
     created = api(token, "POST", f"/repos/{repo}/pulls", {
         "title": "Sync from ci-workflows",
         "head": BRANCH,
         "base": default,
         "body": pr_body(changed),
     })
-    return f"{repo}: opened {created['html_url']}{note}"
+    return f"{repo}: opened {created['html_url']}{secret}{note}"
 
 
 def main():
@@ -242,6 +272,11 @@ def main():
         sys.exit(1)
     if token:
         print(f"::add-mask::{token}")
+    commit_token = os.environ.get("GENERATED_COMMIT_TOKEN")
+    if commit_token:
+        print(f"::add-mask::{commit_token}")
+    else:
+        print("::notice::GENERATED_COMMIT_TOKEN is not set, so the apps get no secret for the generated commits. See docs/sync.md.")
     apps = json.loads((TOOLS / "apps.json").read_text())
     if args.apps:
         wanted = {a.strip() for a in args.apps.split(",")}
@@ -255,7 +290,7 @@ def main():
     try:
         for app in apps:
             try:
-                lines.append(sync_remote(app, token, args.dry_run, work))
+                lines.append(sync_remote(app, token, args.dry_run, work, commit_token))
             except Exception as e:  # one broken app must not stop the others
                 failures += 1
                 lines.append(f"{app['repo']}: FAILED {e}")

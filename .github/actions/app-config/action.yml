@@ -52,6 +52,25 @@ runs:
           echo "::warning::Could not list the files of the pull request, so it is built in full"
         fi
 
+    # The files of the push that started a `synchronize` run, to tell CI's own commits (generated files) from a change.
+    # A force-push or an unreadable range builds.
+    - name: List the files the push changes
+      id: push
+      if: github.event_name == 'pull_request' && github.event.action == 'synchronize'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        REPO: ${{ github.repository }}
+        BEFORE: ${{ github.event.before }}
+        AFTER: ${{ github.event.after }}
+      run: |
+        if gh api --paginate "repos/${REPO}/compare/${BEFORE}...${AFTER}" \
+            --jq '.files[] | .filename, (.previous_filename // empty)' > "$RUNNER_TEMP/pushed_files.txt"; then
+          echo "path=$RUNNER_TEMP/pushed_files.txt" >> "$GITHUB_OUTPUT"
+        else
+          echo "::warning::Could not list the files of the push, so it is built in full"
+        fi
+
     - name: Get the settings
       id: config
       shell: bash
@@ -62,7 +81,8 @@ runs:
         EVENT_ACTION: ${{ github.event.action }}
         BASE_REF: ${{ github.event.pull_request.base.ref }}
         FILES: ${{ steps.files.outputs.path }}
+        PUSH_FILES: ${{ steps.push.outputs.path }}
       # The action is checked out with the whole repo: the script is three directories up
       run: |
         python3 "$ACTION_PATH/../../../scripts/app_config.py" \
-          --repo "$REPO" --event "$EVENT" --action "$EVENT_ACTION" --base "$BASE_REF" --files "$FILES"
+          --repo "$REPO" --event "$EVENT" --action "$EVENT_ACTION" --base "$BASE_REF" --files "$FILES" --push-files "$PUSH_FILES"

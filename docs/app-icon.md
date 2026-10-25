@@ -49,8 +49,8 @@ Things to know:
 
 - **Pull the bot's commit** before pushing again (`git pull --rebase`), as with any commit on your
   branch. A push that races with the bot's is handled by the job (it rebases and retries).
-- **Checks do not re-run** on the bot's commit: pushes made with the workflow token do not start workflow
-  runs. The APK does not contain `app-icon.png`, so the build is still valid.
+- **The bot's commit is not built again**: the run it starts is skipped, as it changes only generated files
+  ([app-config.md](app-config.md)). The APK does not contain `app-icon.png`, so the build is still valid.
 - **PRs from forks** cannot be committed to. There the job fails with instructions to run the script
   yourself.
 - **A manual run** (`workflow_dispatch`) cannot commit: it fails if `app-icon.png` is out of date.
