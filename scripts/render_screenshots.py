@@ -68,7 +68,7 @@ def render(app_dir, gradle_args):
     result = subprocess.run(
         [str(app_dir / "gradlew"), "testDebugUnitTest", "--tests", "*PageScreenshotTest",
          "--init-script", str(SCREENSHOTS / "screenshots.init.gradle"),
-         f"-Pscreenshots.template={SCREENSHOTS / 'PageScreenshotTest.kt.template'}", *gradle_args],
+         f"-Pscreenshots.sources={SCREENSHOTS / 'test'}", *gradle_args],
         cwd=app_dir,
     )
     if result.returncode != 0:

@@ -94,10 +94,11 @@ compiled once: the `build` job renders them right after the APK, and the `screen
      Everything else is rendered, and the render fails for a package that is missing, empty or incomplete.
    - [`render_screenshots.py`](../scripts/render_screenshots.py) fails if the package shares anything, and runs `./gradlew testDebugUnitTest --tests '*PageScreenshotTest' --init-script …`, with the
      Gradle init script [`screenshots.init.gradle`](../scripts/screenshots/screenshots.init.gradle) and the test
-     [template](../scripts/screenshots/PageScreenshotTest.kt.template) next to it.
+     [`PageScreenshotTest.kt`](../scripts/screenshots/test/PageScreenshotTest.kt) next to it.
    - The init script, applied only for that run, adds the test dependencies (Roborazzi, Robolectric, the Compose test
-     rule, the preview scanner), turns on resources for unit tests, and generates `PageScreenshotTest` from the template,
-     for the app's namespace. **That test is the only unit test of the run**: the app's own unit tests are left out of the
+     rule, the preview scanner), turns on resources for unit tests, and compiles `PageScreenshotTest` into them. That test is plain code of
+     this repo, not a template and not copied into the app: it gets the app's namespace from a system property that the
+     init script sets. **That test is the only unit test of the run**: the app's own unit tests are left out of the
      source set, so a broken test of the app cannot fail the screenshots. It renders every preview of the `screenshot`
      package on the JVM (Robolectric native graphics, no emulator) at a fixed phone size and writes the PNGs. It fails if
      nothing was rendered. The test always runs (never up to date, never from the build cache), and writes into

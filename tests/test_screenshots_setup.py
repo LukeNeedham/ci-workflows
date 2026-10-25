@@ -11,27 +11,29 @@ ACTIONS = ROOT / ".github" / "actions"
 
 
 class ScreenshotsSetupTest(unittest.TestCase):
-    def test_the_template_is_filled_with_the_apps_namespace_and_renders_the_right_previews(self):
-        template = (SCRIPTS / "screenshots" / "PageScreenshotTest.kt.template").read_text()
-        self.assertTrue(template.startswith("package {{PACKAGE}}"))
+    def test_the_test_is_plain_code_that_takes_the_namespace_of_the_app_from_a_system_property(self):
+        test = (SCRIPTS / "screenshots" / "test" / "PageScreenshotTest.kt").read_text()
+        self.assertTrue(test.startswith("package com.lukeneedham.screenshots"))
+        self.assertNotIn("{{", test)
         # Only the screenshot package of the app is scanned, whatever the names, so the general previews are not rendered
-        self.assertIn('scanPackageTrees("{{PACKAGE}}.screenshot")', template)
-        self.assertNotIn("PageContentPreview", template)
-        self.assertIn("require(names.distinct()", template)
+        self.assertIn('scanPackageTrees("${System.getProperty("screenshots.package")}.screenshot")', test)
+        self.assertNotIn("Preview()", test)
+        self.assertIn("require(names.distinct()", test)
+        self.assertFalse(list((SCRIPTS / "screenshots").glob("*.template")))
 
-    def test_the_init_script_fills_the_template_and_the_script_hands_it_over(self):
+    def test_the_init_script_sets_the_namespace_and_the_script_hands_over_the_test(self):
         init = (SCRIPTS / "screenshots" / "screenshots.init.gradle").read_text()
-        self.assertIn("replace('{{PACKAGE}}'", init)
-        self.assertIn("screenshots.template", init)
+        self.assertIn("systemProperty 'screenshots.package', project.android.namespace", init)
+        self.assertIn("screenshots.sources", init)
         # The app's own unit tests are left out of the run
         self.assertIn("setSrcDirs(own)", init)
         # Gradle must always run the test: skipping it as up to date would render nothing
         self.assertIn("outputs.upToDateWhen { false }", init)
         self.assertIn("outputs.cacheIf { false }", init)
-        template = (SCRIPTS / "screenshots" / "PageScreenshotTest.kt.template").read_text()
-        self.assertIn('captureRoboImage("build/screenshots/', template)
+        test = (SCRIPTS / "screenshots" / "test" / "PageScreenshotTest.kt").read_text()
+        self.assertIn('captureRoboImage("build/screenshots/', test)
         render = (SCRIPTS / "render_screenshots.py").read_text()
-        for name in ("screenshots.init.gradle", "PageScreenshotTest.kt.template", "-Pscreenshots.template", "problems"):
+        for name in ("screenshots.init.gradle", "-Pscreenshots.sources", "problems"):
             self.assertIn(name, render)
 
     def test_each_action_runs_scripts_that_exist(self):

@@ -33,14 +33,14 @@ class RenderScreenshotsTest(unittest.TestCase):
         script.chmod(script.stat().st_mode | stat.S_IEXEC)
         return app
 
-    def test_a_valid_package_is_rendered_with_the_init_script_and_the_template(self):
+    def test_a_valid_package_is_rendered_with_the_init_script_and_the_test(self):
         app = self.app(GOOD)
         (app / "docs" / "screenshots").mkdir(parents=True)
         (app / "docs" / "screenshots" / "Removed.png").write_text("stale")
         self.assertEqual(0, r.render(app, ["--no-daemon"]))
         args = (app / "gradle-args.txt").read_text()
         for expected in ("testDebugUnitTest", "*PageScreenshotTest", "--init-script", "screenshots.init.gradle",
-                         "-Pscreenshots.template=", "PageScreenshotTest.kt.template", "--no-daemon"):
+                         "-Pscreenshots.sources=", "--no-daemon"):
             self.assertIn(expected, args)
         # The rendered set replaces the committed one as a whole: the stale image is gone
         self.assertEqual(["01-HomePage.png"], [p.name for p in (app / "docs" / "screenshots").glob("*.png")])
