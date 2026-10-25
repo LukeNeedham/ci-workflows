@@ -1,10 +1,11 @@
 # Pages: `XPage` and `XPageContent`
 
-**Every page of every app is exactly two composables, named after the page: `XPage` and `XPageContent`.** This is
+**Every page of every app is exactly two composables, named after the page: `XPage` and `XPageContent`, each in its own
+file, next to its `XViewModel` and `XUiState`.** This is
 the one way to build a screen in every app, so that any app reads like any other, and the previews and the README
 screenshots work the same everywhere ([screenshots.md](screenshots.md)).
 
-A **page** is a destination of the navigation: a full screen, one `entry<XNavKey>` of the `NavDisplay`. A reusable piece
+A **page** is a destination of the navigation: a full screen, one `entry<Route.X>` of the `NavDisplay`. A reusable piece
 (a card, a row, a toolbar), and a dialog or a sheet that belongs to a page, is **not** a page: it is a plain
 composable in its own file, and a dialog or sheet is drawn by the `XPageContent` of its page.
 
@@ -19,7 +20,7 @@ composable in its own file, and a dialog or sheet is drawn by the `XPageContent`
 | Previewable | **No**: it needs Koin and a ViewModel | **Yes, always**: every `XPageContent` has at least one `private` `@Preview` composable, named `Preview`, in the same file, with fake state |
 
 ```kotlin
-// ui/HomePage.kt
+// ui/HomePage.kt: only the page
 
 /** The page: connects to the ViewModel and the navigation, and delegates all UI. No preview. */
 @Composable
@@ -34,6 +35,8 @@ fun HomePage(onOpenSettings: () -> Unit, onOpenDetail: (String) -> Unit) {
         onOpenSettings = onOpenSettings,
     )
 }
+
+// ui/HomePageContent.kt: the content, and its previews
 
 /** All of the page's UI. `internal`: the screenshots of the app use it too. */
 @Composable
@@ -52,7 +55,7 @@ private fun Preview() {
 }
 ```
 
-A page with arguments gets them from its navigation key (`DetailNavKey`, below), and passes them on to its ViewModel:
+A page with arguments gets them from its route (`Route.Detail`, below), and passes them on to its ViewModel:
 
 ```kotlin
 @Composable
@@ -72,25 +75,37 @@ needed, or passes it to `XPageContent` as a plain parameter ([app-conventions.md
   `XViewModel` for `XPage` (one ViewModel per page), never `HomePageViewModel`, `HomeScreenViewModel` or a name that
   does not match the page; and its state is `HomeUiState`. **Never** `HomeScreen`, `HomeContent`, `HomeView` or
   `HomeScreenContent` for the composables: the suffix is always `Page` and `PageContent`.
-- **One file per page, `HomePage.kt`, holding `HomePage`, `HomePageContent` and the general previews**
-  (**every `XPageContent` has at least one, and each is `private` in that file, named `Preview`**; see
-  [Previews](app-conventions.md#previews) for the name when there are several). The ViewModel and the state are in
-  `HomeViewModel.kt`. This is the one exception to "one composable per file" ([app-conventions.md](app-conventions.md#composables-and-previews)).
-- **The navigation key of `XPage` is always `XNavKey`** (`HomePage` is `HomeNavKey`, `PullRequestPage` is
-  `PullRequestNavKey`): never `Home`, `HomeKey` or `HomeRoute`. A key is a `@Serializable` object, or a class with
-  the page's arguments, implementing `NavKey`. The entry only calls the page, with the navigation as lambdas:
+- **Each of `XPage`, `XPageContent`, `XViewModel` and `XUiState` lives in its own file, named after it**: `HomePage.kt`,
+  `HomePageContent.kt`, `HomeViewModel.kt` and `HomeUiState.kt`, in the page's package. Never two of them in one file
+  (not the state in the ViewModel's file, not the page and its content together). **The general previews are in
+  `HomePageContent.kt`, with the composable they preview**: every `XPageContent` has at least one, and each is `private`
+  in that file, named `Preview` (see [Previews](app-conventions.md#previews) for the name when there are several).
+  This is the one exception to "one composable per file" ([app-conventions.md](app-conventions.md#composables-and-previews)).
+  A page whose state is a single type of the domain, or that has no state of its own, has no `XUiState.kt`: but a page
+  that has a state class never keeps it in another file.
+- **The route of `XPage` is `Route.X`** (`HomePage` is `Route.Home`, `PullRequestPage` is `Route.PullRequest`).
+  **`Route` is one `sealed interface`, in `Route.kt`, and every page has a member of it**: a `data object`, or a
+  `data class` with the page's arguments. `Route.Home` maps to `HomePage`, `Route.Detail` to `DetailPage`; never a
+  top-level `HomeNavKey`, `HomeKey`, `HomeRoute` or a bare `Home`. The entry only calls the page, with the navigation as
+  lambdas:
 
   ```kotlin
-  @Serializable data object HomeNavKey : NavKey
-  @Serializable data class DetailNavKey(val id: String) : NavKey
-
-  entry<HomeNavKey> {
-      HomePage(onOpenSettings = { backStack.add(SettingsNavKey) }, onOpenDetail = { backStack.add(DetailNavKey(it)) })
+  // Route.kt
+  @Serializable
+  sealed interface Route : NavKey {
+      @Serializable data object Home : Route
+      @Serializable data class Detail(val id: String) : Route
   }
-  entry<DetailNavKey> { key -> DetailPage(id = key.id, onBack = { backStack.removeLastOrNull() }) }
+
+  // in AppNavigation
+  entry<Route.Home> {
+      HomePage(onOpenSettings = { backStack.add(Route.Settings) }, onOpenDetail = { backStack.add(Route.Detail(it)) })
+  }
+  entry<Route.Detail> { route -> DetailPage(id = route.id, onBack = { backStack.removeLastOrNull() }) }
   ```
 
-  The `backStack` never goes below `AppNavigation`: neither `XPage` nor `XPageContent` gets it.
+  (With a navigation library that has no `NavKey`, `Route` is the same sealed interface with that library's base type, e.g.
+  `Parcelable`.) The `backStack` never goes below `AppNavigation`: neither `XPage` nor `XPageContent` gets it.
 - Any README screenshots of a page (a page can have several, or none) are separate from the general previews: previews in the app's `screenshot`
   package, each owning its data ([screenshots.md](screenshots.md)).
 
@@ -110,13 +125,15 @@ Do this for every page of the app, in the same change as the rest of its migrati
 2. The composable that draws the screen (`XContent`, `XScreenContent`, or the body of the old screen) becomes
    **`XPageContent`**, `internal`, taking only state and lambdas. If a screen is not split yet, split it: everything
    that needs the ViewModel, Koin or a `Flow` goes up into `XPage`.
-3. Rename the file to `XPage.kt`, **the ViewModel the page holds to `XViewModel`** (not `XPageViewModel`,
-   `XScreenViewModel` or anything else) and its state to `XUiState`, if they differ.
-4. **The navigation key of the page is renamed to `XNavKey`**, whatever it is called now (`X`, `XKey`, `XRoute`, `XPage` or
-   `XScreen`). A key called `XPage` has to change in any case, because that name is the composable's.
-5. Give `XPageContent` its `private` previews in `XPage.kt` (at least one), and (if the page deserves a screenshot) a file in the `screenshot` package.
+3. **Split the files**: `XPage.kt` (the page only), `XPageContent.kt` (the content and its previews), `XViewModel.kt` and
+   `XUiState.kt`, each holding only what its name says. Rename **the ViewModel the page holds to `XViewModel`** (not
+   `XPageViewModel`, `XScreenViewModel` or anything else) and its state to `XUiState`, if they differ.
+4. **The route of the page is `Route.X`**, a member of the app's one `sealed interface Route` in `Route.kt`, whatever the
+   destination is called now (`X`, `XKey`, `XNavKey`, `XRoute`, `XPage` or `XScreen`). A destination called `XPage` has to
+   change in any case, because that name is the composable's.
+5. Give `XPageContent` its `private` previews in `XPageContent.kt` (at least one), and (if the page deserves a screenshot) a file in the `screenshot` package.
 6. Update every reference: tests, docs and the app's `CLAUDE.md` lines that name files.
 7. **Not pages:** composables that are only parts of a page keep their names; nothing else gets the `Page` suffix.
 
 A check of the result: `grep -rn "Screen\b\|Screen(" app/src/main` should find no page composables, and every
-`entry<…>` of the navigation should be an `entry<XNavKey>` that calls exactly one `XPage`.
+`entry<…>` of the navigation should be an `entry<Route.X>` that calls exactly one `XPage`.
