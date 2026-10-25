@@ -3,6 +3,7 @@ package com.lukeneedham.common.ui
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -15,7 +16,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -61,9 +65,18 @@ fun CrashesPage(onBack: () -> Unit, modifier: Modifier = Modifier) {
 private fun CrashCard(crash: CrashEntry) {
     val theme = LocalDebugTheme.current
     var expanded by remember { mutableStateOf(false) }
+    val clipboard = LocalClipboardManager.current
     DebugCard(modifier = Modifier.fillMaxWidth(), onClick = { expanded = !expanded }) {
         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            DebugText(formatTimestamp(crash.timeMs), color = theme.onSurface, fontSize = 12.sp)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                DebugText(
+                    formatTimestamp(crash.timeMs),
+                    color = theme.onSurface,
+                    fontSize = 12.sp,
+                    modifier = Modifier.weight(1f),
+                )
+                DebugTextButton(text = "Copy", onClick = { clipboard.setText(AnnotatedString(crash.stackTrace)) })
+            }
             DebugText(crash.type, color = theme.error, fontSize = 14.sp, fontWeight = FontWeight.Medium)
             crash.message?.let { DebugText(it, color = theme.onSurface) }
             if (expanded) {
