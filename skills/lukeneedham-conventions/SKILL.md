@@ -73,7 +73,8 @@ below are enough.
 - **README screenshots live in one package, `<app package>.screenshot`, in `src/debug`**: a file per page that has
   some, named after the page (`HomePage.kt`; more previews = more screenshots, no file = none). Each screenshot is a
   **private `@Preview` composable that owns its mock data** inside its body and renders `HomePageContent` with it
-  (`HomePageScreenshot`). **Nothing is shared** between screenshots, nor with the general previews or the app: no
+  (`HomePageScreenshot`). The package's **`order.txt`** lists the screenshots (`HomePage`) in README order, one per line;
+  CI numbers the images by position (`01-HomePage.png`). **Nothing is shared** between screenshots, nor with the general previews or the app: no
   top-level `val`, `object`, helper or non-private declaration (CI fails on it). The package has a `README.md`
   (`docs/screenshot-readme-template.md`).
 - **CI renders every `@Preview` of that package** into `docs/screenshots/<name without Screenshot>.png` and commits it

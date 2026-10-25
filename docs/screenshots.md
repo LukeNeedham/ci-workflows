@@ -32,7 +32,7 @@ and renders the page's content with it**:
 // screenshot/HomePage.kt
 package com.lukeneedham.<app>.screenshot
 
-/** Rendered by CI to docs/screenshots/HomePage.png. */
+/** Rendered by CI to docs/screenshots/<position in order.txt>-HomePage.png. */
 @Preview
 @Composable
 private fun HomePageScreenshot() {
@@ -41,9 +41,23 @@ private fun HomePageScreenshot() {
 }
 ```
 
-- **Every `@Preview` in the package is a screenshot, and nothing outside it is.** The image takes the name of the
-  composable without a trailing `Screenshot`: `HomePageScreenshot` becomes `docs/screenshots/HomePage.png`. Names must be
-  unique across the package (the test fails otherwise); the README lists the images in alphabetical order.
+- **Every `@Preview` in the package is a screenshot, and nothing outside it is.** Its name is the name of the
+  composable without a trailing `Screenshot`: `HomePageScreenshot` is `HomePage`. Names must be unique across the
+  package (the test fails otherwise).
+- **The package has an `order.txt`** next to its Kotlin files: the screenshots in the order the README shows them, one
+  name per line, with blank lines and `#` comments allowed:
+
+  ```
+  # the order of the README: a user's first look to the details
+  HomePage
+  PullRequestPage
+  SettingsPage
+  ```
+
+  Every screenshot is listed once and nothing else is (the render fails otherwise, naming the difference). CI numbers the
+  images by their position, `docs/screenshots/01-HomePage.png`, `02-PullRequestPage.png`, and the README lists them in that
+  order. To reorder, move a line; there are no numbers to maintain in the Kotlin names. A new screenshot is a new
+  preview and a new line.
 - **A page can have any number of screenshots**: several previews in its file, each with its own data
   (`HomePageScreenshot`, `HomeEmptyPageScreenshot`), as many as are worth showing. **A page can have none**: a page
   with no file has no screenshot, so leave out the pages that are not worth showing. The app needs at least one

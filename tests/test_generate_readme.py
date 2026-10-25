@@ -178,6 +178,12 @@ class GenerateReadmeTest(unittest.TestCase):
         text = render()
         self.assertEqual(2, text.count("<img src=\"docs/screenshots/"))
 
+    def test_the_number_in_the_image_name_orders_the_images_and_is_not_in_the_alt_text(self):
+        self.assertEqual("Pull Request Page", g.alt_text("docs/screenshots/02-PullRequestPage.png"))
+        text = render(screenshots=("docs/screenshots/01-HomePage.png", "docs/screenshots/02-SettingsPage.png"))
+        self.assertLess(text.index("01-HomePage.png"), text.index("02-SettingsPage.png"))
+        self.assertIn('alt="Home Page"', text)
+
     def test_problems_name_what_is_missing(self):
         text = "\n".join(g.problems({"name": "X", "extra": 1}))
         for expected in ("unknown field `extra`", "`tagline` is required", "`description` is required"):

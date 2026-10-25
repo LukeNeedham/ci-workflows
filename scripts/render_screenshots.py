@@ -6,7 +6,8 @@ app's screenshot package (docs/screenshots.md in LukeNeedham/ci-workflows).
 
 It checks that the package shares nothing and runs the app's Gradle with an init script that adds the test dependencies
 and generates the test (scripts/screenshots/). The test renders into app/build/screenshots/; only when every
-screenshot is rendered does that replace docs/screenshots/ (so a failed run leaves the committed ones as they are). Needs the Android SDK. The CI
+screenshot is rendered does that replace docs/screenshots/ (so a failed run leaves the committed ones as they are),
+with the images numbered by their position in the package's order.txt (01-HomePage.png). Needs the Android SDK. The CI
 runs it through the `screenshots` action; to run it yourself, clone ci-workflows and point it at an app:
 
     python3 ci-workflows/scripts/render_screenshots.py --app path/to/app
@@ -20,7 +21,7 @@ from pathlib import Path
 
 SCREENSHOTS = Path(__file__).resolve().parent / "screenshots"
 sys.path.insert(0, str(SCREENSHOTS))
-from check_screenshot_package import package_files, problems
+from check_screenshot_package import order_problems, package_files, problems, read_order, package_dir, ORDER_FILE
 
 
 def check_package(app_dir):
@@ -31,7 +32,16 @@ def check_package(app_dir):
             ok = False
             print(f"{path.relative_to(app_dir)}:{number}: `{line}` is shared or not a screenshot. A file of the screenshot "
                   f"package holds only private @Preview composables with their own data inside (docs/screenshots.md).")
+    for line in order_problems(app_dir):
+        ok = False
+        print(f"{line}")
     return ok
+
+
+def numbered(order):
+    """The file name of each screenshot, by its position in the order: `HomePage` is `01-HomePage.png`."""
+    width = max(2, len(str(len(order))))
+    return {name: f"{i:0{width}d}-{name}.png" for i, name in enumerate(order, 1)}
 
 
 def render(app_dir, gradle_args):
@@ -55,11 +65,17 @@ def render(app_dir, gradle_args):
         print("The screenshot test rendered nothing. The screenshot package needs a @Preview per screenshot "
               "(docs/screenshots.md).", file=sys.stderr)
         return 1
+    names = numbered(read_order((package_dir(app_dir) / ORDER_FILE).read_text()))
+    missing = [n for n in names if not (rendered / f"{n}.png").is_file()]
+    if missing:
+        print(f"The screenshot test did not render {', '.join(missing)}, which {ORDER_FILE} lists.", file=sys.stderr)
+        return 1
     # Replace the committed ones as a whole, so that a page that was removed or renamed drops out
     target = app_dir / "docs" / "screenshots"
     shutil.rmtree(target, ignore_errors=True)
-    target.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copytree(rendered, target)
+    target.mkdir(parents=True)
+    for name, file in names.items():
+        shutil.copyfile(rendered / f"{name}.png", target / file)
     return 0
 
 

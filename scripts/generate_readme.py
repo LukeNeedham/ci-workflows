@@ -213,8 +213,8 @@ def problems(data, app_dir=None):
 
 
 def alt_text(path):
-    """`docs/screenshots/PullRequest.png` -> `Pull Request`"""
-    return re.sub(r"(?<=[a-z0-9])(?=[A-Z])", " ", Path(path).stem)
+    """`docs/screenshots/02-PullRequest.png` -> `Pull Request` (the number only orders the images)"""
+    return re.sub(r"(?<=[a-z0-9])(?=[A-Z])", " ", re.sub(r"^\d+-", "", Path(path).stem))
 
 
 def render(data, repo, facts):

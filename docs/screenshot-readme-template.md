@@ -20,8 +20,11 @@ private fun HomePageScreenshot() {
 }
 ```
 
-- The image is named after the composable without the trailing `Screenshot`: `HomePageScreenshot` is `HomePage.png`.
+- A screenshot's name is the composable's without the trailing `Screenshot`: `HomePageScreenshot` is `HomePage`.
   Names must be unique in this package.
+- **`order.txt`** (in this folder) lists the screenshots in the order the README shows them, one name per line (`#`
+  comments are fine). Every screenshot is listed once, and nothing else. CI numbers the images by position
+  (`01-HomePage.png`), so to reorder, move a line; a new screenshot is a new preview and a new line.
 - **Any number of screenshots of a page**: more previews in its file, each with its own data.
 - **No screenshot for a page**: no file for it. The app needs at least one screenshot in all, not one per page.
 
