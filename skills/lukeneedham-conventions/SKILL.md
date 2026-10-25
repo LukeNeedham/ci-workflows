@@ -67,7 +67,7 @@ below are enough.
 
 ## Pages and screenshots
 - **Every page is `XPage` + `XPageContent`, always** (`docs/pages.md`, which has the migration steps). `XPage` is public:
-  it gets its ViewModel, always named **`XViewModel`** (`koinViewModel<XViewModel>()`), collects the state, handles
+  it gets its ViewModel, always named **`XViewModel`** (`koinViewModel<XViewModel>()`) and **one per page: a ViewModel is never shared between pages** (no feature-wide, app-wide or activity/nav-graph-scoped ViewModel; state that pages share goes in a repository, a Koin `single`), collects the state, handles
   lifecycle and one-off events, turns navigation into lambdas, and only calls `XPageContent`; no preview.
   `XPageContent` is `internal` and stateless (an `XUiState` and one lambda per action; no ViewModel, Koin, `Flow` or
   navigator) and **always has at least one `private` `@Preview` in the same file** (named `Preview`; see Previews below). **Each of `XPage`, `XPageContent`, `XViewModel` and `XUiState` is in its own file**

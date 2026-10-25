@@ -71,6 +71,14 @@ needed, or passes it to `XPageContent` as a plain parameter ([app-conventions.md
 
 ## Names and files
 
+- **One ViewModel per page, and it is never shared.** `HomeViewModel` belongs to `HomePage` and to no other page.
+  **Shared ViewModels are not allowed, in any form**: not one ViewModel for a whole feature or flow (a
+  `PoemBookViewModel` behind a shelf, a book and a search page), not one for the app, not a ViewModel scoped to the
+  activity, the navigation graph or a parent so that several pages get the same instance, and not a ViewModel that holds
+  or calls another page's ViewModel. State that more than one page needs lives **below** the ViewModels, in a
+  repository or other domain/data class (a Koin `single`) that each page's own ViewModel reads and writes: the pages
+  then stay in step through that class, and each one is still previewable and testable on its own. A page that needs
+  nothing from a ViewModel (no state, no work) has none; it never borrows another page's.
 - `HomePage` and `HomePageContent`. **The ViewModel that `HomePage` holds is named `HomeViewModel`**: always
   `XViewModel` for `XPage` (one ViewModel per page), never `HomePageViewModel`, `HomeScreenViewModel` or a name that
   does not match the page; and its state is `HomeUiState`. **Never** `HomeScreen`, `HomeContent`, `HomeView` or
@@ -125,7 +133,9 @@ Do this for every page of the app, in the same change as the rest of its migrati
 2. The composable that draws the screen (`XContent`, `XScreenContent`, or the body of the old screen) becomes
    **`XPageContent`**, `internal`, taking only state and lambdas. If a screen is not split yet, split it: everything
    that needs the ViewModel, Koin or a `Flow` goes up into `XPage`.
-3. **Split the files**: `XPage.kt` (the page only), `XPageContent.kt` (the content and its previews), `XViewModel.kt` and
+3. **Split any shared ViewModel into one per page**: give each page its own `XViewModel` and `XUiState`, holding only what
+   that page needs, and move whatever the pages truly share into a repository (a Koin `single`) they all use. Then
+   **split the files**: `XPage.kt` (the page only), `XPageContent.kt` (the content and its previews), `XViewModel.kt` and
    `XUiState.kt`, each holding only what its name says. Rename **the ViewModel the page holds to `XViewModel`** (not
    `XPageViewModel`, `XScreenViewModel` or anything else) and its state to `XUiState`, if they differ.
 4. **The route of the page is `Route.X`**, a member of the app's one `sealed interface Route` in `Route.kt`, whatever the

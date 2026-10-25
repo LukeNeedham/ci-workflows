@@ -114,6 +114,10 @@ class SyncApp(unittest.TestCase):
         self.assertNotIn("stale", text)
         self.assertIn("- Rule.", text)
 
+    def test_the_block_says_a_viewmodel_is_never_shared_between_pages(self):
+        s.sync_claude_md(self.dir)
+        self.assertIn("never shared between pages", (self.dir / "CLAUDE.md").read_text())
+
     def test_the_block_tells_claude_the_readme_standard(self):
         s.sync_claude_md(self.dir)
         self.assertIn("docs/readme-template.yml", (self.dir / "CLAUDE.md").read_text())
