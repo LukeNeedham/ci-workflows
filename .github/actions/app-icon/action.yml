@@ -4,10 +4,18 @@ description: >
   pull request when it differs. Used by the `app-icon` job of android_pr.yml; see docs/app-icon.md. The job needs
   `contents: write`.
 
+inputs:
+  token:
+    description: 'The token to push the generated files with; empty: the workflow token. See checkout-pr-branch'
+    required: false
+    default: ''
+
 runs:
   using: composite
   steps:
     - uses: LukeNeedham/ci-workflows/.github/actions/checkout-pr-branch@main
+      with:
+        token: ${{ inputs.token }}
 
     - name: Render the app icon
       shell: bash

@@ -4,10 +4,18 @@ description: >
   of the pull request when it differs. An app without a readme.yml yet only gets a warning. Used by the `readme` job
   of android_pr.yml; see docs/readme.md. The job needs `contents: write`.
 
+inputs:
+  token:
+    description: 'The token to push the generated files with; empty: the workflow token. See checkout-pr-branch'
+    required: false
+    default: ''
+
 runs:
   using: composite
   steps:
     - uses: LukeNeedham/ci-workflows/.github/actions/checkout-pr-branch@main
+      with:
+        token: ${{ inputs.token }}
 
     - name: Render README.md from readme.yml
       shell: bash

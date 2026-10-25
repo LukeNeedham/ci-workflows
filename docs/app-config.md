@@ -37,7 +37,20 @@ app-icon check, no comment) when:
   for every PR and the check happens here;
 - **every file the PR changes is under `.claude/skills/`**, so the APK cannot differ. A single other file builds as
   usual. A renamed file counts at its old path too. `SKIPPED_PATHS` in `scripts/app_config.py` is the list; to skip
-  more (say `CLAUDE.md`), add to it.
+  more (say `CLAUDE.md`), add to it;
+- **the push that started the run changed only files that CI generates** (`docs/screenshots/`, `README.md`,
+  `app-icon.png`, the README of the screenshot package): that is CI's own commit, which cannot change the APK.
+  `GENERATED_PATHS` in `scripts/app_config.py` is the list. This looks at the push (`github.event.before` to `after`),
+  not at the whole PR, so a PR that also changes code skips only these commits. If the push cannot be listed (a
+  force-push, say), the run builds.
+
+### The token of the generated commits
+
+The jobs that commit generated files push with the secret `SYNC_TOKEN` when the app has it, and with the workflow
+token otherwise. A commit pushed with the workflow token does start a run, but GitHub holds it until someone approves
+it; one pushed with a token of the owner starts without. The run is then skipped by the rule above, so the commit has
+its checks and costs no build. The callers pass the secrets on (`secrets: inherit`), so the secret has to be reachable
+from the app: an organisation secret, or the same secret in the app. It needs write access to contents of the app.
 
 A skipped run still starts (the `config` job runs) and shows `android / build` and the other jobs as *skipped*, which a
 required check on them accepts. A rule that requires the job *inside* the call (`android / build / build`) would never
