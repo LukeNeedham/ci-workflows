@@ -114,7 +114,8 @@ details. In short, for a new app:
 Open a PR: CI first comments with an **AppHub** link (`https://www.lukeneedham.com/apphub/pr/<repo name>/<number>`,
 the PR's page in the AppHub app, where the build can be downloaded and installed), then builds the debug APK and
 comments with the APK link. The AppHub link depends only on the repo name and the PR number, so **paste it into the
-chat as soon as the PR is open**, without waiting for the build, and not the APK link. If the build fails, read the log, fix it, push.
+chat as soon as the PR is open** on a line of its own as `📦 [Open in AppHub](<link>)`, and at the top of the PR
+description, without waiting for the build, and not the APK link. If the build fails, read the log, fix it, push.
 
 ## 4. App icon
 

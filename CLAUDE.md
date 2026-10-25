@@ -15,4 +15,5 @@
   only `name` and `repo`.
 - **AppHub link**: whenever work on an app completes (a PR is open), always paste the PR's AppHub link
   (`https://www.lukeneedham.com/apphub/pr/<repo name>/<number>`, also posted by CI as a PR comment) into the chat
-  straight away. This rule reaches the apps through the managed `CLAUDE.md` block of `sync_apps.py`.
+  straight away, as a markdown link on a line of its own starting with 📦 (`📦 [Open in AppHub](<link>)`), and at the
+  top of the PR description. This rule reaches the apps through the managed `CLAUDE.md` block of `sync_apps.py`.
