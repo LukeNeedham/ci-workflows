@@ -50,6 +50,15 @@ allprojects {
             }
         }
 
+        // The namespace is set by the app's own android block, which runs after this script: read it once the project is
+        // evaluated, as a plain value (a task reading the project when it runs breaks apps that use the configuration cache)
+        afterEvaluate {
+            def screenshotsPackage = android.namespace
+            tasks.withType(Test).configureEach {
+                systemProperty 'screenshots.package', screenshotsPackage
+            }
+        }
+
         tasks.withType(Test).configureEach {
             // Roborazzi writes the images it captures only when asked to record
             systemProperty 'roborazzi.test.record', 'true'
@@ -57,10 +66,6 @@ allprojects {
             // take it from the build cache, or nothing would be rendered
             outputs.upToDateWhen { false }
             outputs.cacheIf { false }
-            // The namespace is set by the app's own android block, which runs after this script: read it when the task runs
-            doFirst {
-                systemProperty 'screenshots.package', project.android.namespace
-            }
         }
     }
 }
