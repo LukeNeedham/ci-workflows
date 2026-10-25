@@ -13,7 +13,8 @@
   A new caller or a change to one in `callers/` reaches the apps this way too. The callers hold no settings and an app
   has no options: every app follows the same standard ([`docs/app-config.md`](docs/app-config.md)), so `apps.json` lists
   only `name` and `repo`.
-- **AppHub link**: whenever work on an app completes (a PR is open), always paste the PR's AppHub link
-  (`https://www.lukeneedham.com/apphub/pr/<repo name>/<number>`, also posted by CI as a PR comment) into the chat
-  straight away, as a markdown link on a line of its own starting with 📦 (`📦 [Open in AppHub](<link>)`), and at the
-  top of the PR description. This rule reaches the apps through the managed `CLAUDE.md` block of `sync_apps.py`.
+- **AppHub link**: this repo is not an app and is not listed in AppHub, so do not paste an AppHub link for PRs here.
+  The rule belongs to the consuming apps: when work on an app completes (a PR is open), Claude pastes the PR's AppHub
+  link (`https://www.lukeneedham.com/apphub/pr/<repo name>/<number>`) into the chat straight away, as a markdown link
+  on a line of its own starting with 📦 (`📦 [Open in AppHub](<link>)`), and at the top of the PR description. It
+  reaches the apps through the managed `CLAUDE.md` block of `sync_apps.py`.
