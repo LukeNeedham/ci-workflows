@@ -11,7 +11,9 @@ Claude: nothing needs to remember to copy anything.
 | The callers | `.github/workflows/`: `trigger_on_pull_request.yml`, `build_main.yml`, `delete_prereleases.yml`, `release.yml` | Copied **byte for byte** from [`callers/`](../callers), **all four to every app**. They hold no settings, so every app has identical files. `release.yml` fails with a clear message in an app that is not set up for releases |
 | A note for Claude | A block in the app's `CLAUDE.md`, between `ci-workflows:begin` and `ci-workflows:end` | Replaced each time. Also tells Claude to always paste the PR's AppHub link into the chat when work completes (`CLAUDE.md` is always loaded, unlike the skill). The old "copy the skill by hand" line is replaced by it. The rest of `CLAUDE.md` is the app's |
 
-Not synced: the library version, and anything else in the app.
+Not synced: the app's `readme.yml`, which is handwritten, and its `README.md`, which the PR build generates from it
+([readme.md](readme.md)); the sync only reports, in its run summary, which apps have no valid `readme.yml`. Also not
+synced: the library version, and anything else in the app.
 
 **The callers hold no settings.** Every app is built the same way ([app-config.md](app-config.md)), so there is
 nothing to configure per app. The sync overwrites whatever the app has in a caller file, so an edit made in an app is lost.
@@ -62,13 +64,42 @@ same secret. It is only ever sent to `github.com` and `api.github.com`, and is m
 ```
 SYNC_TOKEN=github_pat_... python3 scripts/sync_apps.py            # every app
 python3 scripts/sync_apps.py --dry-run --apps AppHub              # clone, show the changes, push nothing
-python3 -m unittest discover -s scripts                           # the tests
+python3 -m unittest discover -s tests                  # the tests (needs pyyaml)
+python3 scripts/generate_readme.py path/to/app --repo owner/name  # render an app's README.md (needs pyyaml)
 ```
 
 `--dry-run` needs no token for a public repo.
+
+## What starts a sync
+
+[`sync_apps.yml`](../.github/workflows/sync_apps.yml) runs on a push to `main` that changes `skills/**`, `callers/**`,
+`apps.json` or **`scripts/**`** (the whole folder: the scripts that the workflows and actions run on the apps, and the
+sync itself), every Monday, and by hand.
+
+**What `scripts/` means: a change here reaches every app's CI.** It is not "the folder of scripts" but the code that
+the shared workflows and actions run inside the apps, so any change to it can change an app's build, and starts a sync.
+That is why the whole folder is the trigger, with no list of files to keep up to date. Everything else that is only
+for this repo, namely the tests in `tests/`, is outside it and starts no sync; a script used only inside this repo does
+not belong in `scripts/`. The tests, and a lint of the workflows (actionlint), run in
+[`test.yml`](../.github/workflows/test.yml).
 
 ## Changing what is synced
 
 Change the file in `skills/` or `callers/` and merge: the next run opens the PRs. To sync something new (another
 caller, say), add it to `callers/` and to `CALLERS` in the script, and to `docs/setup.md`. A new
 setting that belongs to an app goes into `DEFAULTS` in `scripts/app_config.py`.
+
+## Workflows only call scripts
+
+The logic of every workflow is in `scripts/`, tested in `tests/`; a `run:` is a call or a few lines. The
+workflows that run in an app (`android_pr_build.yml`, `android_pr_cleanup.yml`, `android_release.yml`) start with the
+action [`ci-scripts`](../.github/actions/ci-scripts/action.yml), which sets `CI_SCRIPTS` to the `scripts/` of the same
+version of this repo. Values from the event (a branch name, the notes) go in through `env:`, never straight into the
+command line.
+
+| Script | Used by |
+|---|---|
+| `pr_releases.py` | the PR build (stale comment, metadata, superseded) and the cleanup |
+| `release.py` | `android_release.yml` |
+| `library_release.py` | `library_release.yml` |
+| `ghactions.py` | the helpers for step outputs, `GITHUB_ENV` and error annotations |

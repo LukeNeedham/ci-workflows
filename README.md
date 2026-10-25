@@ -43,6 +43,18 @@ conventions into each app's repo.
 keystore, these CI workflows, and the standard architecture (single activity, Compose, Navigation 3,
 MVVM). Read it first when starting any new app.
 
+## README standard
+
+Every app keeps its README content in a handwritten `readme.yml`; CI renders `README.md` from it in one layout
+(icon, name, description, links, getting started as a user and as a developer, license and so on), so the layout is
+enforced from here: **[docs/readme.md](docs/readme.md)**, skeleton in [docs/readme-template.yml](docs/readme-template.yml).
+
+## Pages
+
+Every page of every app is an `XPage` (gets the ViewModel and the navigation, no UI) plus an `internal`, stateless
+`XPageContent` (all the UI, with the previews): **[docs/pages.md](docs/pages.md)**, including how to migrate an existing
+app. The README screenshots are rendered from them by CI: [docs/screenshots.md](docs/screenshots.md).
+
 ## Setting up a project
 
 **See [docs/setup.md](docs/setup.md)** for the caller files to copy (they need no editing), how a project's settings
@@ -63,8 +75,13 @@ the `config` job provides the values to the build. The same job skips the whole 
 
 The `app-icon` job renders `app-icon.png` (a 512x512 circle on a transparent background) from the app's
 adaptive launcher icon on every PR and commits it to the PR branch when it differs
-([app-icon.md](docs/app-icon.md)). The path is fixed, not an input. It fetches
-[`scripts/render_app_icon.py`](scripts/render_app_icon.py) from this repo at run time.
+([app-icon.md](docs/app-icon.md)). The path is fixed, not an input. The `screenshots` and `readme` jobs do the same for
+`docs/screenshots/` (rendered by the build job, in the same Gradle run as the APK, and committed by the `screenshots`
+job) and `README.md`. Each of the three is a composite action in [`.github/actions/`](.github/actions) that runs the
+Python scripts of [`scripts/`](scripts); the jobs of `android_pr.yml` only call them. Each cancels its own older run for the
+PR when you push again, so a run that a newer push replaced cannot commit files made from the old code. The commits are made
+with the workflow token, so they start no workflow run: an app that requires checks on the head commit of its PRs would
+find none on the bot's commit, and a Dependabot PR (read-only token) fails the job when a generated file is out of date.
 
 `closed` has to be among the caller's `pull_request` types: that is the event that triggers the
 cleanup. Everything else (`opened`, `reopened`, `synchronize`) runs the build. A manual run
@@ -187,8 +204,8 @@ Changes to `main` affect every project at once, so:
 
 1. Make the change on a branch and open a PR.
 2. To try it before merging, point a test PR in a consuming repo at the branch
-   (`...android_pr_build.yml@my-branch`), then switch it back to `@main`. A script in `scripts/` that a workflow
-   downloads (the app icon renderer) is always fetched from `main`, so it can only be tried once merged.
+   (`...android_pr_build.yml@my-branch`), then switch it back to `@main`. A composite action that a workflow calls
+   (`.github/actions/...@main`) has its own `@main` in the workflow: point it at the branch too while you try it.
 3. Merge, then watch the next real run in a consuming repo.
 
 When a consuming project's CI behaves oddly, the project's own caller files are usually fine; look

@@ -1,0 +1,21 @@
+name: App icon
+description: >
+  Renders app-icon.png, at the root of the app, from its adaptive launcher icon, and commits it to the branch of the
+  pull request when it differs. Used by the `app-icon` job of android_pr.yml; see docs/app-icon.md. The job needs
+  `contents: write`.
+
+runs:
+  using: composite
+  steps:
+    - uses: LukeNeedham/ci-workflows/.github/actions/checkout-pr-branch@main
+
+    - name: Render the app icon
+      shell: bash
+      run: |
+        sudo apt-get install -y --no-install-recommends libcairo2 > /dev/null
+        pip install --quiet cairosvg pillow
+        python3 "$CI_SCRIPTS/render_app_icon.py" .
+
+    - name: Commit the app icon if it changed
+      shell: bash
+      run: python3 "$CI_SCRIPTS/commit_generated.py" app-icon

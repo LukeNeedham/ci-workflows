@@ -30,12 +30,13 @@ python3 -c "import cairosvg; cairosvg.svg2png(url='app-icon.svg', write_to='app-
 ## How it stays in step
 
 The `app-icon` job of [`android_pr.yml`](../.github/workflows/android_pr.yml) runs on every PR, alongside
-the build:
+the build. Its steps are the composite action [`.github/actions/app-icon`](../.github/actions/app-icon/action.yml),
+which runs the scripts of [`scripts/`](../scripts) from its own checkout:
 
-1. It fetches [`scripts/render_app_icon.py`](../scripts/render_app_icon.py) from this repo (`main`) and
-   renders the icon from the app's adaptive icon.
-2. If the result differs visibly from the committed `app-icon.png` (or there is none), it **commits the new
-   file to the PR's branch** as `github-actions[bot]`. If it is the same it does nothing. Tiny differences
+1. [`render_app_icon.py`](../scripts/render_app_icon.py) renders the icon from the app's adaptive icon.
+2. If the result differs visibly from the committed `app-icon.png` (or there is none),
+   [`commit_generated.py`](../scripts/commit_generated.py) **commits the new file to the PR's branch** as
+   `github-actions[bot]`. If it is the same it does nothing. Tiny differences
    (the renderer's edge anti-aliasing, a colour shift of 1 or 2 in one channel) are ignored so the file
    does not churn.
 3. If the app has no adaptive icon the job fails and says so.
@@ -53,8 +54,8 @@ Things to know:
 - **PRs from forks** cannot be committed to. There the job fails with instructions to run the script
   yourself.
 - **A manual run** (`workflow_dispatch`) cannot commit: it fails if `app-icon.png` is out of date.
-- **Script changes** apply to every app at once (it is fetched from `main`). It is always fetched
-  from `main`, so it can only be tried once merged.
+- **Script changes** apply to every app at once, because the apps call the action at `@main`. To try one first,
+  point a test PR's `uses: …/app-icon@main` in `android_pr.yml` at the branch.
 
 ## Previewing it locally
 
@@ -62,8 +63,8 @@ Not needed, but to look at the result before pushing, from the app's repo root:
 
 ```
 pip install cairosvg pillow
-curl -fsSL https://raw.githubusercontent.com/LukeNeedham/ci-workflows/main/scripts/render_app_icon.py -o /tmp/render_app_icon.py
-python3 /tmp/render_app_icon.py
+git clone --depth 1 https://github.com/LukeNeedham/ci-workflows /tmp/ci-workflows
+python3 /tmp/ci-workflows/scripts/render_app_icon.py
 ```
 
 (Do not commit the output by hand; CI will do it, and overwrite anything that differs.)

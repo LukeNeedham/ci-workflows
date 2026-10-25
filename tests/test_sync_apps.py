@@ -1,9 +1,10 @@
-"""Tests for sync_apps.py. Run: python3 -m unittest discover -s scripts"""
+"""Tests for sync_apps.py. Run: python3 -m unittest discover -s tests"""
 
 import tempfile
 import unittest
 from pathlib import Path
 
+import _paths  # noqa: F401
 import sync_apps as s
 
 TOOLS = s.TOOLS
@@ -113,6 +114,34 @@ class SyncApp(unittest.TestCase):
         self.assertNotIn("stale", text)
         self.assertIn("- Rule.", text)
 
+    def test_the_block_tells_claude_the_readme_standard(self):
+        s.sync_claude_md(self.dir)
+        self.assertIn("docs/readme-template.yml", (self.dir / "CLAUDE.md").read_text())
+
+    def test_the_readme_source_is_reported_but_nothing_is_written(self):
+        self.assertEqual("readme.yml is missing", s.readme_note(self.dir))
+        self.write("readme.yml", "name: Demo\n")
+        self.assertIn("readme.yml is invalid", s.readme_note(self.dir))
+        self.write("readme.yml", (TOOLS / "docs/readme-template.yml").read_text())
+        self.assertIn("no screenshots", s.readme_note(self.dir))
+        self.write("docs/screenshots/Home.png", "png")
+        self.assertIn("no LICENSE file", s.readme_note(self.dir))
+        self.write("LICENSE", "MIT License\n")
+        # The app has a readme.yml, so it is held to the screenshot rules: its package is missing
+        self.assertIn("no screenshot package", s.readme_note(self.dir))
+        self.write("app/src/debug/kotlin/x/screenshot/HomePage.kt",
+                   "package x.screenshot\n\n@Preview\n@Composable\nprivate fun HomePageScreenshot() {\n}\n")
+        self.assertIn("order.txt is missing", s.readme_note(self.dir))
+        self.write("app/src/debug/kotlin/x/screenshot/order.txt", "HomePage\n")
+        self.assertEqual("", s.readme_note(self.dir))
+        # An app that opted out has no package to report
+        (self.dir / "app/src/debug/kotlin/x/screenshot/order.txt").unlink()
+        (self.dir / "app/src/debug/kotlin/x/screenshot/HomePage.kt").unlink()
+        (self.dir / "app/src/debug/kotlin/x/screenshot").rmdir()
+        self.write("readme.yml", (TOOLS / "docs/readme-template.yml").read_text() + "\nscreenshots: manual\n")
+        self.assertEqual("", s.readme_note(self.dir))
+        s.sync_app(self.dir)
+        self.assertFalse((self.dir / "README.md").exists())
 
 class Api(unittest.TestCase):
     def test_a_request_with_a_body_declares_json(self):

@@ -1,0 +1,49 @@
+name: Screenshots
+description: >
+  Commits the README screenshots to the branch of the pull request when they differ from the ones in docs/screenshots/.
+  The build job of android_pr_build.yml renders them (from the @Preview composables of the app's `screenshot` package,
+  in the same Gradle run as the APK) and uploads them as the artifact `screenshots`; this action takes them from there.
+  Used by the `screenshots` job of android_pr.yml; see docs/screenshots.md. The job needs `contents: write`.
+
+inputs:
+  state:
+    description: 'What the build job made of the screenshots: rendered, or failed'
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - uses: LukeNeedham/ci-workflows/.github/actions/checkout-pr-branch@main
+
+    - name: Stop if the screenshots could not be rendered
+      if: inputs.state != 'rendered'
+      shell: bash
+      run: |
+        echo "::error::The screenshots could not be rendered: see the 'Render the screenshots' step of the build job"
+        exit 1
+
+    - uses: actions/download-artifact@v4
+      with:
+        name: screenshots
+        path: ${{ runner.temp }}/screenshots
+
+    - name: Replace docs/screenshots with the rendered ones
+      shell: bash
+      env:
+        RENDERED: ${{ runner.temp }}/screenshots
+      run: |
+        rm -rf docs/screenshots
+        mkdir -p docs
+        cp -r "$RENDERED" docs/screenshots
+
+    # The README of the screenshot package is the template of ci-workflows, so it is the same in every app
+    - name: Write the README of the screenshot package
+      id: package-readme
+      shell: bash
+      run: python3 "$CI_SCRIPTS/screenshot_package_readme.py" .
+
+    - name: Commit the screenshots if they changed
+      shell: bash
+      env:
+        PACKAGE_README: ${{ steps.package-readme.outputs.path }}
+      run: python3 "$CI_SCRIPTS/commit_generated.py" screenshots --also "$PACKAGE_README"

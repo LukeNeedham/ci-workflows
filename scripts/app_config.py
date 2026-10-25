@@ -6,7 +6,7 @@ and an app has to follow them (the debug APK is built to app/build/outputs/apk/d
 main, and so on). The reusable workflows run the composite action .github/actions/app-config, which runs this
 script and writes the settings to $GITHUB_OUTPUT. See docs/app-config.md.
 
-It also sets `skip=true` for a pull request run that has nothing to build:
+It also sets `generate` and `cleanup` to false for a pull request run that has nothing to do:
   - the PR targets a branch other than BRANCH, or
   - every file the PR changes is under SKIPPED_PATHS (the Claude skill), so no APK can differ.
 
@@ -29,7 +29,7 @@ SETTINGS = {
     "apk-path": "app/build/outputs/apk/debug/app-debug.apk",
     "gradle-task": "assembleDebug",
     "java-version": "17",
-    "java-distribution": "zulu",
+    "java-distribution": "temurin",
     "timezone": "Europe/Amsterdam",
     "release-gradle-task": "assembleRelease",
     "release-apk-path": "app/build/outputs/apk/release/app-release.apk",
@@ -74,7 +74,14 @@ def run(repo, event, action, base, files):
     """The outputs for the workflow, and the lines to tell the user in the log."""
     reason = skip_reason(event, action, base, files)
     log = [f"::notice::Nothing to do: {reason}."] if reason else []
-    return {"skip": "true" if reason else "false", **settings(repo)}, log
+    closed = event == "pull_request" and action == "closed"
+    # What the jobs of android_pr.yml do: everything but a closed PR builds and generates; a closed PR cleans up.
+    # A run that has nothing to do has both false.
+    todo = {
+        "generate": reason is None and not closed,
+        "cleanup": reason is None and closed,
+    }
+    return {**{k: "true" if v else "false" for k, v in todo.items()}, **settings(repo)}, log
 
 
 def main():

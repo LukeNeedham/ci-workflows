@@ -1,0 +1,13 @@
+name: CI scripts
+description: >
+  Sets CI_SCRIPTS to the scripts/ directory of this repo at the version of this action, for the steps that follow, so a
+  workflow that runs in an app can call `python3 "$CI_SCRIPTS/<script>.py"`. The logic of the workflows is in those
+  scripts (tested in tests/); the workflows only call them.
+
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      env:
+        ACTION_PATH: ${{ github.action_path }}
+      run: echo "CI_SCRIPTS=$(cd "$ACTION_PATH/../../../scripts" && pwd)" >> "$GITHUB_ENV"

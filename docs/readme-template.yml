@@ -1,0 +1,44 @@
+# The data of an app's README.md. Copy this to readme.yml at the repo root, replace the values, delete the comments.
+# CI renders README.md from it (docs/readme.md): the layout is shared, only the content below is the app's.
+# Write it by hand. Never edit README.md: it is overwritten.
+#
+# What the project already says is not here, because the generator reads it: the minimum Android version (`minSdk`
+# in app/build.gradle.kts), the screenshots (docs/screenshots/), the license (the LICENSE file), the build and test
+# commands, and the architecture (the same in every app, see the conventions of ci-workflows). Write only what is
+# specific to this app.
+#
+# A value with a colon followed by a space, or starting with a quote, `*` or `&`, has to be in quotes.
+# Text fields are Markdown, but without `#` and `##` headings: those are the sections of the layout.
+
+name: Demo App                  # required
+tagline: One line saying what the app does.   # required
+
+description: |                  # required: what the app is and who it is for, with a few highlights of what it can be used for
+  A short paragraph, or two separated by a blank line. Mention the main things the app does here:
+  there is no feature list.
+
+# screenshots: manual           # optional, and only for an app that cannot render @Preview (a WebView wrapper): its
+#                               # screenshots are committed by hand into docs/screenshots/. Otherwise CI renders them
+#                               # from the app's screenshot package, and this line is not there.
+
+# links:                        # optional: shown under the tagline, and the stores are offered in the install step
+#   play-store: https://play.google.com/store/apps/details?id=com.lukeneedham.demo
+#   f-droid: https://f-droid.org/packages/com.lukeneedham.demo
+#   web: https://demo.lukeneedham.com    # the production web deploy
+#   other:
+#     - title: Privacy policy
+#       url: https://lukeneedham.com/demo/privacy
+
+# user:
+#   install: Download the APK from the Releases page.   # optional: replaces the default first step (install from the stores/AppHub/Releases)
+#   steps:                      # optional: what to do after installing, such as first-run steps
+#     - "Optional: add an API key under Settings."
+
+# developer:
+#   notes: |                    # optional: only what is specific to developing THIS app (a secret, a local setup step, a
+#     Create `local.properties` with your API key.   # quirk). The generic setup is generated.
+
+# sections:                     # optional: extra sections, shown between the developer section and Contributing
+#   - title: Privacy
+#     body: |
+#       The app collects nothing.

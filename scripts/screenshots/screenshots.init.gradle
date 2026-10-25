@@ -1,0 +1,58 @@
+// A Gradle init script that renders the README screenshots of an app: docs/screenshots.md in LukeNeedham/ci-workflows.
+//
+// It is applied from outside, with `--init-script`, by scripts/render_screenshots.py, so the app's own build files
+// hold nothing for it. For the run it adds the test dependencies (the versions are here and only here), turns on
+// Android resources for unit tests, and makes the unit tests of the app this one test, PageScreenshotTest.kt, which is
+// plain code of ci-workflows (the folder is given as the project property screenshots.sources). The test renders every
+// @Preview of the screenshot package of the app's namespace (the system property screenshots.package) to
+// build/screenshots/<Name>.png of the app module.
+
+allprojects {
+    pluginManager.withPlugin('com.android.application') {
+        def sourcesPath = findProperty('screenshots.sources')
+        if (sourcesPath == null) {
+            throw new GradleException('Pass the folder of the test: -Pscreenshots.sources=<scripts/screenshots/test>')
+        }
+        def testSources = file(sourcesPath)
+
+        android {
+            testOptions {
+                unitTests {
+                    includeAndroidResources = true
+                }
+            }
+        }
+
+        dependencies {
+            // The versions of the screenshot test: change them here, for every app at once
+            testImplementation 'io.github.takahirom.roborazzi:roborazzi:1.76.0'
+            testImplementation 'io.github.takahirom.roborazzi:roborazzi-compose:1.76.0'
+            testImplementation 'org.robolectric:robolectric:4.14.1'
+            testImplementation 'io.github.sergio-sastre.ComposablePreviewScanner:android:0.9.3'
+            // Versioned by the app's Compose BOM
+            testImplementation 'androidx.compose.ui:ui-test-junit4'
+            debugImplementation 'androidx.compose.ui:ui-test-manifest'
+        }
+
+        // The run renders screenshots and nothing else, so the test source set holds only the test of ci-workflows: the
+        // app's own unit tests are not compiled, and a broken one cannot fail the screenshots
+        android.sourceSets.matching { it.name ==~ /test([A-Z].*)?/ }.configureEach { sourceSet ->
+            def own = sourceSet.name == 'test' ? [testSources] : []
+            sourceSet.java.setSrcDirs(own)
+            sourceSet.extensions.findByName('kotlin')?.setSrcDirs(own)
+        }
+
+        tasks.withType(Test).configureEach {
+            // Roborazzi writes the images it captures only when asked to record
+            systemProperty 'roborazzi.test.record', 'true'
+            // The images are the only output that matters, and Gradle does not know them: never skip the run as up to date or
+            // take it from the build cache, or nothing would be rendered
+            outputs.upToDateWhen { false }
+            outputs.cacheIf { false }
+            // The namespace is set by the app's own android block, which runs after this script: read it when the task runs
+            doFirst {
+                systemProperty 'screenshots.package', project.android.namespace
+            }
+        }
+    }
+}
