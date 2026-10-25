@@ -67,7 +67,7 @@ below are enough.
   it gets its ViewModel, always named **`XViewModel`** (`koinViewModel<XViewModel>()`), collects the state, handles
   lifecycle and one-off events, turns navigation into lambdas, and only calls `XPageContent`; no preview.
   `XPageContent` is `internal` and stateless (an `XUiState` and one lambda per action; no ViewModel, Koin, `Flow` or
-  navigator) and has the general previews (`XPageContentPreview`). Both are in `XPage.kt`, the ViewModel and state in
+  navigator) and **always has at least one `private` `@Preview` in the same file** (`XPageContentPreview`, more if they help). All of it is in `XPage.kt`, the ViewModel and state in
   `XViewModel.kt`. Never `XScreen`, `XContent` or `XView`. **The navigation key is always `XNavKey`**
   (`entry<XNavKey> { XPage(...) }`; never `X`, `XKey` or `XRoute`).
 - **README screenshots live in one package, `<app package>.screenshot`, in `src/debug`**: a file per page that has

@@ -16,7 +16,7 @@ composable in its own file, and a dialog or sheet is drawn by the `XPageContent`
 | Job | Connects the page to the app: gets its ViewModel (**`XViewModel`**), collects its state, handles lifecycle and one-off events, and turns navigation into plain lambdas | **All of the page's UI** |
 | Takes | What the navigation gives it: the page's arguments and the navigation callbacks (`onBack`, `onOpenDetail`) | The page's `XUiState` and **one lambda per user action** (state down, events up) |
 | Never | Draws any UI of its own: it only calls `XPageContent` | Touches a ViewModel, Koin, a `Flow`, a repository or a navigator; starts work of its own; holds business logic |
-| Previewable | **No**: it needs Koin and a ViewModel | **Yes**: with fake state |
+| Previewable | **No**: it needs Koin and a ViewModel | **Yes, always**: every `XPageContent` has at least one `private` `@Preview` composable (`XPageContentPreview`) in the same file, with fake state |
 
 ```kotlin
 // ui/HomePage.kt
@@ -73,7 +73,8 @@ needed, or passes it to `XPageContent` as a plain parameter ([app-conventions.md
   does not match the page; and its state is `HomeUiState`. **Never** `HomeScreen`, `HomeContent`, `HomeView` or
   `HomeScreenContent` for the composables: the suffix is always `Page` and `PageContent`.
 - **One file per page, `HomePage.kt`, holding `HomePage`, `HomePageContent` and the general previews**
-  (`HomePageContentPreview`: as many as help, named after what they show). The ViewModel and the state are in
+  (`HomePageContentPreview`: **every `XPageContent` has at least one, and each is `private` in that file**; more when they
+  help, named after what they show: `HomePageContentEmptyPreview`). The ViewModel and the state are in
   `HomeViewModel.kt`. This is the one exception to "one composable per file" ([app-conventions.md](app-conventions.md#composables-and-previews)).
 - **The navigation key of `XPage` is always `XNavKey`** (`HomePage` is `HomeNavKey`, `PullRequestPage` is
   `PullRequestNavKey`): never `Home`, `HomeKey` or `HomeRoute`. A key is a `@Serializable` object, or a class with
@@ -113,7 +114,7 @@ Do this for every page of the app, in the same change as the rest of its migrati
    `XScreenViewModel` or anything else) and its state to `XUiState`, if they differ.
 4. **The navigation key of the page is renamed to `XNavKey`**, whatever it is called now (`X`, `XKey`, `XRoute`, `XPage` or
    `XScreen`). A key called `XPage` has to change in any case, because that name is the composable's.
-5. Give `XPageContent` general previews, and (if the page deserves a screenshot) a file in the `screenshot` package.
+5. Give `XPageContent` its `private` previews in `XPage.kt` (at least one), and (if the page deserves a screenshot) a file in the `screenshot` package.
 6. Update every reference: tests, docs and the app's `CLAUDE.md` lines that name files.
 7. **Not pages:** composables that are only parts of a page keep their names; nothing else gets the `Page` suffix.
 
