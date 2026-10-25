@@ -4,9 +4,10 @@
 
     python3 screenshots_wanted.py [app_dir]
 
-An app has none to render when it has no screenshot package (a `screenshot/` folder of Kotlin files under app/src):
-an app that cannot render previews, such as a WebView wrapper, commits its screenshots into docs/screenshots/ by hand,
-and they stay as they are. Every app has screenshots; there is no option to go without.
+Every app has at least one screenshot. The only app that renders none is one with no `screenshot` folder at all under
+app/src that has committed its screenshots into docs/screenshots/ by hand (a WebView wrapper cannot render previews):
+they stay as they are. In every other case there is something to render, and render_screenshots.py fails if the package
+is missing, empty, without an order.txt or without a screenshot, or if the app has no screenshot of any kind.
 """
 
 import os
@@ -14,15 +15,14 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / "screenshots"))
-from check_screenshot_package import package_files
+from check_screenshot_package import committed_screenshots, package_folders
 
 
 def skip_reason(app_dir):
     """Why there is nothing to render, or None when there is."""
-    if not package_files(app_dir):
-        return ("No screenshot package (a screenshot/ folder of Kotlin files in the app's package), so nothing is rendered: "
-                "the screenshots in docs/screenshots/ stay as they are, and are committed by hand. "
-                "See docs/screenshots.md in LukeNeedham/ci-workflows.")
+    if not package_folders(app_dir) and committed_screenshots(app_dir):
+        return ("No screenshot package, so nothing is rendered: the screenshots committed by hand in docs/screenshots/ "
+                "stay as they are. See docs/screenshots.md in LukeNeedham/ci-workflows.")
     return None
 
 

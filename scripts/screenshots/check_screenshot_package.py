@@ -31,6 +31,17 @@ def package_files(app_dir):
     return sorted(p for p in src.rglob("*.kt") if p.parent.name == "screenshot" and "build" not in p.relative_to(src).parts)
 
 
+def package_folders(app_dir):
+    """The `screenshot` folders under app/src (outside the build output), whether or not they hold Kotlin files."""
+    src = Path(app_dir) / "app" / "src"
+    return sorted(p for p in src.rglob("screenshot") if p.is_dir() and "build" not in p.relative_to(src).parts)
+
+
+def committed_screenshots(app_dir):
+    """The screenshots committed in docs/screenshots/."""
+    return sorted((Path(app_dir) / "docs" / "screenshots").glob("*.png"))
+
+
 def package_dir(app_dir):
     """The folder of the screenshot package, or None when the app has none (or Kotlin files in several)."""
     folders = {p.parent for p in package_files(app_dir)}
@@ -61,6 +72,9 @@ def order_problems(app_dir):
         return [f"{path.relative_to(app_dir)} is missing: list the screenshots in the order the README shows them, "
                 f"one name per line (docs/screenshots.md)"]
     order, previews = read_order(path.read_text()), preview_names(app_dir)
+    if not previews:
+        return [f"the screenshot package has no screenshot: every app has at least one (a private @Preview composable "
+                f"named like HomePageScreenshot, listed in {ORDER_FILE})"]
     found = [f"`{n}` is listed twice in {ORDER_FILE}" for n in sorted({n for n in order if order.count(n) > 1})]
     found += [f"`{n}` in {ORDER_FILE} is not a screenshot of the package (its composable is `{n}{SUFFIX}`)"
               for n in dict.fromkeys(order) if n not in previews]

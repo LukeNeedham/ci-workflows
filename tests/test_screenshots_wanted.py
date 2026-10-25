@@ -23,10 +23,23 @@ class ScreenshotsWantedTest(unittest.TestCase):
     def test_an_app_with_a_screenshot_package_has_screenshots_to_render(self):
         self.assertIsNone(w.skip_reason(self.app("name: A\n", ["screenshot/HomePage.kt"])))
 
-    def test_an_app_without_a_package_renders_nothing_and_keeps_its_hand_committed_screenshots(self):
-        why = w.skip_reason(self.app("name: A\n", ["other/HomePage.kt"]))
+    def test_an_app_without_a_package_but_with_hand_committed_screenshots_renders_nothing_and_keeps_them(self):
+        app = self.app("name: A\n", ["other/HomePage.kt"])
+        (app / "docs" / "screenshots").mkdir(parents=True)
+        (app / "docs" / "screenshots" / "Home.png").write_bytes(b"png")
+        why = w.skip_reason(app)
         self.assertIn("No screenshot package", why)
         self.assertIn("committed by hand", why)
+
+    def test_everything_else_is_left_to_the_render_to_fail(self):
+        # No package and no screenshot of any kind: rendering has to fail, so it is not skipped
+        self.assertIsNone(w.skip_reason(self.app("name: A\n", ["other/HomePage.kt"])))
+        # An empty package is a package: a hand-committed screenshot does not excuse it
+        app = self.app("name: A\n")
+        (app / "app" / "src" / "debug" / "kotlin" / "x" / "screenshot").mkdir(parents=True)
+        (app / "docs" / "screenshots").mkdir(parents=True)
+        (app / "docs" / "screenshots" / "Home.png").write_bytes(b"png")
+        self.assertIsNone(w.skip_reason(app))
 
     def test_there_is_no_option_to_go_without_screenshots(self):
         # readme.yml is not read at all: a leftover `screenshots: false` changes nothing

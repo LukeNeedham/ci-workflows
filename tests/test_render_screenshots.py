@@ -53,6 +53,18 @@ class RenderScreenshotsTest(unittest.TestCase):
     def test_no_package_is_refused(self):
         self.assertEqual(1, r.render(self.app(None), []))
 
+    def test_an_empty_package_a_missing_order_file_and_a_package_without_screenshots_are_refused(self):
+        empty = self.app(None)
+        (empty / "app" / "src" / "debug" / "kotlin" / "x" / "screenshot").mkdir(parents=True)
+        no_kotlin = self.app(None)
+        (no_kotlin / "app" / "src" / "debug" / "kotlin" / "x" / "screenshot").mkdir(parents=True)
+        (no_kotlin / "app" / "src" / "debug" / "kotlin" / "x" / "screenshot" / "order.txt").write_text("HomePage\n")
+        no_order = self.app(GOOD, order=None)
+        no_previews = self.app("package x.screenshot\n\n// nothing here\n", order="")
+        for app in (empty, no_kotlin, no_order, no_previews):
+            self.assertEqual(1, r.render(app, []))
+            self.assertFalse((app / "gradle-args.txt").exists())
+
     def test_a_failing_gradle_run_fails(self):
         self.assertEqual(3, r.render(self.app(GOOD, gradlew="exit 3\n"), []))
 
