@@ -27,6 +27,10 @@ class ScreenshotsSetupTest(unittest.TestCase):
         self.assertIn("screenshots.sources", init)
         # The app's own unit tests are left out of the run
         self.assertIn("setSrcDirs(own)", init)
+        # ... also by excluding every file outside the test of ci-workflows from the unit test compile tasks, whatever the
+        # Kotlin plugin does with the source sets (the app's src/test/kotlin was compiled without it)
+        self.assertIn("compile.*UnitTest(Kotlin|JavaWithJavac)", init)
+        self.assertIn("!element.file.toPath().startsWith(testSources.toPath())", init)
         # Gradle must always run the test: skipping it as up to date would render nothing
         self.assertIn("outputs.upToDateWhen { false }", init)
         self.assertIn("outputs.cacheIf { false }", init)

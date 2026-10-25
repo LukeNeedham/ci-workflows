@@ -42,6 +42,14 @@ allprojects {
             sourceSet.extensions.findByName('kotlin')?.setSrcDirs(own)
         }
 
+        // The source set model differs between Kotlin plugin versions and still held src/test/kotlin of the app, so the
+        // compile tasks also leave out every file that is not the test of ci-workflows
+        tasks.matching { it.name ==~ /compile.*UnitTest(Kotlin|JavaWithJavac)/ }.configureEach { task ->
+            task.exclude { element ->
+                !element.directory && !element.file.toPath().startsWith(testSources.toPath())
+            }
+        }
+
         tasks.withType(Test).configureEach {
             // Roborazzi writes the images it captures only when asked to record
             systemProperty 'roborazzi.test.record', 'true'
