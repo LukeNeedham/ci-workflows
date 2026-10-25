@@ -46,11 +46,12 @@ app-icon check, no comment) when:
 
 ### The token of the generated commits
 
-The jobs that commit generated files push with the secret `SYNC_TOKEN` when the app has it, and with the workflow
+The jobs that commit generated files push with the secret `GENERATED_COMMIT_TOKEN` of the app when it has it, and with the workflow
 token otherwise. A commit pushed with the workflow token does start a run, but GitHub holds it until someone approves
 it; one pushed with a token of the owner starts without. The run is then skipped by the rule above, so the commit has
-its checks and costs no build. The callers pass the secrets on (`secrets: inherit`), so the secret has to be reachable
-from the app: an organisation secret, or the same secret in the app. It needs write access to contents of the app.
+its checks and costs no build. The callers pass the app's own secrets on (`secrets: inherit`; a reusable workflow
+cannot read the secrets of this repo), so every app needs the secret itself: *Sync Apps* writes it into each app
+([sync.md](sync.md#the-token-of-the-generated-commits)). Its token needs only write access to the contents of the apps.
 
 A skipped run still starts (the `config` job runs) and shows `android / build` and the other jobs as *skipped*, which a
 required check on them accepts. A rule that requires the job *inside* the call (`android / build / build`) would never

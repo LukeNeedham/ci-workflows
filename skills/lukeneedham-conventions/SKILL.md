@@ -35,7 +35,7 @@ below are enough.
   it, so keep the name), `delete_prereleases.yml` and `release.yml`. `release.yml` fails at once, with a message
   that lists what is missing, until the app has the four release secrets and `gradle/android-release.gradle`.
 - A PR that changes only `.claude/skills/` is not built, so it has no APK and no AppHub comment from CI.
-- CI's own commits (generated screenshots, icon and README) are pushed with the owner's `SYNC_TOKEN` when the app has it, and are not built again.
+- CI's own commits (generated screenshots, icon and README) are pushed with the owner's `GENERATED_COMMIT_TOKEN` when the app has it, and are not built again.
 - Debug mode always comes from `BuildConfig.DEBUG`.
 - Open a PR for completed work. Paste the PR's **AppHub link** (`https://www.lukeneedham.com/apphub/pr/<repo name>/<number>`,
   also in CI's AppHub comment) into the chat as soon as the PR is open, without waiting for the build, and not the

@@ -2,7 +2,8 @@ name: Sync Apps
 
 # Keeps every app in apps.json in line with this repo: the Claude skill, the workflow callers and a managed
 # block in the app's CLAUDE.md. For each app that differs it opens (or updates) one PR, "Sync from
-# ci-workflows". The logic is scripts/sync_apps.py; setup, including the SYNC_TOKEN secret, is docs/sync.md.
+# ci-workflows". It also writes the secret GENERATED_COMMIT_TOKEN into every app. The logic is scripts/sync_apps.py;
+# setup, including the SYNC_TOKEN and GENERATED_COMMIT_TOKEN secrets, is docs/sync.md.
 #
 # What starts a sync is the whole of scripts/: a change there reaches every app's CI (the code that the workflows
 # and actions run on the apps, and the sync itself), the skill, the callers and apps.json. tests/ never does:
@@ -38,10 +39,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - run: pip install --quiet pyyaml
+      - run: pip install --quiet pyyaml pynacl
 
       - name: Sync the apps
         env:
           SYNC_TOKEN: ${{ secrets.SYNC_TOKEN }}
+          GENERATED_COMMIT_TOKEN: ${{ secrets.GENERATED_COMMIT_TOKEN }}
           APPS: ${{ inputs.apps }}
         run: python3 scripts/sync_apps.py ${APPS:+--apps "$APPS"}

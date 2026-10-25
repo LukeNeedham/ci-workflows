@@ -27,7 +27,7 @@ jobs:
 
       - name: Test the scripts
         run: |
-          pip install --quiet pyyaml
+          pip install --quiet pyyaml pynacl
           python3 -m unittest discover -s tests
 
       - name: Lint the workflows
