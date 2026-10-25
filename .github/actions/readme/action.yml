@@ -7,7 +7,7 @@ description: >
 runs:
   using: composite
   steps:
-    - uses: LukeNeedham/ci-workflows/.github/actions/checkout-pr-branch@main
+    - uses: LukeNeedham/ci-workflows/.github/actions/checkout-pr-branch@claude/standard-readme-format-382cvu
 
     - name: Render README.md from readme.yml
       shell: bash
