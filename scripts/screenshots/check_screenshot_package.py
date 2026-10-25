@@ -10,8 +10,8 @@ not with the general previews or the app. So a file of the package holds nothing
 Prints what is wrong and exits 1 if anything is.
 
 The package also has an `order.txt` next to its Kotlin files: the screenshots in the order the README shows them, one name
-per line (the composable name without the trailing `Screenshot`; blank lines and `#` comments are ignored). Every
-screenshot is listed once, and nothing else. CI numbers the images by their position: `01-HomePage.png`, `02-…`.
+per line (the composable name without the trailing `Screenshot`; blank lines are ignored). **No comments**: the file says
+all it needs to, so a line with a `#` fails the check. Every screenshot is listed once, and nothing else. CI numbers the images by their position: `01-HomePage.png`, `02-…`.
 """
 
 import re
@@ -71,8 +71,8 @@ def preview_names(app_dir):
 
 
 def read_order(text):
-    """The names of an order.txt [text], in order."""
-    lines = (line.split("#")[0].strip() for line in text.splitlines())
+    """The names of an order.txt [text], in order: one per line, blank lines ignored."""
+    lines = (line.strip() for line in text.splitlines())
     return [line for line in lines if line]
 
 
@@ -86,6 +86,9 @@ def order_problems(app_dir):
         return [f"{path.relative_to(app_dir)} is missing: list the screenshots in the order the README shows them, "
                 f"one name per line (docs/screenshots.md)"]
     order, previews = read_order(path.read_text()), preview_names(app_dir)
+    comments = [line for line in order if "#" in line]
+    if comments:
+        return [f"{ORDER_FILE} has no comments (`{line}`): it is one screenshot name per line and nothing else" for line in comments]
     if not previews:
         return [f"the screenshot package has no screenshot: every app has at least one (a private @Preview composable "
                 f"named like HomePageScreenshot, listed in {ORDER_FILE})"]

@@ -66,8 +66,20 @@ class CheckScreenshotPackageTest(unittest.TestCase):
 
 
 class OrderTest(unittest.TestCase):
-    def test_the_order_file_ignores_comments_and_blank_lines(self):
-        self.assertEqual(["A", "B"], c.read_order("# first\nA  # the home\n\n  B\n"))
+    def test_the_order_file_ignores_blank_lines(self):
+        self.assertEqual(["A", "B"], c.read_order("A\n\n  B\n"))
+
+    def test_a_comment_in_the_order_file_fails(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = Path(tmp) / "app" / "src" / "debug" / "kotlin" / "x" / "screenshot"
+            folder.mkdir(parents=True)
+            (folder / "HomePage.kt").write_text(GOOD)
+            for bad in ("# the order\nHomeEmptyPage\nHomePage\n", "HomeEmptyPage\nHomePage  # first\n"):
+                (folder / "order.txt").write_text(bad)
+                found = c.order_problems(Path(tmp))
+                self.assertEqual(1, len(found), bad)
+                self.assertIn("no comments", found[0])
 
     def test_the_names_of_the_previews_lose_the_suffix(self):
         import tempfile

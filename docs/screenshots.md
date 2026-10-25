@@ -49,10 +49,9 @@ private fun HomePageScreenshot() {
   composable without a trailing `Screenshot`: `HomePageScreenshot` is `HomePage`. Names must be unique across the
   package (the test fails otherwise).
 - **The package has an `order.txt`** next to its Kotlin files: the screenshots in the order the README shows them, one
-  name per line, with blank lines and `#` comments allowed:
+  name per line and **nothing else: no comments** (a line with a `#` fails the check; the file explains itself):
 
   ```
-  # the order of the README: a user's first look to the details
   HomePage
   PullRequestPage
   SettingsPage
