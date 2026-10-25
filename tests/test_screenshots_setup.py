@@ -23,7 +23,10 @@ class ScreenshotsSetupTest(unittest.TestCase):
 
     def test_the_init_script_sets_the_namespace_and_the_script_hands_over_the_test(self):
         init = (SCRIPTS / "screenshots" / "screenshots.init.gradle").read_text()
-        self.assertIn("systemProperty 'screenshots.package', project.android.namespace", init)
+        # read once after evaluation, as a plain value: a task that reads the project when it runs breaks the configuration cache
+        self.assertIn("def screenshotsPackage = android.namespace", init)
+        self.assertIn("systemProperty 'screenshots.package', screenshotsPackage", init)
+        self.assertNotIn("doFirst", init)
         self.assertIn("screenshots.sources", init)
         # The app's own unit tests are left out of the run
         self.assertIn("setSrcDirs(own)", init)
