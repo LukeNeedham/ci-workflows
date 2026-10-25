@@ -27,7 +27,7 @@ jobs:
       comment-header: ${{ steps.config.outputs.comment-header }}
     steps:
       - id: config
-        uses: LukeNeedham/ci-workflows/.github/actions/app-config@claude/standard-readme-format-382cvu
+        uses: LukeNeedham/ci-workflows/.github/actions/app-config@main
 
   # Every app exposes its icon at a fixed path, app-icon.png in the repo root, so tooling such as the app
   # hub can fetch it. It is generated from the app's adaptive launcher icon, so it cannot drift: this job
@@ -48,7 +48,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: LukeNeedham/ci-workflows/.github/actions/app-icon@claude/standard-readme-format-382cvu
+      - uses: LukeNeedham/ci-workflows/.github/actions/app-icon@main
 
   # The screenshots of the README. They are rendered by the build job, in the same Gradle run as the APK, from the
   # @Preview of every composable of the app's screenshot package (an app without such a package, a WebView wrapper,
@@ -65,7 +65,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: LukeNeedham/ci-workflows/.github/actions/screenshots@claude/standard-readme-format-382cvu
+      - uses: LukeNeedham/ci-workflows/.github/actions/screenshots@main
         with:
           state: ${{ needs.build.outputs.screenshots }}
 
@@ -83,12 +83,12 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: LukeNeedham/ci-workflows/.github/actions/readme@claude/standard-readme-format-382cvu
+      - uses: LukeNeedham/ci-workflows/.github/actions/readme@main
 
   build:
     needs: config
     if: needs.config.outputs.generate == 'true'
-    uses: LukeNeedham/ci-workflows/.github/workflows/android_pr_build.yml@claude/standard-readme-format-382cvu
+    uses: LukeNeedham/ci-workflows/.github/workflows/android_pr_build.yml@main
     with:
       gradle-task: ${{ needs.config.outputs.gradle-task }}
       apk-path: ${{ needs.config.outputs.apk-path }}
@@ -100,4 +100,4 @@ jobs:
   cleanup:
     needs: config
     if: needs.config.outputs.cleanup == 'true'
-    uses: LukeNeedham/ci-workflows/.github/workflows/android_pr_cleanup.yml@claude/standard-readme-format-382cvu
+    uses: LukeNeedham/ci-workflows/.github/workflows/android_pr_cleanup.yml@main

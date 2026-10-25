@@ -10,7 +10,7 @@ name: Delete Pre-releases
 #     contents: write
 #   jobs:
 #     delete:
-#       uses: LukeNeedham/ci-workflows/.github/workflows/delete_prereleases.yml@claude/standard-readme-format-382cvu
+#       uses: LukeNeedham/ci-workflows/.github/workflows/delete_prereleases.yml@main
 
 on:
   workflow_call:
