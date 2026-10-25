@@ -7,7 +7,7 @@ app's screenshot package (docs/screenshots.md in LukeNeedham/ci-workflows).
 It checks that the package shares nothing and runs the app's Gradle with an init script that adds the test dependencies
 and generates the test (scripts/screenshots/). The test renders into app/build/screenshots/; only when every
 screenshot is rendered does that replace docs/screenshots/ (so a failed run leaves the committed ones as they are),
-with the images numbered by their position in the package's order.txt (01-HomePage.png). Needs the Android SDK. The CI
+with the package's order.txt next to them, which says the order of the README (HomePage.png, order.txt). Needs the Android SDK. The CI
 runs it through the `screenshots` action; to run it yourself, clone ci-workflows and point it at an app:
 
     python3 ci-workflows/scripts/render_screenshots.py --app path/to/app
@@ -39,10 +39,9 @@ def check_package(app_dir):
     return ok
 
 
-def numbered(order):
-    """The file name of each screenshot, by its position in the order: `HomePage` is `01-HomePage.png`."""
-    width = max(2, len(str(len(order))))
-    return {name: f"{i:0{width}d}-{name}.png" for i, name in enumerate(order, 1)}
+def listed(order):
+    """The file name of each screenshot of the order: `HomePage` is `HomePage.png`, whatever its position."""
+    return {name: f"{name}.png" for name in order}
 
 
 def render(app_dir, gradle_args):
@@ -77,7 +76,8 @@ def render(app_dir, gradle_args):
         print("The screenshot test rendered nothing. The screenshot package needs a @Preview per screenshot "
               "(docs/screenshots.md).", file=sys.stderr)
         return 1
-    names = numbered(read_order((package_dir(app_dir) / ORDER_FILE).read_text()))
+    order_text = (package_dir(app_dir) / ORDER_FILE).read_text()
+    names = listed(read_order(order_text))
     missing = [n for n in names if not (rendered / f"{n}.png").is_file()]
     if missing:
         print(f"The screenshot test did not render {', '.join(missing)}, which {ORDER_FILE} lists.", file=sys.stderr)
@@ -88,6 +88,8 @@ def render(app_dir, gradle_args):
     target.mkdir(parents=True)
     for name, file in names.items():
         shutil.copyfile(rendered / f"{name}.png", target / file)
+    # The README lists the images in this order: the package's own order.txt, which names them
+    (target / ORDER_FILE).write_text(order_text)
     return 0
 
 

@@ -43,7 +43,8 @@ class RenderScreenshotsTest(unittest.TestCase):
                          "-Pscreenshots.sources=", "--no-daemon"):
             self.assertIn(expected, args)
         # The rendered set replaces the committed one as a whole: the stale image is gone
-        self.assertEqual(["01-HomePage.png"], [p.name for p in (app / "docs" / "screenshots").glob("*.png")])
+        self.assertEqual(["HomePage.png"], [p.name for p in (app / "docs" / "screenshots").glob("*.png")])
+        self.assertIn("HomePage", (app / "docs" / "screenshots" / "order.txt").read_text())
 
     def test_a_package_that_shares_something_is_refused_before_gradle_runs(self):
         app = self.app(GOOD + "\nprivate val shared = 1\n")
@@ -92,19 +93,19 @@ class RenderScreenshotsTest(unittest.TestCase):
         self.assertEqual(1, r.render(app, []))
 
 
-    def test_the_images_are_numbered_by_their_position_in_the_order_file(self):
+    def test_the_images_are_named_after_the_screenshot_and_the_order_file_is_copied_next_to_them(self):
         two = GOOD + "\n@Preview\n@Composable\nprivate fun SettingsPageScreenshot() {\n    val state = 1\n}\n"
         gradlew = ("mkdir -p app/build/screenshots && echo a > app/build/screenshots/HomePage.png "
                    "&& echo b > app/build/screenshots/SettingsPage.png\n")
         app = self.app(two, order="# the order of the README\nSettingsPage\n\nHomePage  # first look\n", gradlew=gradlew)
         self.assertEqual(0, r.render(app, []))
         shots = app / "docs" / "screenshots"
-        self.assertEqual(["01-SettingsPage.png", "02-HomePage.png"], sorted(p.name for p in shots.glob("*.png")))
-        self.assertEqual("b", (shots / "01-SettingsPage.png").read_text().strip())
+        self.assertEqual(["HomePage.png", "SettingsPage.png"], sorted(p.name for p in shots.glob("*.png")))
+        self.assertEqual("b", (shots / "SettingsPage.png").read_text().strip())
+        self.assertEqual(["SettingsPage", "HomePage"], r.read_order((shots / "order.txt").read_text()))
 
-    def test_the_number_has_the_width_of_the_list(self):
-        self.assertEqual({"A": "01-A.png", "B": "02-B.png"}, r.numbered(["A", "B"]))
-        self.assertEqual("007-X.png", r.numbered(list("ABCDEF") + ["X"] + ["Y"] * 100)["X"])
+    def test_the_file_name_is_the_name_of_the_screenshot(self):
+        self.assertEqual({"A": "A.png", "B": "B.png"}, r.listed(["A", "B"]))
 
     def test_the_order_file_is_required_and_has_to_match_the_package(self):
         for order, expected in ((None, "order.txt is missing"), ("", "`HomePageScreenshot` is not in order.txt"),

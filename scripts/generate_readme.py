@@ -126,9 +126,40 @@ def facts(app_dir):
     return Facts(min_sdk, compile_sdk, tuple(screenshot_files(app_dir)), license_name(text) if text else "All rights reserved")
 
 
+SCREENSHOT_ORDER = "order.txt"
+
+
+def screenshot_order(app_dir):
+    """The names in docs/screenshots/order.txt, in order (blank lines and `#` comments left out), or None without the file."""
+    path = app_dir / SCREENSHOTS / SCREENSHOT_ORDER
+    if not path.is_file():
+        return None
+    lines = (line.split("#")[0].strip() for line in path.read_text().splitlines())
+    return [line for line in lines if line]
+
+
 def screenshot_files(app_dir):
-    """The screenshots of the app, as paths relative to its root, in name order."""
-    return sorted(p.relative_to(app_dir).as_posix() for p in (app_dir / SCREENSHOTS).glob("*.png"))
+    """The screenshots of the app, as paths relative to its root, in the order of docs/screenshots/order.txt: those it
+    lists first, then any other image by name (which `problems` reports)."""
+    on_disk = {p.stem: p.relative_to(app_dir).as_posix() for p in (app_dir / SCREENSHOTS).glob("*.png")}
+    listed = [name for name in dict.fromkeys(screenshot_order(app_dir) or []) if name in on_disk]
+    return [on_disk[name] for name in listed] + [on_disk[name] for name in sorted(set(on_disk) - set(listed))]
+
+
+def screenshot_order_problems(app_dir, manual):
+    """What is wrong with docs/screenshots/order.txt next to the images, as sentences."""
+    names = screenshot_order(app_dir)
+    images = {p.stem for p in (app_dir / SCREENSHOTS).glob("*.png")}
+    if not images:
+        return []
+    who = ("commit it by hand with the images" if manual else "CI writes it from the order.txt of the screenshot package")
+    if names is None:
+        return [f"{SCREENSHOTS}/{SCREENSHOT_ORDER} is missing: it lists the screenshots in the order the README shows them, "
+                f"one name per line ({who})"]
+    found = [f"`{n}` is listed twice in {SCREENSHOTS}/{SCREENSHOT_ORDER}" for n in dict.fromkeys(names) if names.count(n) > 1]
+    found += [f"`{n}` in {SCREENSHOTS}/{SCREENSHOT_ORDER} has no image: {SCREENSHOTS}/{n}.png" for n in dict.fromkeys(names) if n not in images]
+    found += [f"{SCREENSHOTS}/{n}.png is not in {SCREENSHOT_ORDER}: add `{n}` where it belongs in the order" for n in sorted(images - set(names))]
+    return found
 
 
 def headings(text):
@@ -214,6 +245,7 @@ def problems(data, app_dir=None):
                          + ("It says `screenshots: manual`, so commit one into docs/screenshots/" if manual else
                             "Add a screenshot package (docs/screenshots.md in LukeNeedham/ci-workflows), or, for an app "
                             "that cannot render previews, set `screenshots: manual` and commit one into docs/screenshots/"))
+        found += screenshot_order_problems(app_dir, manual)
         text = license_text(app_dir)
         if text is None or not text.strip():
             found.append(f"the app has no {LICENSE_FILE} file: every app has one. For an app that had no license, add one "
@@ -222,8 +254,8 @@ def problems(data, app_dir=None):
 
 
 def alt_text(path):
-    """`docs/screenshots/02-PullRequest.png` -> `Pull Request` (the number only orders the images)"""
-    return re.sub(r"(?<=[a-z0-9])(?=[A-Z])", " ", re.sub(r"^\d+-", "", Path(path).stem))
+    """`docs/screenshots/PullRequest.png` -> `Pull Request`"""
+    return re.sub(r"(?<=[a-z0-9])(?=[A-Z])", " ", Path(path).stem)
 
 
 def render(data, repo, facts):

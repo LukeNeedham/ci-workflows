@@ -125,6 +125,7 @@ class SyncApp(unittest.TestCase):
         self.write("readme.yml", (TOOLS / "docs/readme-template.yml").read_text())
         self.assertIn("no screenshots", s.readme_note(self.dir))
         self.write("docs/screenshots/Home.png", "png")
+        self.write("docs/screenshots/order.txt", "Home\n")
         self.assertIn("no LICENSE file", s.readme_note(self.dir))
         self.write("LICENSE", "MIT License\n")
         # The app has a readme.yml, so it is held to the screenshot rules: its package is missing

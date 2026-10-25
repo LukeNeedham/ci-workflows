@@ -26,6 +26,7 @@ class app:
         if self.screenshots:
             (folder / "docs" / "screenshots").mkdir(parents=True)
             (folder / "docs" / "screenshots" / "HomePage.png").write_bytes(b"png")
+            (folder / "docs" / "screenshots" / "order.txt").write_text("HomePage\n")
         if self.license is not None:
             (folder / "LICENSE").write_text(self.license)
         return folder
@@ -192,11 +193,34 @@ class GenerateReadmeTest(unittest.TestCase):
         text = render()
         self.assertEqual(2, text.count("<img src=\"docs/screenshots/"))
 
-    def test_the_number_in_the_image_name_orders_the_images_and_is_not_in_the_alt_text(self):
-        self.assertEqual("Pull Request Page", g.alt_text("docs/screenshots/02-PullRequestPage.png"))
-        text = render(screenshots=("docs/screenshots/01-HomePage.png", "docs/screenshots/02-SettingsPage.png"))
-        self.assertLess(text.index("01-HomePage.png"), text.index("02-SettingsPage.png"))
+    def test_the_images_are_named_after_the_screenshot_and_the_alt_text_splits_the_name(self):
+        self.assertEqual("Pull Request Page", g.alt_text("docs/screenshots/PullRequestPage.png"))
+        text = render(screenshots=("docs/screenshots/HomePage.png", "docs/screenshots/SettingsPage.png"))
         self.assertIn('alt="Home Page"', text)
+
+    def test_order_txt_in_the_screenshots_folder_orders_the_images(self):
+        with app(screenshots=False) as folder:
+            shots = folder / "docs" / "screenshots"
+            shots.mkdir(parents=True)
+            for name in ("HomePage", "SettingsPage", "AboutPage"):
+                (shots / f"{name}.png").write_bytes(b"png")
+            (shots / "order.txt").write_text("# the order of the README\nSettingsPage\n\nHomePage  # first look\nAboutPage\n")
+            self.assertEqual(["docs/screenshots/SettingsPage.png", "docs/screenshots/HomePage.png", "docs/screenshots/AboutPage.png"],
+                             g.screenshot_files(folder))
+            self.assertEqual([], g.screenshot_order_problems(folder, manual=True))
+
+    def test_order_txt_has_to_match_the_images(self):
+        with app(screenshots=False) as folder:
+            shots = folder / "docs" / "screenshots"
+            shots.mkdir(parents=True)
+            (shots / "HomePage.png").write_bytes(b"png")
+            self.assertIn("order.txt is missing", "\n".join(g.screenshot_order_problems(folder, manual=True)))
+            (shots / "order.txt").write_text("HomePage\nGone\nHomePage\n")
+            text = "\n".join(g.screenshot_order_problems(folder, manual=True))
+            self.assertIn("`Gone` in docs/screenshots/order.txt has no image", text)
+            self.assertIn("`HomePage` is listed twice", text)
+            (shots / "Other.png").write_bytes(b"png")
+            self.assertIn("Other.png is not in order.txt", "\n".join(g.screenshot_order_problems(folder, manual=True)))
 
     def test_problems_name_what_is_missing(self):
         text = "\n".join(g.problems({"name": "X", "extra": 1}))
@@ -248,6 +272,7 @@ class CommandLineTest(unittest.TestCase):
             self.assertEqual(1, run().returncode)  # no screenshots and no LICENSE yet
             (app / "docs" / "screenshots").mkdir(parents=True)
             (app / "docs" / "screenshots" / "HomePage.png").write_bytes(b"png")
+            (app / "docs" / "screenshots" / "order.txt").write_text("HomePage\n")
             (app / "LICENSE").write_text("MIT License\n")
             self.assertIn("minimum Android version", run().stderr)  # no build file to read the minimum Android version from
             (app / "app").mkdir()

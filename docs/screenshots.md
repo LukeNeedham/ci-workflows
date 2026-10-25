@@ -36,7 +36,7 @@ and renders the page's content with it**:
 // screenshot/HomePage.kt
 package com.lukeneedham.<app>.screenshot
 
-/** Rendered by CI to docs/screenshots/<position in order.txt>-HomePage.png. */
+/** Rendered by CI to docs/screenshots/HomePage.png. */
 @Preview
 @Composable
 private fun HomePageScreenshot() {
@@ -58,9 +58,9 @@ private fun HomePageScreenshot() {
   SettingsPage
   ```
 
-  Every screenshot is listed once and nothing else is (the render fails otherwise, naming the difference). CI numbers the
-  images by their position, `docs/screenshots/01-HomePage.png`, `02-PullRequestPage.png`, and the README lists them in that
-  order. To reorder, move a line; there are no numbers to maintain in the Kotlin names. A new screenshot is a new
+  Every screenshot is listed once and nothing else is (the render fails otherwise, naming the difference). CI names the
+  images after the screenshots, `docs/screenshots/HomePage.png`, `PullRequestPage.png`, and copies `order.txt` next to them;
+  the README lists the images in the order of that file. To reorder, move a line; there are no numbers in any name. A new screenshot is a new
   preview and a new line.
 - **A page can have any number of screenshots**: several previews in its file, each with its own data
   (`HomePageScreenshot`, `HomeEmptyPageScreenshot`), as many as are worth showing. **A page can have none**: a page

@@ -11,7 +11,7 @@ Prints what is wrong and exits 1 if anything is.
 
 The package also has an `order.txt` next to its Kotlin files: the screenshots in the order the README shows them, one name
 per line (the composable name without the trailing `Screenshot`; blank lines and `#` comments are ignored). Every
-screenshot is listed once, and nothing else. CI numbers the images by their position: `01-HomePage.png`, `02-…`.
+screenshot is listed once, and nothing else. CI names the images after them (`HomePage.png`) and copies the order.txt next to them.
 """
 
 import re
