@@ -38,7 +38,9 @@ below are enough.
 - Debug mode always comes from `BuildConfig.DEBUG`.
 - Open a PR for completed work. Paste the PR's **AppHub link** (`https://www.lukeneedham.com/apphub/pr/<repo name>/<number>`,
   also in CI's AppHub comment) into the chat as soon as the PR is open, without waiting for the build, and not the
-  APK download link.
+  APK download link. Always write it as its own line, never inside a sentence, as a markdown link that starts with
+  the 📦 emoji: `📦 [Open in AppHub](https://www.lukeneedham.com/apphub/pr/<repo name>/<number>)`. Put the same line
+  at the very top of the PR description, so the PR page is one tap from the AppHub link too.
 
 ## App icon
 - `app-icon.png` at the repo root is the icon for the app hub: a 512x512 circle on a transparent background.
