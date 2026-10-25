@@ -41,12 +41,19 @@ def manual_screenshots(app_dir):
     """Whether readme.yml has opted out of the generated screenshots (`screenshots: manual`). Read without a YAML
     parser, since this runs in the app's build job; scripts/generate_readme.py validates the file properly."""
     path = Path(app_dir) / "readme.yml"
-    return path.is_file() and re.search(r"(?m)^screenshots:\s*manual\s*(#.*)?$", path.read_text()) is not None
+    return path.is_file() and re.search(r"""(?m)^screenshots:[ \t]*["']?manual["']?[ \t]*(#.*)?$""", path.read_text()) is not None
 
 
-def committed_screenshots(app_dir):
-    """The screenshots committed in docs/screenshots/."""
-    return sorted((Path(app_dir) / "docs" / "screenshots").glob("*.png"))
+def setup_problems(app_dir):
+    """What an app that has a readme.yml still needs for its screenshots, as sentences: none for an app that opted out
+    with `screenshots: manual` and has no package (its README generator checks the committed images)."""
+    if manual_screenshots(app_dir):
+        return ["`screenshots: manual` but the app has a screenshot package: remove one of them"] if package_folders(app_dir) else []
+    if not package_folders(app_dir):
+        return ["no screenshot package (or, for an app that cannot render previews, `screenshots: manual`)"]
+    if not package_files(app_dir):
+        return ["the screenshot package has no Kotlin files"]
+    return order_problems(app_dir)
 
 
 def package_dir(app_dir):

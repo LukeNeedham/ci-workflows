@@ -36,6 +36,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import generate_readme
 import yaml
+from check_screenshot_package import setup_problems
 
 TOOLS = Path(__file__).resolve().parent.parent
 SKILL = "lukeneedham-conventions"
@@ -189,7 +190,8 @@ def readme_note(app_dir):
         return "readme.yml is not valid YAML"
     if data is None:
         return "readme.yml is missing"
-    found = generate_readme.problems(data, app_dir)
+    # The README and the screenshot rules apply to an app from its readme.yml on: what it still lacks is its to-do list
+    found = list(dict.fromkeys([*generate_readme.problems(data, app_dir), *setup_problems(app_dir)]))
     return "readme.yml is invalid: " + "; ".join(found) if found else ""
 
 

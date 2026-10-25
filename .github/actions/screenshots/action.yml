@@ -36,6 +36,14 @@ runs:
         mkdir -p docs
         cp -r "$RENDERED" docs/screenshots
 
+    # The README of the screenshot package is the template of ci-workflows, so it is the same in every app
+    - name: Write the README of the screenshot package
+      id: package-readme
+      shell: bash
+      run: python3 "$CI_SCRIPTS/screenshot_package_readme.py" .
+
     - name: Commit the screenshots if they changed
       shell: bash
-      run: python3 "$CI_SCRIPTS/commit_generated.py" screenshots
+      env:
+        PACKAGE_README: ${{ steps.package-readme.outputs.path }}
+      run: python3 "$CI_SCRIPTS/commit_generated.py" screenshots --also "$PACKAGE_README"

@@ -3,7 +3,9 @@
 cannot commit (not a pull request, one from a fork, or Dependabot's, whose token is read-only), it fails and says how to
 regenerate them.
 
-    python3 commit_generated.py app-icon | screenshots | readme
+    python3 commit_generated.py app-icon | screenshots | readme [--also PATH ...]
+
+--also adds files to the kind: the README of the screenshot package, whose folder is the app's own.
 
 Runs in the checkout of the PR branch and reads the GitHub environment itself (GITHUB_EVENT_NAME, GITHUB_HEAD_REF,
 GITHUB_REPOSITORY, GITHUB_ACTOR and the event payload). Used by the app-icon, screenshots and readme actions.
@@ -68,7 +70,7 @@ def why_cannot_commit(env):
 
 
 def run(kind, env, cwd=None):
-    """Returns the exit code."""
+    """Returns the exit code. [kind] says what to commit (see [KINDS])."""
     # A path that does not exist and was never tracked has nothing to add: no change
     git("add", "-A", "--", *kind.paths, check=False, cwd=cwd)
     if git("diff", "--cached", "--quiet", "--", *kind.paths, check=False, cwd=cwd).returncode == 0:
@@ -100,7 +102,10 @@ def run(kind, env, cwd=None):
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("kind", choices=sorted(KINDS))
-    sys.exit(run(KINDS[parser.parse_args().kind], os.environ))
+    parser.add_argument("--also", nargs="*", default=[], help="more files or folders to commit with it")
+    args = parser.parse_args()
+    kind = SimpleNamespace(**{**vars(KINDS[args.kind]), "paths": [*KINDS[args.kind].paths, *[p for p in args.also if p]]})
+    sys.exit(run(kind, os.environ))
 
 
 if __name__ == "__main__":

@@ -46,6 +46,17 @@ class ScreenshotsWantedTest(unittest.TestCase):
         self.assertIsNone(w.skip_reason(self.app("name: A\nscreenshots: auto\n")))
         self.assertIsNone(w.skip_reason(self.app("name: A\n# screenshots: manual\n")))
 
+    def test_an_app_without_a_readme_yml_is_not_held_to_the_screenshot_rules_yet(self):
+        # Not migrated: only a warning, nothing rendered, so merging the workflows leaves its CI green
+        why = w.skip_reason(self.app(None, ["screenshot/HomePage.kt"]))
+        self.assertIn("no readme.yml yet", why.lower())
+
+    def test_the_opt_out_is_read_like_the_yaml_reads_it(self):
+        for text in ("screenshots: manual\n", 'screenshots: "manual"\n', "screenshots: 'manual'  # a wrapper\n"):
+            self.assertIn("manual", w.skip_reason(self.app("name: A\n" + text)), text)
+        for text in ("screenshots:\nmanual\n", "screenshots: manually\n", " screenshots: manual\n"):
+            self.assertIsNone(w.skip_reason(self.app("name: A\n" + text)), text)
+
     def test_the_package_is_a_screenshot_folder_outside_the_build_output(self):
         app = self.app(None, ["screenshot/A.kt", "deeper/screenshot/B.kt", "screenshots/C.kt"])
         build = app / "app" / "src" / "build" / "screenshot"

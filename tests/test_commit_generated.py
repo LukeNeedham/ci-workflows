@@ -69,6 +69,15 @@ class CommitGeneratedTest(unittest.TestCase):
             self.assertEqual(1, c.run(args(), env, cwd=self.app), env)
             self.assertEqual(1, self.commits())
 
+    def test_extra_paths_are_committed_with_the_kind(self):
+        import sys
+        (self.app / "docs" / "screenshots" / "Home.png").write_text("two")
+        (self.app / "README-of-package.md").write_text("new")
+        kind = SimpleNamespace(**{**vars(c.KINDS["screenshots"]), "paths": [*c.KINDS["screenshots"].paths, "README-of-package.md"]})
+        self.assertEqual(0, c.run(kind, self.pr, cwd=self.app))
+        self.assertEqual("README-of-package.md\ndocs/screenshots/Home.png",
+                         git(self.remote, "show", "--name-only", "--format=", "feature"))
+
     def test_the_three_kinds_name_what_they_generate(self):
         self.assertEqual(["app-icon", "readme", "screenshots"], sorted(c.KINDS))
         for kind in c.KINDS.values():

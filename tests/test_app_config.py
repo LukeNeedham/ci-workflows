@@ -61,7 +61,8 @@ class Jobs(unittest.TestCase):
 
 class Skipping(unittest.TestCase):
     def skip(self, **kwargs):
-        return run(**kwargs)["skip"]
+        out = run(**kwargs)
+        return "true" if out["generate"] == "false" and out["cleanup"] == "false" else "false"
 
     def test_a_pr_that_changes_only_the_skill_is_skipped(self):
         self.assertEqual("true", self.skip(files=[SKILL_FILE, ".claude/skills/other/notes.md"]))
@@ -101,7 +102,8 @@ class Cli(unittest.TestCase):
                 env={**os.environ, "GITHUB_OUTPUT": str(out)}, check=True, capture_output=True,
             )
             lines = out.read_text().splitlines()
-        self.assertIn("skip=true", lines)
+        self.assertIn("generate=false", lines)
+        self.assertIn("cleanup=false", lines)
         self.assertIn("apk-path=app/build/outputs/apk/debug/app-debug.apk", lines)
 
 

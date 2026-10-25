@@ -6,7 +6,7 @@ and an app has to follow them (the debug APK is built to app/build/outputs/apk/d
 main, and so on). The reusable workflows run the composite action .github/actions/app-config, which runs this
 script and writes the settings to $GITHUB_OUTPUT. See docs/app-config.md.
 
-It also sets `skip=true` for a pull request run that has nothing to build:
+It also sets `generate` and `cleanup` to false for a pull request run that has nothing to do:
   - the PR targets a branch other than BRANCH, or
   - every file the PR changes is under SKIPPED_PATHS (the Claude skill), so no APK can differ.
 
@@ -75,9 +75,9 @@ def run(repo, event, action, base, files):
     reason = skip_reason(event, action, base, files)
     log = [f"::notice::Nothing to do: {reason}."] if reason else []
     closed = event == "pull_request" and action == "closed"
+    # What the jobs of android_pr.yml do: everything but a closed PR builds and generates; a closed PR cleans up.
+    # A run that has nothing to do has both false.
     todo = {
-        "skip": reason is not None,
-        # What the jobs of android_pr.yml do: everything but a closed PR builds and generates; a closed PR cleans up
         "generate": reason is None and not closed,
         "cleanup": reason is None and closed,
     }

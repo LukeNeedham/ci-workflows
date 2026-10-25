@@ -4,7 +4,9 @@ The README of every app with a UI shows screenshots of the app: of the pages wor
 composables of the app's `screenshot` package**, never taken by hand, and committed to `docs/screenshots/`. This page
 is the pattern and how it works. The README side is [readme.md](readme.md).
 
-**Every app has at least one screenshot, and CI fails without one.** A missing `screenshot` package, an empty one (no
+**Once an app has a `readme.yml`, it has at least one screenshot, and CI fails without one.** (An app that has no
+`readme.yml` yet only gets a warning and nothing is rendered, so merging a change here never turns the CI of an app that is
+not migrated red; its migration PR adds the `readme.yml`, the package and the `LICENSE` together.) A missing `screenshot` package, an empty one (no
 Kotlin files), one without an `order.txt` or without a `@Preview`, and an app with no screenshot at all each fail the
 `screenshots` job, with a message that says what is missing. The only exception is an app that cannot render previews,
 such as the Krillion WebView wrapper (no Compose, so no `@Preview`). It opts out in its `readme.yml` with
@@ -77,8 +79,9 @@ private fun HomePageScreenshot() {
 - Mock data uses no network, Koin, ViewModel or clock. Images from a URL (Coil) cannot be fetched on CI: wrap the
   screenshot in `LocalInspectionMode provides true` and a `LocalAsyncImagePreviewHandler` (Coil's mock images), so the
   render never depends on the network.
-- **The package has a `README.md`** that explains this to whoever opens the folder, written from
-  [`screenshot-readme-template.md`](screenshot-readme-template.md).
+- **The package has a `README.md`** that explains this to whoever opens the folder. It is **generated**: CI writes it from
+  [`screenshot-readme-template.md`](screenshot-readme-template.md) and commits it with the screenshots, so it is the same
+  in every app and never drifts. Do not write or edit it by hand; to change it, change the template here.
 
 ## What CI does
 
@@ -105,8 +108,9 @@ compiled once: the `build` job renders them right after the APK, and the `screen
      fine); the `screenshots` job fails instead.
 2. The `screenshots` job ([`.github/actions/screenshots`](../.github/actions/screenshots/action.yml)) is skipped when
    nothing was rendered. Otherwise it checks out the PR branch, replaces `docs/screenshots/` with the artifact and
+   [`screenshot_package_readme.py`](../scripts/screenshot_package_readme.py) writes the README of the package, and
    [`commit_generated.py`](../scripts/commit_generated.py) (shared with the app icon and README actions) **commits the PNGs
-   to the PR branch** if they differ from the committed ones: pull the bot's commit before pushing again. If the rendering
+   and that README to the PR branch** if they differ from the committed ones: pull the bot's commit before pushing again. If the rendering
    failed, the job fails and points at the `Render the screenshots` step of the build job.
 
 The images are rendered from the merge commit that the build checks out, and committed to the PR branch.
@@ -122,7 +126,7 @@ Only this, once:
 - `androidx.compose.ui:ui-tooling-preview` as an `implementation` dependency (for `@Preview`), and `ui-tooling` as
   `debugImplementation` for Android Studio. Nothing else: no Roborazzi, Robolectric or test dependencies, no plugin,
   no test class.
-- The `screenshot` package, with its README.
+- The `screenshot` package, with its `order.txt` (its README is generated).
 
 To see the screenshots without CI (needs the Android SDK), clone ci-workflows once and point the script at the app:
 

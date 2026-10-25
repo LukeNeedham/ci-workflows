@@ -36,6 +36,6 @@ screenshots of a page, with the general previews of the pages, or with the app. 
 function would be a way to share, and CI fails on it.
 
 Mock data uses no network, Koin, ViewModel or clock. Remote images (Coil) are replaced by mock images with
-`LocalAsyncImagePreviewHandler` and `LocalInspectionMode`, see `HomePage.kt`.
+`LocalAsyncImagePreviewHandler` and `LocalInspectionMode`, as the existing files of this package do.
 
 This package is in `src/debug`, so none of it ships in a release build.
