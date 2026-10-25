@@ -17,6 +17,10 @@ description: |                  # required: what the app is and who it is for, w
   A short paragraph, or two separated by a blank line. Mention the main things the app does here:
   there is no feature list.
 
+# screenshots: manual           # optional, and only for an app that cannot render @Preview (a WebView wrapper): its
+#                               # screenshots are committed by hand into docs/screenshots/. Otherwise CI renders them
+#                               # from the app's screenshot package, and this line is not there.
+
 # links:                        # optional: shown under the tagline, and the stores are offered in the install step
 #   play-store: https://play.google.com/store/apps/details?id=com.lukeneedham.demo
 #   f-droid: https://f-droid.org/packages/com.lukeneedham.demo

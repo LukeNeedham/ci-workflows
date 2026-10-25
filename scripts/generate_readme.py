@@ -24,7 +24,9 @@ from pathlib import Path
 import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent / "screenshots"))
 from app_config import SETTINGS
+from check_screenshot_package import package_folders
 
 SOURCE = "readme.yml"
 HEADER = f"<!-- Generated from {SOURCE} by LukeNeedham/ci-workflows (docs/readme.md). Edit {SOURCE}, not this file. -->"
@@ -32,7 +34,7 @@ REQUIRED_TEXT = ["name", "tagline", "description"]
 LICENSE_FILE = "LICENSE"
 LINKS = {"play-store": "Google Play", "f-droid": "F-Droid", "web": "Web app"}
 SCREENSHOTS = "docs/screenshots"
-KNOWN = {"name", "tagline", "description", "links", "user", "developer", "sections"}
+KNOWN = {"name", "tagline", "description", "links", "screenshots", "user", "developer", "sections"}
 BUILD_FILE = "app/build.gradle.kts"
 CATALOG = "gradle/libs.versions.toml"
 # The Android version name of each API level
@@ -162,6 +164,9 @@ def problems(data, app_dir=None):
     for key in REQUIRED_TEXT:
         if not str(data.get(key) or "").strip():
             found.append(f"`{key}` is required")
+    if "screenshots" in data and data["screenshots"] != "manual":
+        found.append("`screenshots` can only be `manual` (the screenshots are committed by hand, because the app cannot "
+                     "render previews); without it, CI renders them from the app's screenshot package")
     links = data.get("links")
     if links is not None and not isinstance(links, dict):
         found.append("`links` must be a mapping")
@@ -201,10 +206,14 @@ def problems(data, app_dir=None):
             found.append(f"`{name}` has the heading `{line}`: it would add a section of its own. Use `###` or deeper, "
                          f"or a `sections` entry")
     if app_dir is not None:
+        manual = data.get("screenshots") == "manual"
+        if manual and package_folders(app_dir):
+            found.append("`screenshots: manual` but the app has a screenshot package: remove one of them")
         if not screenshot_files(app_dir):
-            found.append("the app has no screenshots in docs/screenshots/: every app has at least one. Add a screenshot "
-                         "package (docs/screenshots.md in LukeNeedham/ci-workflows), or, for an app that cannot render "
-                         "previews, commit a screenshot into docs/screenshots/")
+            found.append("the app has no screenshots in docs/screenshots/: every app has at least one. "
+                         + ("It says `screenshots: manual`, so commit one into docs/screenshots/" if manual else
+                            "Add a screenshot package (docs/screenshots.md in LukeNeedham/ci-workflows), or, for an app "
+                            "that cannot render previews, set `screenshots: manual` and commit one into docs/screenshots/"))
         text = license_text(app_dir)
         if text is None or not text.strip():
             found.append(f"the app has no {LICENSE_FILE} file: every app has one. For an app that had no license, add one "

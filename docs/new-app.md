@@ -216,7 +216,7 @@ floating button on the main page); see [A settings page](using-the-library.md#a-
 Some apps are too small for the above, such as the Krillion web-game wrapper: one `WebView` in one
 activity. Still do steps 1 to 5 (project, **debug keystore**, **CI workflows**, **app icon**, **README**) and the **shared
 library** (logger and crash handler, no debug pages), keep it to a single activity, and skip the rest. Say which
-sections you skipped and why. Such an app has no `screenshot` package (no Compose, no `@Preview`): it commits at least one screenshot into `docs/screenshots/` by hand, and CI leaves it alone.
+sections you skipped and why. Such an app has no `screenshot` package (no Compose, no `@Preview`): it sets `screenshots: manual` in `readme.yml` and commits at least one screenshot into `docs/screenshots/` by hand, and CI leaves it alone.
 
 ## Done checklist
 
@@ -224,7 +224,7 @@ sections you skipped and why. Such an app has no `screenshot` package (no Compos
 - [ ] `app/debug.keystore` committed and used by the `debug` signing config
 - [ ] All four callers copied unchanged (`trigger_on_pull_request.yml`, `build_main.yml`, `delete_prereleases.yml`, `release.yml`), module `:app`, default branch `main`
 - [ ] Adaptive launcher icon in place (CI then generates `app-icon.png` at the repo root on the first PR)
-- [ ] Every page is an `XPage` + `XPageContent`, named and split as in [pages.md](pages.md); a `screenshot` package with the screenshots worth showing (any number per page, none for some pages, at least one in all), its `order.txt` and its README ([screenshots.md](screenshots.md)), or, for an app that cannot render previews, at least one hand-committed screenshot in `docs/screenshots/`
+- [ ] Every page is an `XPage` + `XPageContent`, named and split as in [pages.md](pages.md); a `screenshot` package with the screenshots worth showing (any number per page, none for some pages, at least one in all), its `order.txt` and its README ([screenshots.md](screenshots.md)), or, for an app that cannot render previews, `screenshots: manual` and at least one hand-committed screenshot in `docs/screenshots/`
 - [ ] Handwritten `readme.yml` ([readme.md](readme.md)); CI generates `README.md` from it
 - [ ] Single activity, Compose, Navigation 3, MVVM, Koin for DI, Coil 3 for images, or a stated reason for each departure
 - [ ] [app-conventions.md](app-conventions.md) followed: strings in `strings.xml`, own `AppTheme` (no `MaterialTheme`), a preview per composable, 48dp touch targets

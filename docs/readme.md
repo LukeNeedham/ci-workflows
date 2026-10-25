@@ -53,6 +53,7 @@ In this order (the title block and the sections are always there, so they cannot
 |---|---|---|
 | `name`, `tagline` | yes | The app's name and one line on what it does |
 | `description` | yes | What it is and who it is for, with a few highlights of what it can be used for; a paragraph or two. There is no feature list and no limits section |
+| `screenshots` | no | Only `manual`: the app cannot render previews (a WebView wrapper) and commits at least one screenshot into `docs/screenshots/` by hand, instead of having a `screenshot` package. See [screenshots.md](screenshots.md) |
 | `user.install` | no | Replaces the default first step (install from AppHub or the Releases page), for an app that is not installed that way |
 | `user.steps` | no | Steps after installing, such as first-run steps |
 | `developer.notes` | no | Only what is specific to developing this app (a secret, a local setup step, a quirk). The generic setup is generated, and the architecture is shared by all apps, so neither belongs here |

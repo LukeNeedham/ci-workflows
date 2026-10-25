@@ -174,6 +174,20 @@ class GenerateReadmeTest(unittest.TestCase):
         with app() as folder:
             self.assertEqual([], g.problems(data(), folder))
 
+    def test_screenshots_can_be_opted_out_of_with_manual_and_only_that(self):
+        d = data()
+        d["screenshots"] = "manual"
+        self.assertEqual([], g.problems(d))
+        with app() as folder:
+            self.assertEqual([], g.problems(d, folder))
+        with app(screenshots=False) as folder:
+            self.assertIn("It says `screenshots: manual`, so commit one", "\n".join(g.problems(d, folder)))
+            (folder / "app" / "src" / "debug" / "kotlin" / "x" / "screenshot").mkdir(parents=True)
+            self.assertIn("`screenshots: manual` but the app has a screenshot package", "\n".join(g.problems(d, folder)))
+        for value in (False, True, "auto", ["a.png"]):
+            d["screenshots"] = value
+            self.assertIn("`screenshots` can only be `manual`", "\n".join(g.problems(d)))
+
     def test_the_screenshots_section_lists_every_image_of_the_folder(self):
         text = render()
         self.assertEqual(2, text.count("<img src=\"docs/screenshots/"))

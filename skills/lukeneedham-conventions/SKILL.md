@@ -81,7 +81,7 @@ below are enough.
   to the PR branch: never take or edit them by hand. The app needs only `ui-tooling-preview` and the package: no
   Roborazzi, no test class (`docs/screenshots.md`). Every app has at least one screenshot and **CI fails without one**
   (no package, an empty one, no `order.txt`, no `@Preview`); only an app that cannot render previews (a WebView
-  wrapper) has no `screenshot` folder and commits one by hand.
+  wrapper) opts out with `screenshots: manual` in `readme.yml`, has no `screenshot` folder and commits one by hand.
 
 ## Architecture
 - Single activity (`ComponentActivity`), Jetpack Compose, no XML, no fragments.

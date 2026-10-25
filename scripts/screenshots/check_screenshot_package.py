@@ -37,6 +37,13 @@ def package_folders(app_dir):
     return sorted(p for p in src.rglob("screenshot") if p.is_dir() and "build" not in p.relative_to(src).parts)
 
 
+def manual_screenshots(app_dir):
+    """Whether readme.yml has opted out of the generated screenshots (`screenshots: manual`). Read without a YAML
+    parser, since this runs in the app's build job; scripts/generate_readme.py validates the file properly."""
+    path = Path(app_dir) / "readme.yml"
+    return path.is_file() and re.search(r"(?m)^screenshots:\s*manual\s*(#.*)?$", path.read_text()) is not None
+
+
 def committed_screenshots(app_dir):
     """The screenshots committed in docs/screenshots/."""
     return sorted((Path(app_dir) / "docs" / "screenshots").glob("*.png"))

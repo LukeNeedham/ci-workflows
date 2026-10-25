@@ -53,6 +53,12 @@ class RenderScreenshotsTest(unittest.TestCase):
     def test_no_package_is_refused(self):
         self.assertEqual(1, r.render(self.app(None), []))
 
+    def test_an_app_that_opted_out_of_the_generated_screenshots_cannot_also_have_a_package(self):
+        app = self.app(GOOD)
+        (app / "readme.yml").write_text("name: A\nscreenshots: manual\n")
+        self.assertEqual(1, r.render(app, []))
+        self.assertFalse((app / "gradle-args.txt").exists())
+
     def test_an_empty_package_a_missing_order_file_and_a_package_without_screenshots_are_refused(self):
         empty = self.app(None)
         (empty / "app" / "src" / "debug" / "kotlin" / "x" / "screenshot").mkdir(parents=True)

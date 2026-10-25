@@ -21,8 +21,8 @@ from pathlib import Path
 
 SCREENSHOTS = Path(__file__).resolve().parent / "screenshots"
 sys.path.insert(0, str(SCREENSHOTS))
-from check_screenshot_package import (ORDER_FILE, order_problems, package_dir, package_files, package_folders, problems,
-                                      read_order)
+from check_screenshot_package import (ORDER_FILE, manual_screenshots, order_problems, package_dir, package_files,
+                                      package_folders, problems, read_order)
 
 
 def check_package(app_dir):
@@ -47,13 +47,18 @@ def numbered(order):
 
 def render(app_dir, gradle_args):
     """Returns the exit code."""
+    if manual_screenshots(app_dir) and package_folders(app_dir):
+        print("readme.yml says `screenshots: manual`, but the app has a screenshot package. Remove one: the package "
+              "(CI renders the screenshots) or the option (the screenshots are committed by hand). See docs/screenshots.md.",
+              file=sys.stderr)
+        return 1
     if not package_files(app_dir):
         if package_folders(app_dir):
             why = "The screenshot package has no Kotlin files: it needs a file with a @Preview per screenshot."
         else:
             why = ("The app has no screenshot package, and every app has at least one screenshot: add a screenshot/ folder "
-                   "with a Kotlin file, an order.txt and a README. (An app that cannot render previews has no such "
-                   "folder and commits a screenshot into docs/screenshots/ by hand.)")
+                   "with a Kotlin file, an order.txt and a README. (An app that cannot render previews opts out with "
+                   "`screenshots: manual` in readme.yml and commits a screenshot into docs/screenshots/ by hand.)")
         print(f"{why} See docs/screenshots.md.", file=sys.stderr)
         return 1
     if not check_package(app_dir):

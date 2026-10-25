@@ -7,8 +7,10 @@ is the pattern and how it works. The README side is [readme.md](readme.md).
 **Every app has at least one screenshot, and CI fails without one.** A missing `screenshot` package, an empty one (no
 Kotlin files), one without an `order.txt` or without a `@Preview`, and an app with no screenshot at all each fail the
 `screenshots` job, with a message that says what is missing. The only exception is an app that cannot render previews,
-such as the Krillion WebView wrapper (no Compose, so no `@Preview`): it has no `screenshot` folder at all and commits at
-least one screenshot into `docs/screenshots/` by hand, and CI leaves it alone.
+such as the Krillion WebView wrapper (no Compose, so no `@Preview`). It opts out in its `readme.yml` with
+**`screenshots: manual`**, has no `screenshot` folder, and commits at least one screenshot into `docs/screenshots/` by
+hand; CI leaves those alone. `screenshots: manual` together with a `screenshot` package fails the job, so an app is one
+or the other. There is no other value: `manual` is the only thing the option can be.
 
 **The app holds almost nothing for it**: the dependencies, the test and the Gradle setup live here, in
 [`scripts/screenshots/`](../scripts/screenshots), so a version bump reaches every app at once. The app only has its
@@ -85,9 +87,9 @@ compiled once: the `build` job renders them right after the APK, and the `screen
 
 1. In the `build` job ([`android_pr_build.yml`](../.github/workflows/android_pr_build.yml)), after the APK is built and
    published (so the APK is never held up by the screenshots):
-   - [`screenshots_wanted.py`](../scripts/screenshots_wanted.py) skips the rendering, with a notice, only for an app with
-     no `screenshot` folder at all that has committed screenshots in `docs/screenshots/`: they stay. Everything else is
-     rendered, and the render fails for a package that is missing, empty or incomplete.
+   - [`screenshots_wanted.py`](../scripts/screenshots_wanted.py) skips the rendering, with a notice, only for an app that
+     says `screenshots: manual` in `readme.yml` and has no `screenshot` folder: its committed screenshots stay.
+     Everything else is rendered, and the render fails for a package that is missing, empty or incomplete.
    - [`render_screenshots.py`](../scripts/render_screenshots.py) fails if the package shares anything, and runs `./gradlew testDebugUnitTest --tests '*PageScreenshotTest' --init-script …`, with the
      Gradle init script [`screenshots.init.gradle`](../scripts/screenshots/screenshots.init.gradle) and the test
      [template](../scripts/screenshots/PageScreenshotTest.kt.template) next to it.
