@@ -5,7 +5,7 @@ file, next to its `XViewModel` and `XUiState`.** This is
 the one way to build a screen in every app, so that any app reads like any other, and the previews and the README
 screenshots work the same everywhere ([screenshots.md](screenshots.md)).
 
-A **page** is a destination of the navigation: a full screen, one `Route.X` branch of the exhaustive `when` in `RouteDestination` ([new-app.md](new-app.md)). A reusable piece
+A **page** is a destination of the navigation: a full screen, one `Route.X` branch of the exhaustive `when` in `Router` ([new-app.md](new-app.md)). A reusable piece
 (a card, a row, a toolbar), and a dialog or a sheet that belongs to a page, is **not** a page: it is a plain
 composable in its own file, and a dialog or sheet is drawn by the `XPageContent` of its page.
 
