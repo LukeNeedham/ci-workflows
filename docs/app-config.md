@@ -16,7 +16,7 @@ get an option to differ from it.
 | Timezone of the timestamps | `Europe/Amsterdam` |
 | PR comment id | `<repo name, lower case>-app-link` |
 | Library | The shared library ([library.md](library.md)), with `DebugKit.init` called first thing and `Logger` used for logging. The debug pages are optional |
-| Workflow files | All four callers in `.github/workflows/`: `trigger_on_pull_request.yml`, `build_main.yml`, `delete_prereleases.yml` and `release.yml` |
+| Workflow files | All five callers in `.github/workflows/`: `trigger_on_pull_request.yml`, `build_main.yml`, `delete_prereleases.yml`, `release.yml` and `previews_main.yml` |
 
 The values are in `scripts/app_config.py` and only there. Changing one changes it for every app, so change the apps
 first if they do not match yet. An app that cannot follow a rule has to be changed, not given an exception.

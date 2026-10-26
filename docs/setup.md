@@ -1,7 +1,7 @@
 # Setting up a project
 
 How to start using these workflows in a new project, or move an existing project over to them. The
-caller files are in [`callers/`](../callers) and have no settings: copy them as they are (all four). For an app
+caller files are in [`callers/`](../callers) and have no settings: copy them as they are (all five). For an app
 in `apps.json` the [sync](sync.md) copies the callers by itself.
 
 For what each workflow does, its inputs and the PR comment it posts, see the
@@ -106,8 +106,8 @@ APK needs *Actions: Read*. See the AppHub README for creating one.
 ## Setting up a new project
 
 1. Add the project to [`apps.json`](../apps.json): its `name` and `repo`.
-2. Copy the four files of `callers/` (`trigger_on_pull_request.yml`, `build_main.yml` so AppHub can build main,
-   `delete_prereleases.yml` and `release.yml`) to `.github/workflows/` in the project, unchanged. After the first
+2. Copy the five files of `callers/` (`trigger_on_pull_request.yml`, `build_main.yml` so AppHub can build main,
+   `delete_prereleases.yml`, `release.yml` and `previews_main.yml`) to `.github/workflows/` in the project, unchanged. After the first
    copy the [sync](sync.md) keeps them in line.
 3. Commit them on a branch and open a PR to the target branch.
 4. [Check it works](#check-that-it-works).

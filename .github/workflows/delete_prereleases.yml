@@ -32,7 +32,8 @@ jobs:
               repo,
               per_page: 100,
             });
-            const prereleases = releases.filter((release) => release.prerelease);
+            // previews-main holds the previews of main that PRs compare with (docs/previews.md): not a build
+            const prereleases = releases.filter((release) => release.prerelease && release.tag_name !== 'previews-main');
             console.log(`Found ${prereleases.length} pre-releases (of ${releases.length} releases)`);
 
             let deleted = 0;

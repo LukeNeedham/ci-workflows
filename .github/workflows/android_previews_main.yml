@@ -1,0 +1,47 @@
+name: Android Previews Main
+
+# Reusable workflow: renders every @Preview of the app on each push to main and keeps the images as the assets of the
+# pre-release `previews-main`. PRs compare their own previews with those (android_pr_build.yml), and after the
+# images are published every open PR's comment is redone against them (docs/previews.md).
+# Caller: callers/previews_main.yml. It needs `contents: write` and `pull-requests: write` and has no settings.
+
+on:
+  workflow_call:
+
+jobs:
+  previews:
+    runs-on: ubuntu-latest
+    # Only the newest main matters
+    concurrency:
+      group: android-previews-main-${{ github.repository }}
+      cancel-in-progress: true
+    steps:
+      - id: config
+        uses: LukeNeedham/ci-workflows/.github/actions/app-config@main
+
+      - uses: LukeNeedham/ci-workflows/.github/actions/ci-scripts@main
+
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ steps.config.outputs.java-version }}
+          distribution: ${{ steps.config.outputs.java-distribution }}
+
+      # Runs on the default branch write the Gradle cache that PR builds read
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Render the previews
+        run: python3 "$CI_SCRIPTS/previews.py" render --no-daemon --build-cache
+
+      - name: Publish them as the previews of main
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 "$CI_SCRIPTS/previews.py" publish-main --repo "${{ github.repository }}" --sha "${{ github.sha }}"
+
+      - name: Update the comments of the open pull requests
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 "$CI_SCRIPTS/previews.py" refresh --repo "${{ github.repository }}" --base "${{ github.event.repository.default_branch }}"

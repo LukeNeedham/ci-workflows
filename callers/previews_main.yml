@@ -1,0 +1,15 @@
+# Copied from LukeNeedham/ci-workflows (callers/previews_main.yml). Do not edit it here: change it there.
+name: Previews Main
+
+on:
+  workflow_dispatch:
+  push:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  android:
+    if: github.ref_name == github.event.repository.default_branch
+    uses: LukeNeedham/ci-workflows/.github/workflows/android_previews_main.yml@main

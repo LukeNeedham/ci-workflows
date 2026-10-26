@@ -48,7 +48,7 @@ PR_TITLE = f"{TITLE_TAG} Sync from ci-workflows"
 # The Actions secret of every app that holds the token which pushes the files CI generates
 COMMIT_TOKEN_SECRET = "GENERATED_COMMIT_TOKEN"
 # Every app gets every caller. The release one fails with a clear message if the app is not set up for releases
-CALLERS = ["trigger_on_pull_request.yml", "build_main.yml", "delete_prereleases.yml", "release.yml"]
+CALLERS = ["trigger_on_pull_request.yml", "build_main.yml", "delete_prereleases.yml", "release.yml", "previews_main.yml"]
 
 BLOCK_BEGIN = "<!-- ci-workflows:begin (managed by LukeNeedham/ci-workflows, do not edit) -->"
 BLOCK_END = "<!-- ci-workflows:end -->"

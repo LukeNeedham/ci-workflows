@@ -5,7 +5,7 @@ They all do it all: **every app uses all three**. **When the user says "all cons
 are meant**, and "update all consuming apps to the latest library version" is every app in the list.
 
 **The list is [`apps.json`](../apps.json)**, which the [sync](sync.md) also reads: one entry per app, just its `name`
-and `repo`. Nothing else is configured per app ([app-config.md](app-config.md)), and every app gets the four workflow
+and `repo`. Nothing else is configured per app ([app-config.md](app-config.md)), and every app gets the five workflow
 callers and the skill by the sync.
 
 Every app in this list must have `app-icon.png` at its repo root ([app-icon.md](app-icon.md)); the app hub

@@ -54,7 +54,7 @@ enforced from here: **[docs/readme.md](docs/readme.md)**, skeleton in [docs/read
 Every page of every app is an `XPage` (gets the ViewModel and the navigation, no UI) plus an `internal`, stateless
 `XPageContent` (all the UI, with the previews): **[docs/pages.md](docs/pages.md)**, including how to migrate an existing
 app. The activity, `Root` and the navigation around them are in **[docs/app-shell.md](docs/app-shell.md)**, for new apps
-and for migrating existing ones. The README screenshots are rendered from them by CI: [docs/screenshots.md](docs/screenshots.md).
+and for migrating existing ones. The README screenshots are rendered from them by CI: [docs/screenshots.md](docs/screenshots.md). A PR comment shows the previews it changed: [docs/previews.md](docs/previews.md).
 
 ## Setting up a project
 

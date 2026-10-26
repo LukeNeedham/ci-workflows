@@ -178,6 +178,25 @@ jobs:
           # Only a hand-over to the screenshots job: the committed PNGs in docs/screenshots/ are what the README shows
           retention-days: 1
 
+      # Every @Preview of the app, rendered once more (the build is already done, so it is quick) and uploaded to this
+      # build's release; the PR gets a comment with the previews that differ from the ones of main, which
+      # android_previews_main.yml renders on each push to main (docs/previews.md). Never fails the build.
+      - name: Render the previews
+        id: previews
+        if: github.event_name == 'pull_request' && steps.shots-wanted.outputs.skip != 'true'
+        continue-on-error: true
+        run: python3 "$CI_SCRIPTS/previews.py" render --no-daemon --build-cache
+
+      - name: Show the changed previews on the PR
+        if: steps.previews.outcome == 'success'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >
+          python3 "$CI_SCRIPTS/previews.py" pr --repo "${{ github.repository }}" --pr "${{ github.event.pull_request.number }}"
+          --tag "${{ steps.meta.outputs.tag }}" --sha "${{ github.event.pull_request.head.sha }}"
+          --base "${{ github.event.pull_request.base.ref }}"
+
       # Don't leave the comment claiming a build is in progress if the job dies
       # A run cancelled by a newer push must stay quiet: the newer run owns the comment now.
       # Only a run cancelled by hand (head commit unchanged) reports "cancelled".
