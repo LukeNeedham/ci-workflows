@@ -130,8 +130,9 @@ below are enough.
   the composable, take only the typeface from the theme.
 - **One composable per file with its `@Preview`** (fake `UiState`, wrapped in `AppTheme`). **Every public or `internal`
   composable has a preview, and a new composable is written together with its preview** (a changed one gets its preview
-  updated); the camera, a video and the like are mocked in it. Only a composable that returns a value or draws nothing has
-  none (`lint:ignore PRV-7` and a reason); a `private` helper needs none.
+  updated); the camera, a video and the like are mocked in it. Exempt: a composable that returns a value, `Root`,
+  `AppNavigation`, `Router` and `AppTheme`; one that draws nothing takes a `lint:ignore PRV-7` and a reason; a `private`
+  helper needs none.
 - **Previews:** a preview is a `private fun Preview()` in the file of its composable; with several in a file, the main
   one is `Preview` and the others `Preview` plus a differentiator (`PreviewEmpty`, `PreviewLoading`). (The `screenshot`
   package is the exception: `XScreenshot`, unique across the package.)

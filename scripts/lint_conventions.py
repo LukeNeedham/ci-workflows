@@ -54,8 +54,9 @@ RULES = {
 }
 
 SKIP_DIRS = {"build", ".gradle", ".git", ".idea", "node_modules"}
-# The composables of the app shell (docs/app-shell.md) wire the whole app together: there is nothing of them to preview
-SHELL_COMPOSABLES = {"Root", "AppNavigation", "Router"}
+# The composables of the app shell (docs/app-shell.md) wire the whole app together, and the theme only provides values:
+# there is nothing of them to preview
+SHELL_COMPOSABLES = {"Root", "AppNavigation", "Router", "AppTheme"}
 PAGE_CONTENT, PAGE, VIEW_MODEL, UI_STATE = "PageContent", "Page", "ViewModel", "UiState"
 SUFFIX_OF_ROLE = {PAGE_CONTENT: "PageContent", PAGE: "Page", VIEW_MODEL: "ViewModel", UI_STATE: "UiState"}
 ROLE_FILE = re.compile(r".+(PageContent|Page|ViewModel|UiState)$")

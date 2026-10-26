@@ -83,8 +83,8 @@ job of every PR, [lint.md](lint.md)): a PR that breaks one fails.
   `AppTheme` and use fake `UiState` / sample data, so they need no ViewModel, Koin or network, and what needs the camera,
   a video or the like is **mocked** (a placeholder, as the app's video player already does in inspection mode): a preview that
   cannot render fails in CI's renders as it would in an IDE. Only a composable that returns a value, or that draws nothing
-  (an effect), has none, with a `lint:ignore PRV-7` and its reason; `Root`, `AppNavigation` and `Router` of the app shell
-  are exempt by name.
+  (an effect), has none, with a `lint:ignore PRV-7` and its reason; `Root`, `AppNavigation`, `Router` and `AppTheme` of the app
+  shell are exempt by name.
 - **Every page is an `XPage` and an `XPageContent`**, defined in [pages.md](pages.md): `XPage` holds its own `XViewModel` (one per page, **never shared between pages**) and
   delegates all UI to the stateless, `internal` `XPageContent` (state down, events up), which always has at least one `private` general preview in its file
   (`private fun Preview()`), in the file `XPageContent.kt`; `XPage`, `XViewModel` and `XUiState` each have their own file too. Any README screenshots are separate (a page can have several, or none): a file per page that has some in the

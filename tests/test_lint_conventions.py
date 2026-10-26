@@ -525,7 +525,7 @@ class PreviewTest(unittest.TestCase):
     def test_prv7_a_private_composable_and_the_shell_need_no_preview(self):
         private = "package com.x.ui\n\n@Composable\nprivate fun Small() {\n    Text(\"a\")\n}\n"
         self.assertNotIn("PRV-7", rules(lint_app({"Small.kt": private})))
-        for name in ("Root", "AppNavigation", "Router"):
+        for name in ("Root", "AppNavigation", "Router", "AppTheme"):
             text = f"package com.x.ui\n\n@Composable\nfun {name}() {{\n    koinInject<Foo>()\n    NavDisplay()\n}}\n"
             self.assertNotIn("PRV-7", rules(lint_app({f"{name}.kt": text})), name)
 
