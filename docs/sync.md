@@ -9,7 +9,7 @@ Claude: nothing needs to remember to copy anything.
 |---|---|---|
 | The Claude skill | `.claude/skills/lukeneedham-conventions/` | Mirrored exactly: files that no longer exist here are deleted |
 | The callers | `.github/workflows/`: `trigger_on_pull_request.yml`, `build_main.yml`, `delete_prereleases.yml`, `release.yml` | Copied **byte for byte** from [`callers/`](../callers), **all four to every app**. They hold no settings, so every app has identical files. `release.yml` fails with a clear message in an app that is not set up for releases |
-| A note for Claude | A block in the app's `CLAUDE.md`, between `ci-workflows:begin` and `ci-workflows:end` | Replaced each time. Also tells Claude to always paste the PR's AppHub link into the chat when work completes (`CLAUDE.md` is always loaded, unlike the skill). The old "copy the skill by hand" line is replaced by it. The rest of `CLAUDE.md` is the app's |
+| A note for Claude | A block in the app's `CLAUDE.md`, between `ci-workflows:begin` and `ci-workflows:end` | Replaced each time. Also tells Claude to always paste the PR's AppHub link into the chat when work completes, and to answer the Stop hook's git warnings with `git fetch origin` and nothing else (`CLAUDE.md` is always loaded, unlike the skill). The old "copy the skill by hand" line is replaced by it. The rest of `CLAUDE.md` is the app's |
 
 Not synced: the app's `readme.yml`, which is handwritten, and its `README.md`, which the PR build generates from it
 ([readme.md](readme.md)); the sync only reports, in its run summary, which apps have no valid `readme.yml`. Also not
@@ -22,10 +22,28 @@ nothing to configure per app. The sync overwrites whatever the app has in a call
 
 [`sync_apps.yml`](../.github/workflows/sync_apps.yml) runs when `skills/`, `callers/`, `apps.json` or the script
 change on `main`, every Monday, and by hand (*Actions → Sync Apps → Run workflow*, optionally for some apps).
-For each app that differs it pushes the branch `sync/ci-workflows` and opens a PR, **Sync from ci-workflows**; if
-that PR is already open it is updated (the branch is force-pushed: it belongs to the sync). Nothing is pushed to
-an app's default branch, and an app that is already in line gets no PR. Merge the PRs when their CI is green;
-CI does run on them, because they are opened with a token and not with `GITHUB_TOKEN`.
+For each app that differs it pushes the branch `sync/ci-workflows` and opens a PR, **[auto-merge] Sync from
+ci-workflows**; if that PR is already open it is updated, title included (the branch is force-pushed: it belongs to
+the sync). Nothing is pushed to an app's default branch, and an app that is already in line gets no PR.
+CI does run on the PRs, because they are opened with a token and not with `GITHUB_TOKEN`.
+
+## Merging the PRs
+
+Nobody merges them. The title starts with `[auto-merge]`, and the `automerge` job of
+[`android_pr.yml`](../.github/workflows/android_pr.yml) merges such a PR with a merge commit once every other job of
+its run has passed or been skipped. A failed or cancelled job leaves the PR open for you. The job is in the shared
+workflow, which the callers use at `@main`, so it needs nothing in the apps and no setting in them.
+
+- It merges with `GENERATED_COMMIT_TOKEN` ([below](#the-token-of-the-generated-commits)), which has Contents write
+  and so may merge. A merge made with the workflow token starts no workflow, so `build_main.yml` would not run on the
+  merged commit. An app without the secret is not merged, and the job says so.
+- It runs after the jobs that commit the README, the screenshots and the icon, and merges the branch with those commits.
+- [`automerge.py`](../scripts/automerge.py) checks the PR again before merging: it is open, from the branch
+  `sync/ci-workflows` of the same repo, with the tag in its title, and the head the run started on is still an ancestor
+  of the branch. A new sync force-pushes the branch, so the run of that push merges it, after its own checks.
+- The tag is not a security boundary: whoever can write to an app can merge there anyway. Put the tag on another PR
+  and, as the branch is not `sync/ci-workflows`, nothing merges.
+- It does not wait for required reviews or approvals. An app that requires them keeps the PR open, as the merge is refused.
 
 A run fails (and GitHub emails you) if any app failed, after trying all of them.
 
@@ -123,4 +141,5 @@ command line.
 | `pr_releases.py` | the PR build (stale comment, metadata, superseded) and the cleanup |
 | `release.py` | `android_release.yml` |
 | `library_release.py` | `library_release.yml` |
+| `automerge.py` | the `automerge` job of `android_pr.yml` |
 | `ghactions.py` | the helpers for step outputs, `GITHUB_ENV` and error annotations |

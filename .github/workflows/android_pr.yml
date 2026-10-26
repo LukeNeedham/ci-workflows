@@ -127,3 +127,36 @@ jobs:
     needs: config
     if: needs.config.outputs.cleanup == 'true'
     uses: LukeNeedham/ci-workflows/.github/workflows/android_pr_cleanup.yml@main
+
+  # Merges the PR that sync_apps.yml opens (its title starts with [auto-merge], see scripts/automerge.py) once every job
+  # above has passed or been skipped: a failed or cancelled job leaves it open. It runs in the run that did the work, after
+  # the jobs that commit the generated files, so it merges the branch with those commits. It uses the owner's token
+  # (GENERATED_COMMIT_TOKEN): a merge made with the workflow token starts no workflow, so build_main.yml would not run on
+  # the merged commit. Without the secret it only says so. automerge.py checks the PR again before it merges.
+  automerge:
+    needs: [config, build, screenshots, readme]
+    if: >-
+      ${{ !cancelled()
+      && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
+      && github.event_name == 'pull_request' && github.event.action != 'closed'
+      && startsWith(github.event.pull_request.title, '[auto-merge]')
+      && github.event.pull_request.head.repo.full_name == github.repository }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: LukeNeedham/ci-workflows/.github/actions/ci-scripts@main
+
+      - name: Merge the PR
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GENERATED_COMMIT_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          RUN_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::notice::Not merged: this repo has no GENERATED_COMMIT_TOKEN secret (docs/sync.md)."
+            exit 0
+          fi
+          python3 "$CI_SCRIPTS/automerge.py" --repo "$REPO" --pr "$PR" --run-sha "$RUN_SHA"

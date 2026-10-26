@@ -152,34 +152,17 @@ Defaults for a normal app. If the user asks for something else, do that instead.
   `internal`, stateless `XPageContent` (state down, events up) that has the previews. Never `XScreen`, `XContent` or a
   screen that mixes the two. Any README screenshots of a page are previews in the `screenshot` package
   ([screenshots.md](screenshots.md)).
-- **Single activity.** One `MainActivity` (extending `ComponentActivity`) hosts the whole UI. Screens
-  are composables, never extra activities or fragments.
+- **The app shell: single activity, `Root`, `AppNavigation`, `Router`.** One `MainActivity` (extending `ComponentActivity`)
+  hosts the whole UI and only calls `setContent { Root() }`; screens are composables, never extra activities or fragments.
+  The names, the code and the rules are defined in one place, **[app-shell.md](app-shell.md)**: follow it for every new
+  app (existing apps are migrated to it by the same doc).
 - **Jetpack Compose, themed by the app's own `AppTheme`** (a hand-made composition local, never
   `MaterialTheme`; see [app-conventions.md](app-conventions.md#theme)). No XML layouts.
-- **Navigation 3** (`androidx.navigation3`) for navigation. Destinations are `@Serializable` data
-  objects/classes, the members of one `sealed interface Route : NavKey`; the back stack is state the app owns:
-
-  ```kotlin
-  @Serializable
-  sealed interface Route : NavKey {
-      @Serializable data object Home : Route
-      @Serializable data class Detail(val id: String) : Route
-  }
-
-  val backStack = rememberNavBackStack(Route.Home)
-  NavDisplay(
-      backStack = backStack,
-      onBack = { backStack.removeLastOrNull() },
-      entryProvider = entryProvider {
-          entry<Route.Home> { HomePage(onOpenDetail = { backStack.add(Route.Detail(it)) }) }
-          entry<Route.Detail> { route -> DetailPage(id = route.id, onBack = { backStack.removeLastOrNull() }) }
-      },
-  )
-  ```
-
-  **The route of `XPage` is always `Route.X`** ([pages.md](pages.md)): `Route.Home` is `HomePage`.
-
-  Check the current stable versions and API before using them; Navigation 3 is newer than most
+- **Navigation 3** (`androidx.navigation3`) for navigation: destinations are `@Serializable` members of one
+  `sealed interface Route : NavKey`, the back stack is state the app owns, and the entry provider is type exhaustive
+  (an exhaustive `when` in `Router`, never the `entryProvider { entry<...> }` DSL). All of it is in
+  **[app-shell.md](app-shell.md)**. The route of `XPage` is always `Route.X` ([pages.md](pages.md)): `Route.Home` is
+  `HomePage`. Check the current stable versions and API before using them; Navigation 3 is newer than most
   documentation.
 - **MVVM with unidirectional data flow.** Each screen has a `ViewModel` exposing one immutable
   `UiState` as a `StateFlow`; the composable collects it with `collectAsStateWithLifecycle()` and
@@ -220,7 +203,7 @@ floating button on the main page); see [A settings page](using-the-library.md#a-
 
 Some apps are too small for the above, such as the Krillion web-game wrapper: one `WebView` in one
 activity. Still do steps 1 to 5 (project, **debug keystore**, **CI workflows**, **app icon**, **README**) and the **shared
-library** (logger and crash handler, no debug pages), keep it to a single activity, and skip the rest. Say which
+library** (logger and crash handler, debug pages), the **app shell** ([app-shell.md](app-shell.md), the same as for every app), and skip the rest. Say which
 sections you skipped and why. Such an app has no `screenshot` package (no Compose, no `@Preview`): it sets `screenshots: manual` in `readme.yml` and commits at least one screenshot into `docs/screenshots/` by hand, and CI leaves it alone.
 
 ## Done checklist
@@ -231,7 +214,7 @@ sections you skipped and why. Such an app has no `screenshot` package (no Compos
 - [ ] Adaptive launcher icon in place (CI then generates `app-icon.png` at the repo root on the first PR)
 - [ ] Every page is an `XPage` + `XPageContent`, named and split as in [pages.md](pages.md); a `screenshot` package with the screenshots worth showing (any number per page, none for some pages, at least one in all), and its `order.txt` ([screenshots.md](screenshots.md)), or, for an app that cannot render previews, `screenshots: manual` and at least one hand-committed screenshot in `docs/screenshots/`
 - [ ] Handwritten `readme.yml` ([readme.md](readme.md)); CI generates `README.md` from it
-- [ ] Single activity, Compose, Navigation 3, MVVM, Koin for DI, Coil 3 for images, or a stated reason for each departure
+- [ ] The app shell as in [app-shell.md](app-shell.md) (`MainActivity` calling only `Root`, `AppNavigation`, an exhaustive `Router`); Compose, Navigation 3, MVVM, Koin for DI, Coil 3 for images, or a stated reason for each departure
 - [ ] [app-conventions.md](app-conventions.md) followed: strings in `strings.xml`, own `AppTheme` (no `MaterialTheme`), a preview per composable, 48dp touch targets
 - [ ] Shared library added, `DebugKit.init` called first, `Logger` used (debug pages optional)
 - [ ] PR opened, CI green, AppHub link pasted to the user

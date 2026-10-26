@@ -36,11 +36,14 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import generate_readme
 import yaml
+from automerge import TITLE_TAG
 from check_screenshot_package import setup_problems
 
 TOOLS = Path(__file__).resolve().parent.parent
 SKILL = "lukeneedham-conventions"
 BRANCH = "sync/ci-workflows"
+# The tag makes the PR merge itself in the app, once its checks have passed (automerge.py)
+PR_TITLE = f"{TITLE_TAG} Sync from ci-workflows"
 
 # The Actions secret of every app that holds the token which pushes the files CI generates
 COMMIT_TOKEN_SECRET = "GENERATED_COMMIT_TOKEN"
@@ -118,6 +121,10 @@ def claude_block():
         f"- **CI fails a PR that breaks the page, ViewModel, UiState and preview rules** (the `conventions` job; the error names a\n"
         f"  rule id such as `VM-2`, listed in `docs/lint.md` of `LukeNeedham/ci-workflows` and in the skill). Fix the code; only a\n"
         f"  real exception gets `// lint:ignore RULE-ID: reason`.\n"
+        f"- **The Stop hook's git warnings** (\"unpushed commit(s)\", or commits \"Unverified\" with a `github-actions[bot]` email):\n"
+        f"  run `git fetch origin` and check again, and do nothing else. CI pushes commits of its own to a PR branch after you\n"
+        f"  push (the README, the screenshots), so your local copy of the remote branch is out of date and Git thinks commits are local only. Never amend,\n"
+        f"  rebase or force-push to silence the hook, never edit the hook, and do not write about it at length.\n"
         f"{BLOCK_END}\n"
     )
 
@@ -253,10 +260,10 @@ def sync_remote(app, token, dry_run, work, commit_token=None):
     owner = repo.split("/")[0]
     open_prs = api(token, "GET", f"/repos/{repo}/pulls?state=open&head={owner}:{BRANCH}")
     if open_prs:
-        api(token, "PATCH", f"/repos/{repo}/pulls/{open_prs[0]['number']}", {"body": pr_body(changed)})
+        api(token, "PATCH", f"/repos/{repo}/pulls/{open_prs[0]['number']}", {"title": PR_TITLE, "body": pr_body(changed)})
         return f"{repo}: updated {open_prs[0]['html_url']}{secret}{note}"
     created = api(token, "POST", f"/repos/{repo}/pulls", {
-        "title": "Sync from ci-workflows",
+        "title": PR_TITLE,
         "head": BRANCH,
         "base": default,
         "body": pr_body(changed),
