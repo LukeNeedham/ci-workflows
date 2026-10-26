@@ -97,15 +97,19 @@ needed, or passes it to `XPageContent` as a plain parameter ([app-conventions.md
       @Serializable data class Detail(val id: String) : Route
   }
 
-  // in AppNavigation
-  entry<Route.Home> {
-      HomePage(onOpenSettings = { backStack.add(Route.Settings) }, onOpenDetail = { backStack.add(Route.Detail(it)) })
+  // Router.kt
+  @Composable
+  fun Router(backStack: NavBackStack<NavKey>, route: Route) {
+      when (route) { // exhaustive: no `else`
+          Route.Home -> HomePage(onOpenSettings = { backStack.add(Route.Settings) }, onOpenDetail = { backStack.add(Route.Detail(it)) })
+          is Route.Detail -> DetailPage(id = route.id, onBack = { backStack.removeLastOrNull() })
+          Route.Settings -> SettingsPage(onBack = { backStack.removeLastOrNull() })
+      }
   }
-  entry<Route.Detail> { route -> DetailPage(id = route.id, onBack = { backStack.removeLastOrNull() }) }
   ```
 
   (With a navigation library that has no `NavKey`, `Route` is the same sealed interface with that library's base type, e.g.
-  `Parcelable`.) The `backStack` never goes below `AppNavigation`: neither `XPage` nor `XPageContent` gets it.
+  `Parcelable`.) The `backStack` never goes below the `Router` ([new-app.md](new-app.md)): neither `XPage` nor `XPageContent` gets it.
 - Any README screenshots of a page (a page can have several, or none) are separate from the general previews: previews in the app's `screenshot`
   package, each owning its data ([screenshots.md](screenshots.md)).
 
@@ -121,7 +125,7 @@ where everything is.
 Do this for every page of the app, in the same change as the rest of its migration:
 
 1. A screen composable that gets the ViewModel (`XScreen`, `XRoute`, or the entry itself calling `koinViewModel`)
-   becomes **`XPage`**. If the entry in `AppNavigation` holds the ViewModel, state and lifecycle code, move it into `XPage`.
+   becomes **`XPage`**. If the branch in the `Router` holds the ViewModel, state and lifecycle code, move it into `XPage`.
 2. The composable that draws the screen (`XContent`, `XScreenContent`, or the body of the old screen) becomes
    **`XPageContent`**, `internal`, taking only state and lambdas. If a screen is not split yet, split it: everything
    that needs the ViewModel, Koin or a `Flow` goes up into `XPage`.
@@ -136,4 +140,4 @@ Do this for every page of the app, in the same change as the rest of its migrati
 7. **Not pages:** composables that are only parts of a page keep their names; nothing else gets the `Page` suffix.
 
 A check of the result: `grep -rn "Screen\b\|Screen(" app/src/main` should find no page composables, and every
-`entry<…>` of the navigation should be an `entry<Route.X>` that calls exactly one `XPage`.
+branch of the `Router` should be a `Route.X` that calls exactly one `XPage`.
