@@ -310,48 +310,27 @@ floating action button** (or any other overlay): the debug entry point is part o
 app's main UI. The button draws nothing when debugging is off, so it can stay in the code for release
 builds.
 
-**Navigation 3 or a hand-written back stack** :
+**Navigation 3** (every app: the shell is in [app-shell.md](app-shell.md)). Add three members to `Route` and three
+branches to the `Router`; the `when` is exhaustive, so the compiler reminds you:
 
 ```kotlin
-internal enum class Route { /* ... */ Debug, Logs, Crashes }
+// Route.kt
+@Serializable data object Debug : Route
+@Serializable data object Logs : Route
+@Serializable data object Crashes : Route
 
-when (route) {
-    // ...
-    Route.Debug -> DebugPage(
-        onBack = back,
-        onOpenLogs = { backStack.add(Route.Logs) },
-        onOpenCrashes = { backStack.add(Route.Crashes) },
-    )
-    Route.Logs -> LogsPage(onBack = back)
-    Route.Crashes -> CrashesPage(onBack = back)
-}
+// Router.kt (navigateTo and onBack are the Router's own functions)
+Route.Debug -> DebugPage(
+    onBack = ::onBack,
+    onOpenLogs = { navigateTo(Route.Logs) },
+    onOpenCrashes = { navigateTo(Route.Crashes) },
+)
+Route.Logs -> LogsPage(onBack = ::onBack)
+Route.Crashes -> CrashesPage(onBack = ::onBack)
 ```
 
-**Voyager** (FlagTutor's style):
-
-```kotlin
-class DebugScreen : Screen {
-    @Composable
-    override fun Content() {
-        val navigator = LocalNavigator.currentOrThrow
-        DebugPage(
-            onBack = navigator::pop,
-            onOpenLogs = { navigator.push(LogsScreen()) },
-            onOpenCrashes = { navigator.push(CrashesScreen()) },
-        )
-    }
-}
-
-class LogsScreen : Screen {
-    @Composable
-    override fun Content() = LogsPage(onBack = LocalNavigator.currentOrThrow::pop)
-}
-
-class CrashesScreen : Screen {
-    @Composable
-    override fun Content() = CrashesPage(onBack = LocalNavigator.currentOrThrow::pop)
-}
-```
+On a Kotlin Multiplatform app, also register the three routes in the back stack's serialization config
+([app-shell.md](app-shell.md#exceptions)).
 
 **Anything else** (a hand-rolled page router, a sealed `Page` class): add three cases and pass
 `onBack` your existing back action. Nothing about the pages depends on the navigation library.

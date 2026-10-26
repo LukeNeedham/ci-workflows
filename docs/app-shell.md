@@ -13,12 +13,12 @@ reads like any other:
 | Name | What it is |
 |---|---|
 | `App` | The `Application` class: starts Koin and the library. |
-| `MainActivity` | **The one activity that hosts the app's UI, always with this name**: never `HomeActivity`, `SettingsActivity` or `AppActivity`, no second activity for a screen, and no fragments. It only calls `setContent { Root() }`. The one exception is an [overlay activity](#exceptions). |
+| `MainActivity` | **The one activity that hosts the app's UI, always with this name**: never `HomeActivity`, `SettingsActivity` or `AppActivity`, no second activity for a screen, and no fragments. It only calls `setContent { Root() }`, and hands `Root` only what the activity alone can provide (a deep link from the intent, a permission or share callback), as parameters. The one exception is an [overlay activity](#exceptions). |
 | `Root` | The one composable `MainActivity` calls: `AppTheme`, `ProvideDebugSettings` and the other app-wide providers, then `AppNavigation()`. Never `App`, `AppRoot`, `MainScreen` or `MainContent`. |
 | `AppNavigation` | Owns the `backStack` and the `NavDisplay`, with `routeEntryProvider`. It is the only composable that calls `NavDisplay`, and `Root` the only one that calls it. |
 | `Router` | The exhaustive `when (route)` and the common navigation actions (`navigateTo`, `onBack`); the only place that calls `XPage`s. Not a page: it is never called `RoutePage`, and has no `XPageContent` or ViewModel. |
 | `Route` | The one `sealed interface Route : NavKey`, in `Route.kt`; every page has a member of it ([pages.md](pages.md#names-and-files)). |
-| `AppTheme` | The app's own theme ([app-conventions.md](app-conventions.md#theme)). |
+| `AppTheme` | The app's own theme ([app-conventions.md](app-conventions.md#theme)): the composable is always `AppTheme { }`, and an `object AppTheme` reads its values (`AppTheme.current`, or `AppTheme.colors`). Never `<AppName>Theme`, `ProvideAppTheme` or `MaterialTheme`. |
 
 No other composable sets up the theme, the providers or the navigation, and none of these has a variant name (`MainRoot`,
 `AppRouter`, `NavHost`).
@@ -114,12 +114,22 @@ fun Router(backStack: NavBackStack<NavKey>, route: Route) {
   `AppNavigation`. It still has `App`, `MainActivity` calling only `Root()`, and `Root`, which sets up `AppTheme` and the
   providers and then draws its one screen directly. An app that gets a second page later gets the whole shell then.
 - **A Kotlin Multiplatform app** uses Navigation 3 too, from the JetBrains artifacts
-  (`org.jetbrains.androidx.navigation3:navigation3-ui`; Compose Multiplatform 1.10 or newer; Android, iOS, desktop and web). The
-  shell is the same, in `commonMain`, with three differences: (1) on the targets without reflection (iOS, web) the back
-  stack is built with `rememberNavBackStack(config, Route.Home)`, where `config` is a `SavedStateConfiguration` that registers
-  `Route` with `subclassesOfSealed<Route>()`; (2) the browser address and history are not synced by the library (an app that
-  syncs them, such as FlagTutor on the web, keeps its own sync, fed by the back stack, or uses the `navigation3-browser`
-  library); (3) the `Application`, `MainActivity` and manifest rules apply to the Android target only.
+  (`org.jetbrains.androidx.navigation3:navigation3-ui` and `org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-navigation3`;
+  Compose Multiplatform 1.10 or newer; Android, iOS, desktop and web). The shell is the same, in `commonMain`, with these
+  differences (FlagTutor is the working example):
+  1. **Kotlin 2.3 or newer.** The web (wasm) libraries are compiled with Kotlin 2.3 (klib ABI 2.3.0), which a 2.2 compiler
+     cannot read: the web build then reports `androidx.navigation3` as an unresolved reference. Move KSP, Room and
+     `kotlinx.serialization` to versions built with Kotlin 2.3 or older with it.
+  2. **No `iosX64` target.** `navigation3-ui` is not published for the Intel-Mac iOS simulator in any version, and one
+     missing target makes the dependency fail to resolve for every target. Keep `iosArm64` and `iosSimulatorArm64`.
+  3. **Register every route.** iOS and the web have no reflection to save the back stack, so it is built with
+     `rememberNavBackStack(config, Route.Home)`, where `config` is a `SavedStateConfiguration` with a
+     `polymorphic(NavKey::class) { subclass(Route.X::class, Route.X.serializer()) ... }` entry per `Route` member (a new
+     route is added there too).
+  4. **The browser address and history** are not synced by the library. An app that syncs them (FlagTutor on the web)
+     keeps its own sync, driven by the back stack, and passes `onBack = {}` to `AppNavigation` so that the browser's back
+     button, which the sync handles, does not also pop the stack; or it uses the `navigation3-browser` library.
+  5. The `Application`, `MainActivity` and manifest rules apply to the Android target only.
 
 ## Migrating an existing app
 
@@ -133,7 +143,7 @@ deep links, tests, and the lines of the app's `CLAUDE.md` that name files.
    `Router` (an [overlay activity](#exceptions) stays). Its `onCreate` ends in `setContent { Root() }` and holds nothing else in it.
 2. **`Root`.** Whatever composable `setContent` wraps now (`AppRoot`, `MainScreen`, `MyApp`, `App`) is renamed `Root`
    (`Root.kt`). The theme (`AppTheme`), `ProvideDebugSettings` and the other app-wide providers that sit in `MainActivity`
-   or in other composables move into it, and it ends in `AppNavigation()`. A `MaterialTheme` is replaced by `AppTheme`
+   or in other composables move into it, and it ends in `AppNavigation()`. A theme composable called `<AppName>Theme` or `ProvideAppTheme` is renamed `AppTheme`, and a `MaterialTheme` is replaced by `AppTheme`
    ([app-conventions.md](app-conventions.md#theme)).
 3. **`AppNavigation`, `Router`, `Route`.** An app already on Navigation 3 moves the `rememberNavBackStack` and the
    `NavDisplay` into `AppNavigation` (`AppNavigation.kt`); replaces the `entryProvider { entry<...> { } }` DSL with

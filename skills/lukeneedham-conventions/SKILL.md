@@ -90,17 +90,18 @@ below are enough.
 ## Architecture
 - **The app shell is defined in one doc, `docs/app-shell.md`, for new apps and for migrating existing ones.** Single
   activity, always **`MainActivity`** (never another name, a second activity or fragments), which only calls
-  `setContent { Root() }`; `Root` (`Root.kt`) sets up `AppTheme`, `ProvideDebugSettings` and the other app-wide providers,
+  `setContent { Root(...) }` and may hand `Root` what only the activity can provide (a deep link, a permission callback); `Root` (`Root.kt`) sets up `AppTheme`, `ProvideDebugSettings` and the other app-wide providers,
   then calls `AppNavigation` (owns the `backStack` and the `NavDisplay`; only `Root` calls it); `Router` is the
   exhaustive `when (route)` with one `XPage(...)` per `Route` member, **no `else`**, and the common actions as local
   functions (`navigateTo(route)`, `onBack()`; branches pass `::onBack`, never `backStack.add(...)`); `routeEntryProvider`
   does `val route = key as Route` and returns `NavEntry(route) { Router(backStack, route) }`; never the
   `entryProvider { entry<...> { } }` DSL (a missing route fails at runtime). Fixed names, one file each: `App` (the
-  `Application`), `MainActivity`, `Root`, `AppNavigation`, `Router`, `Route`, `AppTheme`; never a variant (`AppRoot`,
-  `MainScreen`, `AppRouter`, `NavHost`, `RoutePage`). Exceptions (`docs/app-shell.md`): an overlay activity (a window over other
+  `Application`), `MainActivity`, `Root`, `AppNavigation`, `Router`, `Route`, `AppTheme` (the composable `AppTheme { }`, read
+  through the `object AppTheme`); never a variant (`AppRoot`, `MainScreen`, `AppRouter`, `NavHost`, `RoutePage`,
+  `<AppName>Theme`, `ProvideAppTheme`). Exceptions (`docs/app-shell.md`): an overlay activity (a window over other
   apps, named after its job) may be a second activity but a screen never is; an app with no pages (a WebView wrapper) has no
   `Route`/`Router`/`AppNavigation`, only `App`, `MainActivity` and `Root`; Kotlin Multiplatform apps use the JetBrains
-  Navigation 3 artifacts (`rememberNavBackStack(config, ...)` with `subclassesOfSealed<Route>()` off the JVM). A route needing its own `NavEntry` options (`metadata`) builds its own.
+  Navigation 3 artifacts (`rememberNavBackStack(config, ...)` with every `Route` member registered in the config, since iOS and the web have no reflection). A route needing its own `NavEntry` options (`metadata`) builds its own.
 - Jetpack Compose, no XML. Navigation 3 (the `@Serializable` members of one `sealed interface Route : NavKey`, back stack owned by the app).
 - MVVM with unidirectional data flow: a `ViewModel` exposes one immutable `UiState` `StateFlow`; composables
   use `collectAsStateWithLifecycle()` and send events up as function calls; no logic in composables.
