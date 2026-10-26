@@ -14,7 +14,8 @@ reads like any other:
 |---|---|
 | `App` | The `Application` class: starts Koin and the library. |
 | `MainActivity` | **The one activity that hosts the app's UI, always with this name**: never `HomeActivity`, `SettingsActivity` or `AppActivity`, no second activity for a screen, and no fragments. It only calls `setContent { Root() }`, and hands `Root` only what the activity alone can provide (a deep link from the intent, a permission or share callback), as parameters. The one exception is an [overlay activity](#exceptions). |
-| `Root` | The one composable `MainActivity` calls: `AppTheme`, `ProvideDebugSettings` and the other app-wide providers, then `AppNavigation()`. Never `App`, `AppRoot`, `MainScreen` or `MainContent`. |
+| `Root` | The root composable of the app and the one composable `MainActivity` calls: `AppTheme`, `ProvideDebugSettings` and the other app-wide providers, then `AppNavigation()`. It may also be state driven (see [`RootCoordinator`](#a-state-driven-root)). Never `App`, `AppRoot`, `MainScreen` or `MainContent`. |
+| `RootCoordinator` | Only in an app whose `Root` is state driven: a plain class (not a ViewModel) that decides what the app shows and holds the state for it. |
 | `AppNavigation` | Owns the `backStack` and the `NavDisplay`, with `routeEntryProvider`. It is the only composable that calls `NavDisplay`, and `Root` the only one that calls it. |
 | `Router` | The exhaustive `when (route)` and the common navigation actions (`navigateTo`, `onBack`); the only place that calls `XPage`s. Not a page: it is never called `RoutePage`, and has no `XPageContent` or ViewModel. |
 | `Route` | The one `sealed interface Route : NavKey`, in `Route.kt`; every page has a member of it ([pages.md](pages.md#names-and-files)). |
@@ -88,7 +89,43 @@ fun Router(backStack: NavBackStack<NavKey>, route: Route) {
 - **`MainActivity` and `Root`.** `MainActivity` has nothing but `setContent { Root() }`. `Root` sets up everything the UI
   sits in, in this order: `AppTheme`, then `ProvideDebugSettings`
   ([using-the-library.md](using-the-library.md#wrap-the-ui-in-providedebugsettings)) and the other app-wide providers, then
-  `AppNavigation()`.
+  `AppNavigation()`. Nothing else is forbidden in it: `Root` is the root composable of the app, so what has to wrap or
+  precede the whole UI goes here, and it may be state driven.
+- <a id="a-state-driven-root"></a>**A state-driven `Root` holds a `RootCoordinator`, never a ViewModel.** Some apps cannot
+  always show their normal UI: the first launch needs a setup, a permission is missing or was revoked, something has to
+  load first. `Root` then draws the screen for that state instead of `AppNavigation()`, and **blocks the normal UI until the
+  user has dealt with it**. The state, and the logic that decides it, are in the `RootCoordinator` (`RootCoordinator.kt`),
+  with the state itself in a sealed `RootState`:
+
+  ```kotlin
+  // RootCoordinator.kt: a plain class, registered with `single { }` (it lives as long as the app)
+  class RootCoordinator(/* the settings, the permission check, … */ mainDispatcher: CoroutineDispatcher) {
+      private val scope = CoroutineScope(SupervisorJob() + mainDispatcher)   // its own scope: it is not a ViewModel
+      val state: RootState by derivedStateOf { /* Loading, NeedsPermissions, NeedsSetup or Ready */ }
+      fun onResume() { /* check again whether a permission was revoked */ }
+  }
+
+  // Root.kt
+  @Composable
+  fun Root() {
+      val coordinator: RootCoordinator = koinInject()      // never koinViewModel
+      LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { coordinator.onResume() }
+      AppTheme {
+          ProvideDebugSettings(theme = AppTheme.current.toDebugTheme()) {
+              when (coordinator.state) {
+                  RootState.Loading -> Spinner()
+                  RootState.NeedsPermissions -> RequestPermissionsPage(onContinue = coordinator::onPermissionsAcquired)
+                  RootState.NeedsSetup -> SetupPage(onSetupComplete = coordinator::onSetupComplete)
+                  RootState.Ready -> AppNavigation()
+              }
+          }
+      }
+  }
+  ```
+
+  It is a coordinator, not a ViewModel, because it belongs to no screen: `Root` always renders, so there is one for the
+  whole life of the app. **Only an `XPage` requests a ViewModel** ([pages.md](pages.md#only-pages-hold-viewmodels));
+  `Root` is not a page and has none. The screens it shows are pages, or `AppNavigation()`, with their own.
 - **The entry provider is type exhaustive.** Every route is a member of the one `sealed interface Route`, so the entry
   provider is a plain function and `Router` has a `when (route)` over it, **never the `entryProvider { entry<...> { } }`
   DSL**: the DSL does not know the routes are sealed, so a route without an entry only fails at runtime. With the `when`,
@@ -140,7 +177,8 @@ deep links, tests, and the lines of the app's `CLAUDE.md` that name files.
    `Router` (an [overlay activity](#exceptions) stays). Its `onCreate` ends in `setContent { Root() }` and holds nothing else in it.
 2. **`Root`.** Whatever composable `setContent` wraps now (`AppRoot`, `MainScreen`, `MyApp`, `App`) is renamed `Root`
    (`Root.kt`). The theme (`AppTheme`), `ProvideDebugSettings` and the other app-wide providers that sit in `MainActivity`
-   or in other composables move into it, and it ends in `AppNavigation()`. A theme composable called `<AppName>Theme` or `ProvideAppTheme` is renamed `AppTheme`, and a `MaterialTheme` is replaced by `AppTheme`
+   or in other composables move into it, and it ends in `AppNavigation()`. An app-wide ViewModel that decides what the app
+   shows (a `RootViewModel`, `MainViewModel`, `MainActivityViewModel`) becomes the `RootCoordinator` of a [state-driven `Root`](#a-state-driven-root). A theme composable called `<AppName>Theme` or `ProvideAppTheme` is renamed `AppTheme`, and a `MaterialTheme` is replaced by `AppTheme`
    ([app-conventions.md](app-conventions.md#theme)).
 3. **`AppNavigation`, `Router`, `Route`.** An app already on Navigation 3 moves the `rememberNavBackStack` and the
    `NavDisplay` into `AppNavigation` (`AppNavigation.kt`); replaces the `entryProvider { entry<...> { } }` DSL with

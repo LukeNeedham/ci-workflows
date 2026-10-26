@@ -388,27 +388,21 @@ class ViewModelTest(unittest.TestCase):
         self.assertEqual(lint_app({"BaseViewModel.kt": text}), [])
 
     ROOT = (
-        "package com.x.ui\n\nimport org.koin.compose.viewmodel.koinViewModel\n\n@Composable\nfun Root() {\n"
-        "    val viewModel: RootViewModel = koinViewModel()\n    Text(viewModel.title)\n}\n"
+        "package com.x.ui\n\nimport org.koin.compose.koinInject\n\n@Composable\nfun Root() {\n"
+        "    val coordinator: RootCoordinator = koinInject()\n    Text(coordinator.title)\n}\n"
     )
-    ROOT_VM = "package com.x.ui\n\nclass RootViewModel : ViewModel() {\n    val title = \"x\"\n}\n"
+    COORDINATOR = "package com.x.ui\n\nclass RootCoordinator {\n    val title = \"x\"\n}\n"
 
-    def test_root_the_app_root_gets_rootviewmodel_though_it_is_not_a_page(self):
-        self.assertEqual(lint_app({"Root.kt": self.ROOT, "RootViewModel.kt": self.ROOT_VM}), [])
+    def test_root_may_be_state_driven_through_a_coordinator_that_is_not_a_viewmodel(self):
+        self.assertEqual(lint_app({"Root.kt": self.ROOT, "RootCoordinator.kt": self.COORDINATOR}), [])
 
-    def test_root_may_request_only_rootviewmodel(self):
-        other = self.ROOT.replace("RootViewModel = koinViewModel()", "HomeViewModel = koinViewModel()")
-        v = lint_app({"Root.kt": other, "RootViewModel.kt": self.ROOT_VM})
-        assert_rule(self, v, "VM-1", "its ViewModel is `RootViewModel`")
+    def test_root_requests_no_viewmodel(self):
+        text = self.ROOT.replace("RootCoordinator = koinInject()", "RootViewModel = koinViewModel()")
+        assert_rule(self, lint_app({"Root.kt": text}), "VM-1", "outside an `XPage`")
 
-    def test_root_viewmodel_is_not_for_any_other_composable(self):
-        page = CLEAN["HomePage.kt"].replace("koinViewModel<HomeViewModel>()", "koinViewModel<RootViewModel>()")
-        v = lint_app({"HomePage.kt": page, "Root.kt": self.ROOT, "RootViewModel.kt": self.ROOT_VM})
-        assert_rule(self, v, "VM-1", "its ViewModel is `HomeViewModel`")
-        assert_rule(self, v, "VM-2")
-
-    def test_root_viewmodel_needs_a_root(self):
-        assert_rule(self, lint_app({"RootViewModel.kt": self.ROOT_VM}), "VM-6", "no `Root` composable")
+    def test_a_viewmodel_of_the_root_is_a_viewmodel_of_a_page_like_any_other(self):
+        vm = "package com.x.ui\n\nclass RootViewModel : ViewModel()\n"
+        assert_rule(self, lint_app({"RootViewModel.kt": vm}), "VM-6", "no `RootPage`")
 
     def test_vm7_no_shared_flow_in_a_viewmodel(self):
         text = CLEAN["HomeViewModel.kt"].replace("private val events = Channel<String>(Channel.BUFFERED)",

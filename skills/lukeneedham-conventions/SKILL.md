@@ -81,8 +81,9 @@ below are enough.
   no `Flow` (`UI-1`..`3`), previews (`PRV-1`..`7`: `private fun Preview()` in `XPageContent.kt`, in `AppTheme`, no
   Koin/ViewModel, one in every composable of 10 lines or more) and one public composable per file named after it (`CMP-1`).
   An exception needs `// lint:ignore RULE-ID: reason` on the line or above it, and a reason.
-- **The app root is not a page**: `Root` (+ `RootViewModel`, in `Root.kt` / `RootViewModel.kt`) decides what the app shows
-  and is the one composable besides an `XPage` that requests a ViewModel, only `RootViewModel`; no `RootPage`.
+- **Only an `XPage` requests a ViewModel.** `Root` is the root composable, not a page, and holds none: a state-driven `Root`
+  (loading, a missing permission, the setup) holds a **`RootCoordinator`** instead, a plain class registered with `single { }`
+  and obtained with `koinInject()` (`docs/app-shell.md`).
 - **README screenshots live in one package, `<app package>.screenshot`, in `src/debug`**: a file per page that has
   some, named after the page (`HomePage.kt`; more previews = more screenshots, no file = none). Each screenshot is a
   **private `@Preview` composable that owns its mock data** inside its body and renders `HomePageContent` with it
@@ -99,7 +100,7 @@ below are enough.
 ## Architecture
 - **The app shell is defined in one doc, `docs/app-shell.md`, for new apps and for migrating existing ones.** Single
   activity, always **`MainActivity`** (never another name, a second activity or fragments), which only calls
-  `setContent { Root(...) }` and may hand `Root` what only the activity can provide (a deep link, a permission callback); `Root` (`Root.kt`) sets up `AppTheme`, `ProvideDebugSettings` and the other app-wide providers,
+  `setContent { Root(...) }` and may hand `Root` what only the activity can provide (a deep link, a permission callback); `Root` (`Root.kt`, the root composable; it may be state driven through a `RootCoordinator`) sets up `AppTheme`, `ProvideDebugSettings` and the other app-wide providers,
   then calls `AppNavigation` (owns the `backStack` and the `NavDisplay`; only `Root` calls it); `Router` is the
   exhaustive `when (route)` with one `XPage(...)` per `Route` member, **no `else`**, and the common actions as local
   functions (`navigateTo(route)`, `onBack()`; branches pass `::onBack`, never `backStack.add(...)`); `routeEntryProvider`
