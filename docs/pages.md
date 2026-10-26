@@ -141,6 +141,8 @@ Do this for every page of the app, in the same change as the rest of its migrati
 5. Give `XPageContent` its `private` previews in `XPageContent.kt` (at least one), and (if the page deserves a screenshot) a file in the `screenshot` package.
 6. Update every reference: tests, docs and the app's `CLAUDE.md` lines that name files.
 7. **Not pages:** composables that are only parts of a page keep their names; nothing else gets the `Page` suffix.
+8. **The app shell** (`MainActivity`, `Root`, `AppNavigation`, `Router`, `App`) is migrated in the same change, with its
+   own steps: [new-app.md](new-app.md#6-app-architecture) (the "Migrating an existing app to this shell" paragraph).
 
 A check of the result: `grep -rn "Screen\b\|Screen(" app/src/main` should find no page composables, and every
 branch of the `Router` should be a `Route.X` that calls exactly one `XPage`.

@@ -191,6 +191,36 @@ Defaults for a normal app. If the user asks for something else, do that instead.
 
   No other composable sets up the theme, the providers or the navigation, and none of these has a variant name
   (`MainRoot`, `AppRouter`, `NavHost`).
+
+  **Migrating an existing app to this shell.** This holds for a new app and for an app that exists already: an
+  existing app gets all of it in its migration PR, together with the pages ([pages.md](pages.md#migrating-an-existing-app)).
+  Rename with the IDE (or `git mv` and a project-wide replace), and update the references that a rename misses: the
+  `AndroidManifest.xml` (`android:name` of the application and of the activity), shortcuts, deep links, tests, and the
+  lines of the app's `CLAUDE.md` that name files.
+
+  1. **One activity, `MainActivity`.** The launcher activity becomes `MainActivity` (file `MainActivity.kt`) whatever it
+     is called now. Every other activity and every fragment becomes a composable page with a `Route.X` member
+     (`Route.kt`), and goes through the `Router`. Its `onCreate` ends in `setContent { Root() }` and holds nothing else
+     in it.
+  2. **`Root`.** Whatever composable `setContent` wraps now (`AppRoot`, `MainScreen`, `MyApp`, `App`) is renamed `Root`
+     (`Root.kt`). The theme (`AppTheme`), `ProvideDebugSettings` and the other app-wide providers that sit in
+     `MainActivity` or in other composables move into it, and it ends in `AppNavigation()`. If the app wraps its UI in
+     `MaterialTheme`, that is replaced by `AppTheme` ([app-conventions.md](app-conventions.md#theme)).
+  3. **`AppNavigation`, `Router`, `Route`.** If the app already uses Navigation 3: move the `rememberNavBackStack` and
+     the `NavDisplay` into `AppNavigation` (`AppNavigation.kt`); replace the `entryProvider { entry<...> { } }` DSL with
+     `routeEntryProvider` and the exhaustive `Router` (`Router.kt`); and move the `backStack.add(...)` and
+     `removeLastOrNull()` of the branches into `navigateTo` and `onBack`. If it uses another library (Navigation Compose
+     `NavHost`, a hand-made navigator), migrate it to Navigation 3: the destinations become the members of the one
+     `sealed interface Route : NavKey`, the `NavHost` becomes `AppNavigation`, and its `composable(...)` entries become
+     the branches of the `Router`.
+  4. **`App`.** The `Application` class becomes `App` (`App.kt`), and the manifest's `android:name` follows.
+  5. **Check.** The first finds nothing, the other two find only `MainActivity.kt`:
+
+     ```sh
+     grep -rn "NavHost(\|entryProvider {\|MaterialTheme" app/src/main
+     grep -rln "ComponentActivity()" app/src/main      # only MainActivity.kt
+     grep -rn "setContent" app/src/main                # only MainActivity.kt, and it is `setContent { Root() }`
+     ```
 - **Jetpack Compose, themed by the app's own `AppTheme`** (a hand-made composition local, never
   `MaterialTheme`; see [app-conventions.md](app-conventions.md#theme)). No XML layouts.
 - **Navigation 3** (`androidx.navigation3`) for navigation. Destinations are `@Serializable` data

@@ -93,7 +93,10 @@ below are enough.
   providers, then calls `AppNavigation`. **The shell names are fixed in every app, one file each**: `App` (the
   `Application`), `MainActivity` (the one activity, never another name or a second activity), `Root`, `AppNavigation`
   (owns the `backStack` and the `NavDisplay`; only `Root` calls it), `Router`, `Route`, `AppTheme`; never a variant
-  (`AppRoot`, `MainScreen`, `AppRouter`, `NavHost`).
+  (`AppRoot`, `MainScreen`, `AppRouter`, `NavHost`). **This is for new apps and for existing ones**: an existing app
+  gets the shell in its migration PR, with the pages (`docs/new-app.md`, "Migrating an existing app to this shell":
+  launcher activity -> `MainActivity`, other activities and fragments -> pages, wrapper -> `Root`, `NavHost` or the
+  entry DSL -> `AppNavigation` + `Router`, `Application` -> `App`, manifest updated).
 - Navigation 3 (the `@Serializable` members of one `sealed interface Route : NavKey`, back stack owned by the app).
   **The `NavDisplay` entry provider is type exhaustive**: a function `routeEntryProvider(backStack, key: NavKey):
   NavEntry<NavKey>` that does `val route = key as Route` and returns `NavEntry(route) { Router(backStack, route) }`;
