@@ -56,7 +56,7 @@ State that pages share lives below the ViewModels, in a repository (a Koin `sing
 | `PRV-4` | A preview, and a screenshot, is wrapped in `AppTheme { … }` |
 | `PRV-5` | A preview needs no ViewModel, Koin or Flow collection, and a URL in it comes with Coil's `LocalAsyncImagePreviewHandler`, so it never depends on the network |
 | `PRV-6` | A `…Screenshot` preview is only in the `screenshot` package, and every preview in that package ends in `Screenshot` |
-| `PRV-7` | A public or `internal` composable of **10 lines or more** has a `@Preview` in its file. Short ones are "trivial" ([app-conventions.md](app-conventions.md#composables-and-previews)), and a composable that mentions Koin, a ViewModel, `NavDisplay`/`NavHost` or `collectAs…` needs more than a preview can give, so none is asked for |
+| `PRV-7` | A public or `internal` composable of **10 lines or more** has a `@Preview` in its file. Short ones are "trivial" ([app-conventions.md](app-conventions.md#composables-and-previews)), and a composable that returns a value (`remember…`) or mentions Koin, a ViewModel, `NavDisplay`/`NavHost` or `collectAs…` has nothing a preview can show, so none is asked for |
 | `CMP-1` | A file has one public or `internal` composable, and the file is named after it. `private` helpers and previews are free |
 
 ### Screenshots

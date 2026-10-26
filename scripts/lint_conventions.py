@@ -140,7 +140,7 @@ def source_files(app_dir):
 
 def role(d):
     """Which of the four files of a page the declaration [d] is, or None."""
-    if d.is_composable:
+    if d.is_composable and not d.is_preview:
         if d.name.endswith("PageContent") and len(d.name) > len("PageContent"):
             return PAGE_CONTENT
         if d.name.endswith("Page") and len(d.name) > len("Page"):
@@ -155,6 +155,15 @@ def role(d):
 def page_of(d):
     """The X of an XPage, XPageContent, XViewModel or XUiState."""
     return d.name[:-len(SUFFIX_OF_ROLE[role(d)])]
+
+
+def returns_value(d):
+    """Whether the function [d] returns something (`remember…`, a state holder): there is nothing in it to preview."""
+    open_paren = d.text.find("(")
+    if open_paren < 0:
+        return False
+    close = k.balanced(d.text, open_paren)
+    return re.match(r"\s*:\s*\w", d.text[close + 1:]) is not None
 
 
 def is_viewmodel(d):
@@ -199,7 +208,7 @@ class Lint:
                     owner = d
             if owner:
                 for d in f.decls:
-                    if d is not owner and not d.is_private:
+                    if d is not owner and not d.is_private and not d.is_preview:  # a public preview is PRV-2's
                         self.at(f, d, "PAGE-1", f"`{d.name}` is in {f.rel.name}, the file of `{owner.name}`, which holds only "
                                                 f"what its name says: move it to its own file (or make it private)")
             elif ROLE_FILE.match(f.stem) and not any(d.name == f.stem for d in f.decls):
@@ -416,7 +425,7 @@ class Lint:
 
     def check_general_preview(self, f, d, composables, counts):
         if not d.is_private:
-            self.at(f, d, "PRV-2", f"`{d.name}` is `private`, so the same name in every file never clashes")
+            self.at(f, d, "PRV-2", f"`{d.name}` must be `private`, so the same name in every file never clashes")
         if d.name != "Preview" and not re.fullmatch(r"Preview[A-Z]\w*", d.name):
             self.at(f, d, "PRV-2", f"`{d.name}` is named `Preview`, or `Preview` and a differentiator (`PreviewEmpty`)")
         if counts[d.name] > 1:
@@ -447,7 +456,7 @@ class Lint:
                 continue
             for d in public:
                 lines = sum(1 for line in d.text.splitlines() if line.strip())
-                if lines >= MIN_PREVIEW_LINES and not re.search(r"(?i)koin|ViewModel|NavDisplay|NavHost|collectAs", d.text):
+                if lines >= MIN_PREVIEW_LINES and not returns_value(d) and not re.search(r"(?i)koin|ViewModel|NavDisplay|NavHost|collectAs", d.text):
                     self.at(f, d, "PRV-7", f"`{d.name}` is {lines} lines and has no `@Preview` in {f.rel.name}: every composable "
                                            f"but a trivial one has one (a composable that needs Koin or navigation has none)")
 

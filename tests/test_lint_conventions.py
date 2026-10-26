@@ -490,6 +490,17 @@ class PreviewTest(unittest.TestCase):
         for name, text in (("Small", short), ("Big", private), ("Root", needs_koin), ("AppNavigation", navigation)):
             self.assertNotIn("PRV-7", rules(lint_app({f"{name}.kt": text})), name)
 
+    def test_prv7_a_composable_that_returns_a_value_has_nothing_to_preview(self):
+        body = "\n".join(f"    val a{i} = {i}" for i in range(12))
+        text = f"package com.x.ui\n\n@Composable\nfun rememberThing(key: Int): Thing {{\n{body}\n    return Thing()\n}}\n"
+        self.assertNotIn("PRV-7", rules(lint_app({"rememberThing.kt": text})))
+
+    def test_a_public_preview_named_like_a_page_is_a_preview_not_a_page(self):
+        text = ("package com.x.ui\n\n@Preview\n@Composable\nfun PreviewHomePage() {\n"
+                "    AppTheme { HomePageContent(state = HomeUiState(\"a\"), onRefresh = {}, onOpen = {}) }\n}\n")
+        v = lint_app({"HomePageContent.kt": CLEAN["HomePageContent.kt"] + "\n" + text.split("package com.x.ui\n\n")[1]})
+        self.assertEqual(rules(v), ["PRV-2"])
+
     def test_prv7_a_long_composable_with_a_preview_is_fine(self):
         body = "\n".join(f"    Text(\"line {i}\")" for i in range(12))
         text = (f"package com.x.ui\n\n@Composable\ninternal fun Big() {{\n{body}\n}}\n\n"
