@@ -6,8 +6,8 @@ description: Luke Needham's conventions for Android apps - project setup, debug 
 # Luke's app conventions
 
 This folder is copied from `LukeNeedham/ci-workflows` (`skills/lukeneedham-conventions`) by CI, which opens a
-"Sync from ci-workflows" PR when it differs. Never edit it here; change it there. The same goes for the four
-callers in `.github/workflows/`.
+"Sync from ci-workflows" PR when it differs, which merges itself once its checks pass. Never edit it here; change it
+there. The same goes for the four callers in `.github/workflows/`.
 
 The long guides are in that repo's `docs/`: `new-app.md` (read first when starting an app), `setup.md`,
 `app-config.md`, `app-icon.md`, `readme.md` (the README layout and `readme.yml`), `pages.md` (`XPage` and
