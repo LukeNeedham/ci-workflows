@@ -74,7 +74,9 @@ LOOKUPS = (
     "koinViewModel|koinNavViewModel|koinActivityViewModel|getViewModel|hiltViewModel|sharedKoinViewModel|sharedViewModel|"
     "activityViewModels|activityViewModel|viewModels|viewModel"
 )
-LOOKUP = re.compile(r"(?<!\w)(" + LOOKUPS + r")\s*(?:<\s*([\w.]+)\s*>)?\s*\(")
+LOOKUP = re.compile(r"(?<!\w)(" + LOOKUPS + r")\s*(?:<\s*([\w.]+)\s*>)?\s*([({])")
+LAMBDA_LOOKUPS = {"koinViewModel", "koinNavViewModel", "koinActivityViewModel", "sharedKoinViewModel", "getViewModel"}
+LOCAL_FUNCTION = re.compile(r"\bfun\s+(?:<[^>]*>\s*)?(?:[\w.<>?]+\.)?(\w+)\s*\(")
 SCOPED_LOOKUPS = {"activityViewModel", "activityViewModels", "koinActivityViewModel", "sharedViewModel", "sharedKoinViewModel"}
 OWNER_WORDS = re.compile(r"Owner|Entry|Activity|activity|NavGraph|BackStack|backStack")
 OWNER_STANDALONE = re.compile(r"\bviewModelStoreOwner\s*=|\bLocalViewModelStoreOwner\b|\bownerProducer\b")
@@ -285,10 +287,13 @@ class Lint:
     def lookups(self, f):
         """(call, name, type, arguments, enclosing declaration) of every request for a ViewModel in [f]."""
         found = []
+        own = set(LOCAL_FUNCTION.findall(f.clean))  # a function of this file that happens to be called like a lookup
         for m in LOOKUP.finditer(f.clean):
-            if FUN_BEFORE.search(f.clean[max(0, m.start() - 60):m.start()]):
+            if FUN_BEFORE.search(f.clean[max(0, m.start() - 60):m.start()]) or m.group(1) in own:
                 continue
             paren = m.end() - 1
+            if m.group(3) == "{" and m.group(1) not in LAMBDA_LOOKUPS:
+                continue  # viewModel<T> { … }: a definition of the Koin module
             close = k.balanced(f.clean, paren)
             if m.group(1) == "viewModel" and f.clean[close + 1:].lstrip().startswith("{"):
                 continue  # viewModel(qualifier) { … }: a definition of the Koin module

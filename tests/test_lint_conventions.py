@@ -311,6 +311,25 @@ class ViewModelTest(unittest.TestCase):
         text = CLEAN["HomePage.kt"].replace("koinViewModel<HomeViewModel>()", "koinViewModel<HomeViewModel>(parameters = { parametersOf(id) })")
         self.assertEqual(lint_app({"HomePage.kt": text}), [])
 
+    def test_vm1_the_trailing_lambda_form_is_a_request_too(self):
+        for call in ("koinViewModel { parametersOf(id) }", "koinViewModel<HomeViewModel> { parametersOf(id) }",
+                     "koinViewModel<HomeViewModel>(key = \"a\") { parametersOf(id) }"):
+            text = f"package com.x.ui\n\n@Composable\nfun Other() {{\n    val vm = {call}\n}}\n"
+            assert_rule(self, lint_app({"Other.kt": text}), "VM-1")
+        inside = CLEAN["HomePage.kt"].replace("koinViewModel<HomeViewModel>()", "koinViewModel<HomeViewModel> { parametersOf(id) }")
+        self.assertEqual(lint_app({"HomePage.kt": inside}), [])
+        wrong = CLEAN["HomePage.kt"].replace("koinViewModel<HomeViewModel>()", "koinViewModel<ShareViewModel> { parametersOf(id) }")
+        assert_rule(self, lint_app({"HomePage.kt": wrong}), "VM-1", "its ViewModel is `HomeViewModel`")
+
+    def test_vm1_a_koin_definition_with_a_type_and_a_lambda_is_not_a_request(self):
+        text = "package com.x.ui\n\nval m = module {\n    viewModel<HomeViewModel> { HomeViewModel(get()) }\n}\n"
+        self.assertEqual(lint_app({"AppModule.kt": text}), [])
+
+    def test_vm1_a_function_of_the_file_called_like_a_lookup_is_not_one(self):
+        text = ("package com.x.ui\n\nobject KoinModule {\n    val modules = listOf(getViewModel())\n"
+                "    private fun getViewModel() = module { viewModelOf(::HomeViewModel) }\n}\n")
+        self.assertEqual(lint_app({"KoinModule.kt": text}), [])
+
     def test_vm2_two_pages_requesting_one_viewmodel(self):
         detail = CLEAN["HomePage.kt"].replace("HomePageContent(", "DetailPageContent(").replace("fun HomePage", "fun DetailPage")
         v = lint_app({
