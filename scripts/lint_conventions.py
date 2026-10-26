@@ -46,7 +46,7 @@ RULES = {
     "PRV-4": "A preview is wrapped in AppTheme",
     "PRV-5": "A preview needs no ViewModel, Koin, Flow collection or network",
     "PRV-6": "Only the screenshot package has screenshots, and every preview in it ends in Screenshot",
-    "PRV-7": "A composable of 10 lines or more has a preview in its file",
+    "PRV-7": "Every public or internal composable has a preview in its file",
     "CMP-1": "One public composable per file, named after the file",
     "SHOT-1": "A file of the screenshot package holds only private @Preview composables with their own data",
     "SHOT-2": "The screenshot package has an order.txt that lists every screenshot once",
@@ -54,7 +54,8 @@ RULES = {
 }
 
 SKIP_DIRS = {"build", ".gradle", ".git", ".idea", "node_modules"}
-MIN_PREVIEW_LINES = 10
+# The composables of the app shell (docs/app-shell.md) wire the whole app together: there is nothing of them to preview
+SHELL_COMPOSABLES = {"Root", "AppNavigation", "Router"}
 PAGE_CONTENT, PAGE, VIEW_MODEL, UI_STATE = "PageContent", "Page", "ViewModel", "UiState"
 SUFFIX_OF_ROLE = {PAGE_CONTENT: "PageContent", PAGE: "Page", VIEW_MODEL: "ViewModel", UI_STATE: "UiState"}
 ROLE_FILE = re.compile(r".+(PageContent|Page|ViewModel|UiState)$")
@@ -460,10 +461,10 @@ class Lint:
             if any(d.is_preview for d in f.decls):
                 continue
             for d in public:
-                lines = sum(1 for line in d.text.splitlines() if line.strip())
-                if lines >= MIN_PREVIEW_LINES and not returns_value(d) and not re.search(r"(?i)koin|ViewModel|NavDisplay|NavHost|NavBackStack|NavController|collectAs", d.text):
-                    self.at(f, d, "PRV-7", f"`{d.name}` is {lines} lines and has no `@Preview` in {f.rel.name}: every composable "
-                                           f"but a trivial one has one (a composable that needs Koin or navigation has none)")
+                if returns_value(d) or d.name in SHELL_COMPOSABLES:
+                    continue  # nothing to show
+                self.at(f, d, "PRV-7", f"`{d.name}` has no `@Preview` in {f.rel.name}: every public or `internal` composable has one, "
+                                       f"mocked where it needs the camera, a video or Koin (a page has none, its content has)")
 
     # ---- screenshots ----
 

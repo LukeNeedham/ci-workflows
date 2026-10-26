@@ -512,20 +512,21 @@ class PreviewTest(unittest.TestCase):
         assert_rule(self, v, "PRV-4")
         assert_rule(self, v, "PRV-5")
 
-    def test_prv7_a_long_composable_has_a_preview(self):
-        body = "\n".join(f"    Text(\"line {i}\")" for i in range(12))
-        text = f"package com.x.ui\n\n@Composable\ninternal fun Big() {{\n{body}\n}}\n"
-        assert_rule(self, lint_app({"Big.kt": text}), "PRV-7", "`Big`")
+    def test_prv7_every_public_or_internal_composable_has_a_preview_however_short(self):
+        for visibility in ("", "internal "):
+            text = f"package com.x.ui\n\n@Composable\n{visibility}fun Small() {{\n    Text(\"a\")\n}}\n"
+            assert_rule(self, lint_app({"Small.kt": text}), "PRV-7", "`Small`")
 
-    def test_prv7_short_private_and_unpreviewable_composables_are_exempt(self):
-        body = "\n".join(f"    Text(\"line {i}\")" for i in range(12))
-        short = "package com.x.ui\n\n@Composable\ninternal fun Small() {\n    Text(\"a\")\n}\n"
-        private = f"package com.x.ui\n\n@Composable\nprivate fun Big() {{\n{body}\n}}\n"
-        needs_koin = f"package com.x.ui\n\n@Composable\ninternal fun Root() {{\n    koinInject<Foo>()\n{body}\n}}\n"
-        navigation = f"package com.x.ui\n\n@Composable\ninternal fun AppNavigation() {{\n    NavDisplay()\n{body}\n}}\n"
-        back_stack = f"package com.x.ui\n\n@Composable\nfun Router(backStack: NavBackStack<NavKey>) {{\n{body}\n}}\n"
-        for name, text in (("Small", short), ("Big", private), ("Root", needs_koin), ("AppNavigation", navigation),
-                           ("Router", back_stack)):
+    def test_prv7_one_that_needs_the_camera_koin_or_a_viewmodel_has_one_too_mocked(self):
+        for body in ("val camera = rememberCamera()", "val x = koinInject<Foo>()", "val vm = koinViewModel<FooViewModel>()"):
+            text = f"package com.x.ui\n\n@Composable\ninternal fun Cam() {{\n    {body}\n}}\n"
+            assert_rule(self, lint_app({"Cam.kt": text}), "PRV-7", "`Cam`")
+
+    def test_prv7_a_private_composable_and_the_shell_need_no_preview(self):
+        private = "package com.x.ui\n\n@Composable\nprivate fun Small() {\n    Text(\"a\")\n}\n"
+        self.assertNotIn("PRV-7", rules(lint_app({"Small.kt": private})))
+        for name in ("Root", "AppNavigation", "Router"):
+            text = f"package com.x.ui\n\n@Composable\nfun {name}() {{\n    koinInject<Foo>()\n    NavDisplay()\n}}\n"
             self.assertNotIn("PRV-7", rules(lint_app({f"{name}.kt": text})), name)
 
     def test_prv7_a_composable_that_returns_a_value_has_nothing_to_preview(self):
@@ -539,11 +540,10 @@ class PreviewTest(unittest.TestCase):
         v = lint_app({"HomePageContent.kt": CLEAN["HomePageContent.kt"] + "\n" + text.split("package com.x.ui\n\n")[1]})
         self.assertEqual(rules(v), ["PRV-2"])
 
-    def test_prv7_a_long_composable_with_a_preview_is_fine(self):
-        body = "\n".join(f"    Text(\"line {i}\")" for i in range(12))
-        text = (f"package com.x.ui\n\n@Composable\ninternal fun Big() {{\n{body}\n}}\n\n"
-                "@Preview\n@Composable\nprivate fun Preview() {\n    AppTheme { Big() }\n}\n")
-        self.assertEqual(lint_app({"Big.kt": text}), [])
+    def test_prv7_a_composable_with_a_preview_is_fine(self):
+        text = ("package com.x.ui\n\n@Composable\ninternal fun Small() {\n    Text(\"a\")\n}\n\n"
+                "@Preview\n@Composable\nprivate fun Preview() {\n    AppTheme { Small() }\n}\n")
+        self.assertEqual(lint_app({"Small.kt": text}), [])
 
 
 class ComposableFilesTest(unittest.TestCase):

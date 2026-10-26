@@ -60,7 +60,7 @@ State that pages share lives below the ViewModels, in a repository (a Koin `sing
 | `PRV-4` | A preview, and a screenshot, is wrapped in `AppTheme { … }` |
 | `PRV-5` | A preview needs no ViewModel, Koin or Flow collection, and a URL in it comes with Coil's `LocalAsyncImagePreviewHandler`, so it never depends on the network |
 | `PRV-6` | A `…Screenshot` preview is only in the `screenshot` package, and every preview in that package ends in `Screenshot` |
-| `PRV-7` | A public or `internal` composable of **10 lines or more** has a `@Preview` in its file. Short ones are "trivial" ([app-conventions.md](app-conventions.md#composables-and-previews)), and a composable that returns a value (`remember…`) or mentions Koin, a ViewModel, navigation (`NavDisplay`, `NavHost`, `NavBackStack`, `NavController`) or `collectAs…` has nothing a preview can show, so none is asked for |
+| `PRV-7` | Every public or `internal` composable has a `@Preview` in its file, however short; a `private` helper does not. Exempt: a composable that returns a value (`remember…`: there is nothing to show), `Root`, `AppNavigation` and `Router` of the [app shell](app-shell.md). One that needs the camera, a video, Koin or a ViewModel has a preview too, with those mocked; one that draws nothing (an effect) takes a `lint:ignore PRV-7` with its reason |
 | `CMP-1` | A file has one public or `internal` composable, and the file is named after it. `private` helpers and previews are free |
 
 ### Screenshots
@@ -84,8 +84,7 @@ is an `XPageContent`, a class that ends in `ViewModel` is a ViewModel, and a typ
 are matched by `X` **and package**, so `XPage`, `XPageContent`, `XViewModel` and `XUiState` of a page are in one package.
 
 It is a text scan, not a compiler. It does not know types, only names and the text of a declaration, which is enough for
-these rules and cheap to run, and it means a few rules are heuristics (`PAGE-5`'s imports, `PRV-7`'s length, the name
-patterns). It does not judge what only a person can: whether a composable is really trivial, or whether some state
+these rules and cheap to run, and it means a few rules are heuristics (`PAGE-5`'s imports, the name patterns). It does not judge what only a person can: whether a preview really shows the composable, or whether some state
 belongs in a repository.
 
 **Not checked yet:** the route of a page (`Route.X` in the one `sealed interface Route`, and the `entry<Route.X>` that
@@ -97,7 +96,7 @@ beyond what `SHOT-1` reads.
 If a rule does not fit one declaration, say why on the line or the line above it:
 
 ```kotlin
-// lint:ignore PRV-7: only places a platform view, there is nothing to show
+// lint:ignore PRV-7: an effect, it draws nothing
 @Composable
 internal fun CameraSurface(…) { … }
 ```

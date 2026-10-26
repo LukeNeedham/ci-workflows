@@ -70,16 +70,21 @@ object AppTheme {
 **The rules of this section, of [pages.md](pages.md) and of the ViewModels and states are checked by CI** (the `conventions`
 job of every PR, [lint.md](lint.md)): a PR that breaks one fails.
 
-- **One composable per file**, named after it, with its `@Preview` in the same file. Skip this for
-  trivial composables (a few lines, used by one parent only): keep those next to their parent.
+- **One composable per file**, named after it, with its `@Preview` in the same file. A helper that only one composable
+  uses is `private` and sits next to it.
 - **A preview is a `private` function in the file of its composable, named `Preview`.** A file with several previews
   (other data: empty, loading, error) keeps `Preview` for the main one and adds a differentiator to the others:
   `PreviewEmpty`, `PreviewLoading`. It is `private` so that the same name in every file never clashes, and the name says
   nothing about the composable because the file does. The previews of the `screenshot` package are the exception: they
   are named `XScreenshot`, since their names are unique across the package and become the images and the lines of
   `order.txt` ([screenshots.md](screenshots.md)).
-- **Every composable has a preview, except trivial ones.** Previews wrap the content in `AppTheme` and
-  use fake `UiState` / sample data, so they need no ViewModel, Koin or network.
+- **Every public or `internal` composable has a preview, however small**, and **a new composable is written together with
+  its preview** (a changed one gets its preview updated). A `private` helper needs none. Previews wrap the content in
+  `AppTheme` and use fake `UiState` / sample data, so they need no ViewModel, Koin or network, and what needs the camera,
+  a video or the like is **mocked** (a placeholder, as the app's video player already does in inspection mode): a preview that
+  cannot render fails in CI's renders as it would in an IDE. Only a composable that returns a value, or that draws nothing
+  (an effect), has none, with a `lint:ignore PRV-7` and its reason; `Root`, `AppNavigation` and `Router` of the app shell
+  are exempt by name.
 - **Every page is an `XPage` and an `XPageContent`**, defined in [pages.md](pages.md): `XPage` holds its own `XViewModel` (one per page, **never shared between pages**) and
   delegates all UI to the stateless, `internal` `XPageContent` (state down, events up), which always has at least one `private` general preview in its file
   (`private fun Preview()`), in the file `XPageContent.kt`; `XPage`, `XViewModel` and `XUiState` each have their own file too. Any README screenshots are separate (a page can have several, or none): a file per page that has some in the

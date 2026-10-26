@@ -118,6 +118,8 @@ def claude_block():
         f"  file; never `XScreen`). The README screenshots are private\n"
         f"  `@Preview`s in the package `screenshot` (in `src/debug`), each owning its mock data (a page can have several,\n"
         f"  or none; nothing is shared); CI renders them into `docs/screenshots/`, never by hand. The skill has the details.\n"
+        f"- **Every public or `internal` composable has a preview: when you add a composable, write its preview with it, and\n"
+        f"  when you change one, update its preview** (the camera, a video and the like are mocked in it; a `private` helper needs none).\n"
         f"- **CI fails a PR that breaks the page, ViewModel, UiState and preview rules** (the `conventions` job; the error names a\n"
         f"  rule id such as `VM-2`, listed in `docs/lint.md` of `LukeNeedham/ci-workflows` and in the skill). Fix the code; only a\n"
         f"  real exception gets `// lint:ignore RULE-ID: reason`.\n"

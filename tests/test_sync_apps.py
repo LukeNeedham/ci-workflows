@@ -118,6 +118,12 @@ class SyncApp(unittest.TestCase):
         s.sync_claude_md(self.dir)
         self.assertIn("never shared between pages", (self.dir / "CLAUDE.md").read_text())
 
+    def test_the_block_tells_claude_to_write_the_preview_with_every_composable(self):
+        s.sync_claude_md(self.dir)
+        text = (self.dir / "CLAUDE.md").read_text()
+        self.assertIn("write its preview with it", text)
+        self.assertIn("update its preview", text)
+
     def test_the_block_tells_claude_that_ci_checks_the_conventions(self):
         s.sync_claude_md(self.dir)
         text = (self.dir / "CLAUDE.md").read_text()

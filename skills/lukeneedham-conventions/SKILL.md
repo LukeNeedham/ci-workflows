@@ -79,7 +79,7 @@ below are enough.
   (`PAGE-5`, `6`), a ViewModel is requested only in its own `XPage` as `XViewModel`, by one page, never activity/nav-graph
   scoped, never a Koin `single`, never holding another ViewModel, no `SharedFlow` (`VM-1`..`7`), an immutable `UiState` with
   no `Flow` (`UI-1`..`3`), previews (`PRV-1`..`7`: `private fun Preview()` in `XPageContent.kt`, in `AppTheme`, no
-  Koin/ViewModel, one in every composable of 10 lines or more) and one public composable per file named after it (`CMP-1`).
+  Koin/ViewModel, **a preview for every public or `internal` composable**, however short) and one public composable per file named after it (`CMP-1`).
   An exception needs `// lint:ignore RULE-ID: reason` on the line or above it, and a reason.
 - **Only an `XPage` requests a ViewModel.** `Root` is the root composable, not a page, and holds none: a state-driven `Root`
   (loading, a missing permission, the setup) holds a **`RootCoordinator`** instead, a plain class registered with `single { }`
@@ -128,8 +128,10 @@ below are enough.
 - **Own `AppTheme`**, a hand-made composition local holding colours and typefaces. Never read `MaterialTheme`
   in the app; always `AppTheme.current`. No fixed text-style scale: set font size and line height inline in
   the composable, take only the typeface from the theme.
-- **One composable per file with its `@Preview`** (fake `UiState`, wrapped in `AppTheme`), and a preview for
-  every composable; trivial ones can sit next to their parent and skip both.
+- **One composable per file with its `@Preview`** (fake `UiState`, wrapped in `AppTheme`). **Every public or `internal`
+  composable has a preview, and a new composable is written together with its preview** (a changed one gets its preview
+  updated); the camera, a video and the like are mocked in it. Only a composable that returns a value or draws nothing has
+  none (`lint:ignore PRV-7` and a reason); a `private` helper needs none.
 - **Previews:** a preview is a `private fun Preview()` in the file of its composable; with several in a file, the main
   one is `Preview` and the others `Preview` plus a differentiator (`PreviewEmpty`, `PreviewLoading`). (The `screenshot`
   package is the exception: `XScreenshot`, unique across the package.)
