@@ -7,7 +7,7 @@ description: Luke Needham's conventions for Android apps - project setup, debug 
 
 This folder is copied from `LukeNeedham/ci-workflows` (`skills/lukeneedham-conventions`) by CI, which opens a
 "Sync from ci-workflows" PR when it differs, which merges itself once its checks pass. Never edit it here; change it
-there. The same goes for the four callers in `.github/workflows/`.
+there. The same goes for the five callers in `.github/workflows/`.
 
 The long guides are in that repo's `docs/`: `new-app.md` (read first when starting an app), `setup.md`,
 `app-config.md`, `app-icon.md`, `readme.md` (the README layout and `readme.yml`), `pages.md` (`XPage` and
@@ -31,8 +31,8 @@ below are enough.
 - Every app is built the same way and nothing is configured per app: module `:app`, debug APK at
   `app/build/outputs/apk/debug/app-debug.apk`, PRs into `main` only (never `master` or `develop`), JDK 17.
   A new app needs only its entry (`name`, `repo`) in `ci-workflows`' `apps.json`.
-- Every app has all four callers: `trigger_on_pull_request.yml`, `build_main.yml` (AppHub builds main through
-  it, so keep the name), `delete_prereleases.yml` and `release.yml`. `release.yml` fails at once, with a message
+- Every app has all five callers: `trigger_on_pull_request.yml`, `build_main.yml` (AppHub builds main through
+  it, so keep the name), `delete_prereleases.yml`, `release.yml` and `previews_main.yml` (renders the previews of main, for the PR comment that shows the previews a PR changed: `docs/previews.md`). `release.yml` fails at once, with a message
   that lists what is missing, until the app has the four release secrets and `gradle/android-release.gradle`.
 - A PR that changes only `.claude/skills/` is not built, so it has no APK and no AppHub comment from CI.
 - CI's own commits (generated screenshots, icon and README) are pushed with the owner's `GENERATED_COMMIT_TOKEN` when the app has it, and are not built again.
