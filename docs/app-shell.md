@@ -110,12 +110,6 @@ fun Router(backStack: NavBackStack<NavKey>, route: Route) {
   window. That is the only reason for a second activity: **a screen is never one**, it is a page of the `MainActivity`.
   The overlay activity is named after its job (`DockActivity`, never `MainActivity2` or `...Screen`), and `MainActivity`
   stays the activity that hosts the pages (a settings app's launcher activity is `MainActivity`, not `SettingsActivity`).
-- **An app with one page** (a `WebView` wrapper such as the Krillion wrapper) still has the whole shell: `Route` with a
-  single member for its page (plus the library's `Debug`, `Logs` and `Crashes`), `Router`, `AppNavigation`, `Root` and
-  `MainActivity` calling only `Root()`. Nothing is skipped because there is only one page, and a second page later is one
-  more `Route` member. A `WebView` is not Compose, so the page hosts it with `AndroidView`, and the page's ViewModel owns
-  the view (made on a `MutableContextWrapper` that is the activity while the page is drawn and the application otherwise),
-  so it is not destroyed and reloaded when another page is drawn over it.
 - **A Kotlin Multiplatform app** uses Navigation 3 too, from the JetBrains artifacts
   (`org.jetbrains.androidx.navigation3:navigation3-ui` and `org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-navigation3`;
   Compose Multiplatform 1.10 or newer; Android, iOS, desktop and web). The shell is the same, in `commonMain`, with these
