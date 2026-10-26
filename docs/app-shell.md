@@ -113,6 +113,10 @@ fun Router(backStack: NavBackStack<NavKey>, route: Route) {
 - **An app with no pages** (a `WebView` wrapper such as the Krillion wrapper) has no navigation: no `Route`, `Router` or
   `AppNavigation`. It still has `App`, `MainActivity` calling only `Root()`, and `Root`, which sets up `AppTheme` and the
   providers and then draws its one screen directly. An app that gets a second page later gets the whole shell then.
+  **If that screen is a View hierarchy** (the `WebView` itself), `MainActivity` builds the Views and `Root` is only the
+  Compose part: the debug overlay, set up with `AppTheme` and `ProvideDebugSettings` and added to the layout with
+  `setContent { Root(...) }` on a `ComposeView`. `MainActivity` then hands `Root` only what the overlay needs (callbacks
+  into the Views), and is still the only activity.
 - **A Kotlin Multiplatform app** uses Navigation 3 too, from the JetBrains artifacts
   (`org.jetbrains.androidx.navigation3:navigation3-ui` and `org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-navigation3`;
   Compose Multiplatform 1.10 or newer; Android, iOS, desktop and web). The shell is the same, in `commonMain`, with these
