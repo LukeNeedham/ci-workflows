@@ -114,6 +114,10 @@ def claude_block():
         f"  `XPageContent`, `XViewModel` and `XUiState` is in its own file; never `XScreen`). The README screenshots are private\n"
         f"  `@Preview`s in the package `screenshot` (in `src/debug`), each owning its mock data (a page can have several,\n"
         f"  or none; nothing is shared); CI renders them into `docs/screenshots/`, never by hand. The skill has the details.\n"
+        f"- **The Stop hook's git warnings** (\"unpushed commit(s)\", or commits \"Unverified\" with a `github-actions[bot]` email):\n"
+        f"  run `git fetch origin` and check again, and do nothing else. CI pushes commits of its own to a PR branch after you\n"
+        f"  push (the README, the screenshots), so your local copy of the remote branch is out of date and Git thinks commits are local only. Never amend,\n"
+        f"  rebase or force-push to silence the hook, never edit the hook, and do not write about it at length.\n"
         f"{BLOCK_END}\n"
     )
 
