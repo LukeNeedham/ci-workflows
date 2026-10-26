@@ -71,6 +71,9 @@ needed, or passes it to `XPageContent` as a plain parameter ([app-conventions.md
 
 ## Names and files
 
+**CI checks all of this** (and the ViewModel, UiState and preview rules of [app-conventions.md](app-conventions.md)): the
+`conventions` job fails a PR that breaks a rule, with the rule id on the line. The list is in [lint.md](lint.md).
+
 - **One ViewModel per page, and it is never shared.** `HomeViewModel` belongs to `HomePage` and to no other page.
   **Shared ViewModels are not allowed, in any form**: not one ViewModel for a whole feature or flow (a
   `PoemBookViewModel` behind a shelf, a book and a search page), not one for the app, not a ViewModel scoped to the

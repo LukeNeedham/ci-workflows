@@ -96,6 +96,21 @@ jobs:
         with:
           token: ${{ secrets.GENERATED_COMMIT_TOKEN }}
 
+  # The page, ViewModel, UiState and preview rules (docs/lint.md), checked from the source by scripts/lint_conventions.py:
+  # no Gradle and no JDK, so it takes seconds and runs alongside the build. Any violation fails the job. It has nothing
+  # to commit, so it needs no token and only reads the repo.
+  conventions:
+    needs: config
+    if: needs.config.outputs.generate == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: LukeNeedham/ci-workflows/.github/actions/ci-scripts@main
+      - uses: actions/checkout@v4
+      - name: Check the conventions
+        run: python3 "$CI_SCRIPTS/lint_conventions.py" .
+
   build:
     needs: config
     if: needs.config.outputs.generate == 'true'

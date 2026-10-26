@@ -118,6 +118,12 @@ class SyncApp(unittest.TestCase):
         s.sync_claude_md(self.dir)
         self.assertIn("never shared between pages", (self.dir / "CLAUDE.md").read_text())
 
+    def test_the_block_tells_claude_that_ci_checks_the_conventions(self):
+        s.sync_claude_md(self.dir)
+        text = (self.dir / "CLAUDE.md").read_text()
+        self.assertIn("`conventions` job", text)
+        self.assertIn("lint:ignore RULE-ID: reason", text)
+
     def test_the_block_tells_claude_the_readme_standard(self):
         s.sync_claude_md(self.dir)
         self.assertIn("docs/readme-template.yml", (self.dir / "CLAUDE.md").read_text())

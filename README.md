@@ -53,7 +53,8 @@ enforced from here: **[docs/readme.md](docs/readme.md)**, skeleton in [docs/read
 
 Every page of every app is an `XPage` (gets the ViewModel and the navigation, no UI) plus an `internal`, stateless
 `XPageContent` (all the UI, with the previews): **[docs/pages.md](docs/pages.md)**, including how to migrate an existing
-app. The README screenshots are rendered from them by CI: [docs/screenshots.md](docs/screenshots.md).
+app. The README screenshots are rendered from them by CI: [docs/screenshots.md](docs/screenshots.md). CI also checks the page,
+ViewModel, UiState and preview rules on every PR: [docs/lint.md](docs/lint.md).
 
 ## Setting up a project
 

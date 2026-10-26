@@ -67,6 +67,9 @@ object AppTheme {
 
 <a id="previews"></a>
 
+**The rules of this section, of [pages.md](pages.md) and of the ViewModels and states are checked by CI** (the `conventions`
+job of every PR, [lint.md](lint.md)): a PR that breaks one fails.
+
 - **One composable per file**, named after it, with its `@Preview` in the same file. Skip this for
   trivial composables (a few lines, used by one parent only): keep those next to their parent.
 - **A preview is a `private` function in the file of its composable, named `Preview`.** A file with several previews

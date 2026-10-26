@@ -11,7 +11,7 @@ callers in `.github/workflows/`.
 
 The long guides are in that repo's `docs/`: `new-app.md` (read first when starting an app), `setup.md`,
 `app-config.md`, `app-icon.md`, `readme.md` (the README layout and `readme.yml`), `pages.md` (`XPage` and
-`XPageContent`), `screenshots.md` (the README screenshots), `app-conventions.md`, `library.md`,
+`XPageContent`), `lint.md` (the checks CI runs on them), `screenshots.md` (the README screenshots), `app-conventions.md`, `library.md`,
 `using-the-library.md` and `consuming-apps.md`. If you can reach GitHub, read the relevant page; otherwise the rules
 below are enough.
 
@@ -74,6 +74,13 @@ below are enough.
   (`XPage.kt`, `XPageContent.kt` with the previews, `XViewModel.kt`, `XUiState.kt`). Never `XScreen`, `XContent` or `XView`. **The route is always
   `Route.X`**, a member of the one `sealed interface Route : NavKey` in `Route.kt` (`Route.Home` is `HomePage`:
   `entry<Route.Home> { HomePage(...) }`; never `HomeNavKey`, `HomeKey` or `HomeRoute`).
+- **CI fails a PR that breaks these rules** (the `conventions` job, `docs/lint.md`; each error names its rule id on the line):
+  files and names (`PAGE-1`..`4`), `XPage` calls `XPageContent` once and draws nothing, `XPageContent` is stateless
+  (`PAGE-5`, `6`), a ViewModel is requested only in its own `XPage` as `XViewModel`, by one page, never activity/nav-graph
+  scoped, never a Koin `single`, never holding another ViewModel, no `SharedFlow` (`VM-1`..`7`), an immutable `UiState` with
+  no `Flow` (`UI-1`..`3`), previews (`PRV-1`..`7`: `private fun Preview()` in `XPageContent.kt`, in `AppTheme`, no
+  Koin/ViewModel, one in every composable of 10 lines or more) and one public composable per file named after it (`CMP-1`).
+  An exception needs `// lint:ignore RULE-ID: reason` on the line or above it, and a reason.
 - **README screenshots live in one package, `<app package>.screenshot`, in `src/debug`**: a file per page that has
   some, named after the page (`HomePage.kt`; more previews = more screenshots, no file = none). Each screenshot is a
   **private `@Preview` composable that owns its mock data** inside its body and renders `HomePageContent` with it
