@@ -153,7 +153,28 @@ Defaults for a normal app. If the user asks for something else, do that instead.
   screen that mixes the two. Any README screenshots of a page are previews in the `screenshot` package
   ([screenshots.md](screenshots.md)).
 - **Single activity.** One `MainActivity` (extending `ComponentActivity`) hosts the whole UI. Screens
-  are composables, never extra activities or fragments.
+  are composables, never extra activities or fragments. **`MainActivity` only calls one composable, `Root`**, and
+  nothing else is in its `setContent`. `Root` (in `Root.kt`) sets up everything the UI sits in: the `AppTheme`,
+  `ProvideDebugSettings` ([using-the-library.md](using-the-library.md#wrap-the-ui-in-providedebugsettings)) and the
+  other app-wide providers, then calls `AppNavigation`:
+
+  ```kotlin
+  class MainActivity : ComponentActivity() {
+      override fun onCreate(savedInstanceState: Bundle?) {
+          super.onCreate(savedInstanceState)
+          setContent { Root() }
+      }
+  }
+
+  @Composable
+  fun Root() {
+      AppTheme {
+          ProvideDebugSettings(theme = AppTheme.current.toDebugTheme()) {
+              AppNavigation()
+          }
+      }
+  }
+  ```
 - **Jetpack Compose, themed by the app's own `AppTheme`** (a hand-made composition local, never
   `MaterialTheme`; see [app-conventions.md](app-conventions.md#theme)). No XML layouts.
 - **Navigation 3** (`androidx.navigation3`) for navigation. Destinations are `@Serializable` data
@@ -182,12 +203,20 @@ Defaults for a normal app. If the user asks for something else, do that instead.
 
   @Composable
   fun Router(backStack: NavBackStack<NavKey>, route: Route) {
+      // The common actions are defined once here, never repeated in each branch
+      fun navigateTo(target: Route) { backStack.add(target) }
+      fun onBack() { backStack.removeLastOrNull() }
+
       when (route) { // exhaustive: no `else`
-          Route.Home -> HomePage(onOpenDetail = { backStack.add(Route.Detail(it)) })
-          is Route.Detail -> DetailPage(id = route.id, onBack = { backStack.removeLastOrNull() })
+          Route.Home -> HomePage(onOpenDetail = { navigateTo(Route.Detail(it)) })
+          is Route.Detail -> DetailPage(id = route.id, onBack = ::onBack)
       }
   }
   ```
+
+  **The common navigation actions are functions of `Router`** (`navigateTo(route)`, `onBack()`, and any other the app
+  repeats, e.g. `navigateToAndClear(route)`), so the branches only name them and no page repeats `backStack.add(...)`
+  or `backStack.removeLastOrNull()`. The `backStack` is used only in those functions.
 
   **The entry provider is type exhaustive.** Because every route is a member of the one `sealed interface Route`, the
   entry provider is a plain function and `Router` has a `when (route)` over it, **never the

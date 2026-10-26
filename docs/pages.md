@@ -100,10 +100,13 @@ needed, or passes it to `XPageContent` as a plain parameter ([app-conventions.md
   // Router.kt
   @Composable
   fun Router(backStack: NavBackStack<NavKey>, route: Route) {
+      fun navigateTo(target: Route) { backStack.add(target) }
+      fun onBack() { backStack.removeLastOrNull() }
+
       when (route) { // exhaustive: no `else`
-          Route.Home -> HomePage(onOpenSettings = { backStack.add(Route.Settings) }, onOpenDetail = { backStack.add(Route.Detail(it)) })
-          is Route.Detail -> DetailPage(id = route.id, onBack = { backStack.removeLastOrNull() })
-          Route.Settings -> SettingsPage(onBack = { backStack.removeLastOrNull() })
+          Route.Home -> HomePage(onOpenSettings = { navigateTo(Route.Settings) }, onOpenDetail = { navigateTo(Route.Detail(it)) })
+          is Route.Detail -> DetailPage(id = route.id, onBack = ::onBack)
+          Route.Settings -> SettingsPage(onBack = ::onBack)
       }
   }
   ```

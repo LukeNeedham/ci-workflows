@@ -88,13 +88,18 @@ below are enough.
   wrapper) opts out with `screenshots: manual` in `readme.yml`, has no `screenshot` folder and commits one by hand.
 
 ## Architecture
-- Single activity (`ComponentActivity`), Jetpack Compose, no XML, no fragments.
+- Single activity (`ComponentActivity`), Jetpack Compose, no XML, no fragments. **`MainActivity` only calls
+  `setContent { Root() }`**: `Root` (`Root.kt`) sets up `AppTheme`, `ProvideDebugSettings` and the other app-wide
+  providers, then calls `AppNavigation`.
 - Navigation 3 (the `@Serializable` members of one `sealed interface Route : NavKey`, back stack owned by the app).
   **The `NavDisplay` entry provider is type exhaustive**: a function `routeEntryProvider(backStack, key: NavKey):
   NavEntry<NavKey>` that does `val route = key as Route` and returns `NavEntry(route) { Router(backStack, route) }`;
   the `@Composable Router` is a `when (route)` with one `XPage(...)` per route and **no `else`** (not a "RoutePage":
   it is a router, not a page); never the `entryProvider { entry<...> { } }` DSL (not exhaustive, a missing route fails at runtime).
   A route needing its own `NavEntry` options (`metadata`) builds its own `NavEntry`.
+  **`Router` defines the common navigation actions once** as local functions (`navigateTo(route)`, `onBack()`), and the
+  branches pass them (`onBack = ::onBack`, `{ navigateTo(Route.Detail(it)) }`): no `backStack.add(...)` or
+  `removeLastOrNull()` in a branch.
 - MVVM with unidirectional data flow: a `ViewModel` exposes one immutable `UiState` `StateFlow`; composables
   use `collectAsStateWithLifecycle()` and send events up as function calls; no logic in composables.
 - Coroutines + Flow; `viewModelScope` for screen work. UI -> domain/data layers; no Android types in the lower layer.

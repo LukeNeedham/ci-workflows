@@ -249,7 +249,9 @@ already wrapped, a setting added to the library later reaches every screen with 
 bump and nothing else, instead of a change to every consuming app.
 
 ```kotlin
-setContent {
+// Root.kt: the one composable `MainActivity` calls (`setContent { Root() }`)
+@Composable
+fun Root() {
     AppTheme {
         ProvideDebugSettings(theme = AppTheme.current.toDebugTheme()) {
             AppNavigation()
