@@ -97,7 +97,10 @@ below are enough.
   does `val route = key as Route` and returns `NavEntry(route) { Router(backStack, route) }`; never the
   `entryProvider { entry<...> { } }` DSL (a missing route fails at runtime). Fixed names, one file each: `App` (the
   `Application`), `MainActivity`, `Root`, `AppNavigation`, `Router`, `Route`, `AppTheme`; never a variant (`AppRoot`,
-  `MainScreen`, `AppRouter`, `NavHost`, `RoutePage`). A route needing its own `NavEntry` options (`metadata`) builds its own.
+  `MainScreen`, `AppRouter`, `NavHost`, `RoutePage`). Exceptions (`docs/app-shell.md`): an overlay activity (a window over other
+  apps, named after its job) may be a second activity but a screen never is; an app with no pages (a WebView wrapper) has no
+  `Route`/`Router`/`AppNavigation`, only `App`, `MainActivity` and `Root`; Kotlin Multiplatform apps use the JetBrains
+  Navigation 3 artifacts (`rememberNavBackStack(config, ...)` with `subclassesOfSealed<Route>()` off the JVM). A route needing its own `NavEntry` options (`metadata`) builds its own.
 - Jetpack Compose, no XML. Navigation 3 (the `@Serializable` members of one `sealed interface Route : NavKey`, back stack owned by the app).
 - MVVM with unidirectional data flow: a `ViewModel` exposes one immutable `UiState` `StateFlow`; composables
   use `collectAsStateWithLifecycle()` and send events up as function calls; no logic in composables.

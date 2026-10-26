@@ -13,7 +13,7 @@ reads like any other:
 | Name | What it is |
 |---|---|
 | `App` | The `Application` class: starts Koin and the library. |
-| `MainActivity` | **The one activity, always with this name**: never `HomeActivity`, `AppActivity` or a second activity, and no fragments. It only calls `setContent { Root() }`. |
+| `MainActivity` | **The one activity that hosts the app's UI, always with this name**: never `HomeActivity`, `SettingsActivity` or `AppActivity`, no second activity for a screen, and no fragments. It only calls `setContent { Root() }`. The one exception is an [overlay activity](#exceptions). |
 | `Root` | The one composable `MainActivity` calls: `AppTheme`, `ProvideDebugSettings` and the other app-wide providers, then `AppNavigation()`. Never `App`, `AppRoot`, `MainScreen` or `MainContent`. |
 | `AppNavigation` | Owns the `backStack` and the `NavDisplay`, with `routeEntryProvider`. It is the only composable that calls `NavDisplay`, and `Root` the only one that calls it. |
 | `Router` | The exhaustive `when (route)` and the common navigation actions (`navigateTo`, `onBack`); the only place that calls `XPage`s. Not a page: it is never called `RoutePage`, and has no `XPageContent` or ViewModel. |
@@ -103,6 +103,24 @@ fun Router(backStack: NavBackStack<NavKey>, route: Route) {
 - With a navigation library that has no `NavKey`, `Route` is the same sealed interface with that library's base type, e.g.
   `Parcelable`.
 
+## Exceptions
+
+- **An overlay activity.** An app whose job is to draw over other apps or to be the home screen (Android-Dock's `DockActivity`,
+  declared in the manifest as its own window) needs a second activity, because the system must show it as a separate
+  window. That is the only reason for a second activity: **a screen is never one**, it is a page of the `MainActivity`.
+  The overlay activity is named after its job (`DockActivity`, never `MainActivity2` or `...Screen`), and `MainActivity`
+  stays the activity that hosts the pages (a settings app's launcher activity is `MainActivity`, not `SettingsActivity`).
+- **An app with no pages** (a `WebView` wrapper such as the Krillion wrapper) has no navigation: no `Route`, `Router` or
+  `AppNavigation`. It still has `App`, `MainActivity` calling only `Root()`, and `Root`, which sets up `AppTheme` and the
+  providers and then draws its one screen directly. An app that gets a second page later gets the whole shell then.
+- **A Kotlin Multiplatform app** uses Navigation 3 too, from the JetBrains artifacts
+  (`org.jetbrains.androidx.navigation3:navigation3-ui`; Compose Multiplatform 1.10 or newer; Android, iOS, desktop and web). The
+  shell is the same, in `commonMain`, with three differences: (1) on the targets without reflection (iOS, web) the back
+  stack is built with `rememberNavBackStack(config, Route.Home)`, where `config` is a `SavedStateConfiguration` that registers
+  `Route` with `subclassesOfSealed<Route>()`; (2) the browser address and history are not synced by the library (an app that
+  syncs them, such as FlagTutor on the web, keeps its own sync, fed by the back stack, or uses the `navigation3-browser`
+  library); (3) the `Application`, `MainActivity` and manifest rules apply to the Android target only.
+
 ## Migrating an existing app
 
 A new app is created with the shell above. **An existing app gets the same shell in its migration PR**, together with its
@@ -112,7 +130,7 @@ deep links, tests, and the lines of the app's `CLAUDE.md` that name files.
 
 1. **One activity, `MainActivity`.** The launcher activity becomes `MainActivity` (`MainActivity.kt`) whatever it is called
    now. Every other activity and every fragment becomes a page with a `Route.X` member (`Route.kt`), reached through the
-   `Router`. Its `onCreate` ends in `setContent { Root() }` and holds nothing else in it.
+   `Router` (an [overlay activity](#exceptions) stays). Its `onCreate` ends in `setContent { Root() }` and holds nothing else in it.
 2. **`Root`.** Whatever composable `setContent` wraps now (`AppRoot`, `MainScreen`, `MyApp`, `App`) is renamed `Root`
    (`Root.kt`). The theme (`AppTheme`), `ProvideDebugSettings` and the other app-wide providers that sit in `MainActivity`
    or in other composables move into it, and it ends in `AppNavigation()`. A `MaterialTheme` is replaced by `AppTheme`
@@ -125,10 +143,10 @@ deep links, tests, and the lines of the app's `CLAUDE.md` that name files.
    `sealed interface Route : NavKey`, the `NavHost` becomes `AppNavigation`, and its `composable(...)` entries become the
    branches of the `Router`.
 4. **`App`.** The `Application` class becomes `App` (`App.kt`), and the manifest's `android:name` follows.
-5. **Check.** The first finds nothing, the other two find only `MainActivity.kt`:
+5. **Check.** The first finds nothing, the other two find only `MainActivity.kt` (and, for the first, an overlay activity):
 
    ```sh
    grep -rn "NavHost(\|entryProvider {\|MaterialTheme" app/src/main
-   grep -rln "ComponentActivity()" app/src/main      # only MainActivity.kt
+   grep -rln "ComponentActivity()" app/src/main      # only MainActivity.kt (and an overlay activity)
    grep -rn "setContent" app/src/main                # only MainActivity.kt, and it is `setContent { Root() }`
    ```
