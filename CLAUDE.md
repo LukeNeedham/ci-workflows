@@ -18,3 +18,7 @@
   link (`https://www.lukeneedham.com/apphub/pr/<repo name>/<number>`) into the chat straight away, as a markdown link
   on a line of its own starting with 📦 (`📦 [Open in AppHub](<link>)`), and at the top of the PR description. It
   reaches the apps through the managed `CLAUDE.md` block of `sync_apps.py`.
+- **The Stop hook's git warnings** ("unpushed commit(s)", or commits "Unverified" with a `github-actions[bot]` email): run
+  `git fetch origin` and check again, and do nothing else. CI pushes commits of its own to a PR branch after you push (the README,
+  the screenshots), so your local copy of the remote branch is out of date and Git thinks commits are local only. Never amend, rebase or force-push to silence
+  the hook, never edit the hook, and do not write about it at length. It reaches the apps through the managed `CLAUDE.md` block.
