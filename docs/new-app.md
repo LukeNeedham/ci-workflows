@@ -152,129 +152,17 @@ Defaults for a normal app. If the user asks for something else, do that instead.
   `internal`, stateless `XPageContent` (state down, events up) that has the previews. Never `XScreen`, `XContent` or a
   screen that mixes the two. Any README screenshots of a page are previews in the `screenshot` package
   ([screenshots.md](screenshots.md)).
-- **Single activity.** One `MainActivity` (extending `ComponentActivity`) hosts the whole UI. Screens
-  are composables, never extra activities or fragments. **`MainActivity` only calls one composable, `Root`**, and
-  nothing else is in its `setContent`. `Root` (in `Root.kt`) sets up everything the UI sits in: the `AppTheme`,
-  `ProvideDebugSettings` ([using-the-library.md](using-the-library.md#wrap-the-ui-in-providedebugsettings)) and the
-  other app-wide providers, then calls `AppNavigation`:
-
-  ```kotlin
-  class MainActivity : ComponentActivity() {
-      override fun onCreate(savedInstanceState: Bundle?) {
-          super.onCreate(savedInstanceState)
-          setContent { Root() }
-      }
-  }
-
-  @Composable
-  fun Root() {
-      AppTheme {
-          ProvideDebugSettings(theme = AppTheme.current.toDebugTheme()) {
-              AppNavigation()
-          }
-      }
-  }
-  ```
-
-  **The names of the app shell are fixed in every app**, each in its own file named after it (`MainActivity.kt`,
-  `Root.kt`, ...), so any app reads like any other:
-
-  | Name | What it is |
-  |---|---|
-  | `App` | The `Application` class: starts Koin and the library. |
-  | `MainActivity` | **The one activity, always with this name**: never `HomeActivity`, `AppActivity` or a second activity. It only calls `setContent { Root() }`. |
-  | `Root` | The one composable `MainActivity` calls: `AppTheme`, `ProvideDebugSettings` and the other app-wide providers, then `AppNavigation()`. Never `App`, `AppRoot`, `MainScreen` or `MainContent`. |
-  | `AppNavigation` | Owns the `backStack` and the `NavDisplay`, with `routeEntryProvider`. It is the only composable that calls `NavDisplay`, and `Root` the only one that calls it. |
-  | `Router` | The exhaustive `when (route)` and the common navigation actions (`navigateTo`, `onBack`); the only place that calls `XPage`s. |
-  | `Route` | The one `sealed interface Route : NavKey`, in `Route.kt`. |
-  | `AppTheme` | The app's own theme ([app-conventions.md](app-conventions.md#theme)). |
-
-  No other composable sets up the theme, the providers or the navigation, and none of these has a variant name
-  (`MainRoot`, `AppRouter`, `NavHost`).
-
-  **Migrating an existing app to this shell.** This holds for a new app and for an app that exists already: an
-  existing app gets all of it in its migration PR, together with the pages ([pages.md](pages.md#migrating-an-existing-app)).
-  Rename with the IDE (or `git mv` and a project-wide replace), and update the references that a rename misses: the
-  `AndroidManifest.xml` (`android:name` of the application and of the activity), shortcuts, deep links, tests, and the
-  lines of the app's `CLAUDE.md` that name files.
-
-  1. **One activity, `MainActivity`.** The launcher activity becomes `MainActivity` (file `MainActivity.kt`) whatever it
-     is called now. Every other activity and every fragment becomes a composable page with a `Route.X` member
-     (`Route.kt`), and goes through the `Router`. Its `onCreate` ends in `setContent { Root() }` and holds nothing else
-     in it.
-  2. **`Root`.** Whatever composable `setContent` wraps now (`AppRoot`, `MainScreen`, `MyApp`, `App`) is renamed `Root`
-     (`Root.kt`). The theme (`AppTheme`), `ProvideDebugSettings` and the other app-wide providers that sit in
-     `MainActivity` or in other composables move into it, and it ends in `AppNavigation()`. If the app wraps its UI in
-     `MaterialTheme`, that is replaced by `AppTheme` ([app-conventions.md](app-conventions.md#theme)).
-  3. **`AppNavigation`, `Router`, `Route`.** If the app already uses Navigation 3: move the `rememberNavBackStack` and
-     the `NavDisplay` into `AppNavigation` (`AppNavigation.kt`); replace the `entryProvider { entry<...> { } }` DSL with
-     `routeEntryProvider` and the exhaustive `Router` (`Router.kt`); and move the `backStack.add(...)` and
-     `removeLastOrNull()` of the branches into `navigateTo` and `onBack`. If it uses another library (Navigation Compose
-     `NavHost`, a hand-made navigator), migrate it to Navigation 3: the destinations become the members of the one
-     `sealed interface Route : NavKey`, the `NavHost` becomes `AppNavigation`, and its `composable(...)` entries become
-     the branches of the `Router`.
-  4. **`App`.** The `Application` class becomes `App` (`App.kt`), and the manifest's `android:name` follows.
-  5. **Check.** The first finds nothing, the other two find only `MainActivity.kt`:
-
-     ```sh
-     grep -rn "NavHost(\|entryProvider {\|MaterialTheme" app/src/main
-     grep -rln "ComponentActivity()" app/src/main      # only MainActivity.kt
-     grep -rn "setContent" app/src/main                # only MainActivity.kt, and it is `setContent { Root() }`
-     ```
+- **The app shell: single activity, `Root`, `AppNavigation`, `Router`.** One `MainActivity` (extending `ComponentActivity`)
+  hosts the whole UI and only calls `setContent { Root() }`; screens are composables, never extra activities or fragments.
+  The names, the code and the rules are defined in one place, **[app-shell.md](app-shell.md)**: follow it for every new
+  app (existing apps are migrated to it by the same doc).
 - **Jetpack Compose, themed by the app's own `AppTheme`** (a hand-made composition local, never
   `MaterialTheme`; see [app-conventions.md](app-conventions.md#theme)). No XML layouts.
-- **Navigation 3** (`androidx.navigation3`) for navigation. Destinations are `@Serializable` data
-  objects/classes, the members of one `sealed interface Route : NavKey`; the back stack is state the app owns:
-
-  ```kotlin
-  @Serializable
-  sealed interface Route : NavKey {
-      @Serializable data object Home : Route
-      @Serializable data class Detail(val id: String) : Route
-  }
-
-  val backStack = rememberNavBackStack(Route.Home)
-  NavDisplay(
-      backStack = backStack,
-      onBack = { backStack.removeLastOrNull() },
-      entryProvider = { key -> routeEntryProvider(backStack, key) },
-  )
-
-  fun routeEntryProvider(backStack: NavBackStack<NavKey>, key: NavKey): NavEntry<NavKey> {
-      val route = key as Route
-      return NavEntry(route) {
-          Router(backStack, route)
-      }
-  }
-
-  @Composable
-  fun Router(backStack: NavBackStack<NavKey>, route: Route) {
-      // The common actions are defined once here, never repeated in each branch
-      fun navigateTo(target: Route) { backStack.add(target) }
-      fun onBack() { backStack.removeLastOrNull() }
-
-      when (route) { // exhaustive: no `else`
-          Route.Home -> HomePage(onOpenDetail = { navigateTo(Route.Detail(it)) })
-          is Route.Detail -> DetailPage(id = route.id, onBack = ::onBack)
-      }
-  }
-  ```
-
-  **The common navigation actions are functions of `Router`** (`navigateTo(route)`, `onBack()`, and any other the app
-  repeats, e.g. `navigateToAndClear(route)`), so the branches only name them and no page repeats `backStack.add(...)`
-  or `backStack.removeLastOrNull()`. The `backStack` is used only in those functions.
-
-  **The entry provider is type exhaustive.** Because every route is a member of the one `sealed interface Route`, the
-  entry provider is a plain function and `Router` has a `when (route)` over it, **never the
-  `entryProvider { entry<...> { } }` DSL**: the DSL does not know the routes are sealed, so a route without an entry
-  only fails at runtime. With the `when`, adding a `Route` member without a branch is a compile error. **No `else`
-  branch**, ever, as it would turn that compile error back into a runtime one. `Router` is a router, not a
-  page: it is never called `RoutePage` and has no `XPageContent` or ViewModel. A route that needs its own `NavEntry`
-  options (`metadata`, e.g. a dialog scene) cannot share the one `NavEntry` and builds its own.
-
-  **The route of `XPage` is always `Route.X`** ([pages.md](pages.md)): `Route.Home` is `HomePage`.
-
-  Check the current stable versions and API before using them; Navigation 3 is newer than most
+- **Navigation 3** (`androidx.navigation3`) for navigation: destinations are `@Serializable` members of one
+  `sealed interface Route : NavKey`, the back stack is state the app owns, and the entry provider is type exhaustive
+  (an exhaustive `when` in `Router`, never the `entryProvider { entry<...> }` DSL). All of it is in
+  **[app-shell.md](app-shell.md)**. The route of `XPage` is always `Route.X` ([pages.md](pages.md)): `Route.Home` is
+  `HomePage`. Check the current stable versions and API before using them; Navigation 3 is newer than most
   documentation.
 - **MVVM with unidirectional data flow.** Each screen has a `ViewModel` exposing one immutable
   `UiState` as a `StateFlow`; the composable collects it with `collectAsStateWithLifecycle()` and

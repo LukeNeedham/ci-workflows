@@ -5,7 +5,7 @@ file, next to its `XViewModel` and `XUiState`.** This is
 the one way to build a screen in every app, so that any app reads like any other, and the previews and the README
 screenshots work the same everywhere ([screenshots.md](screenshots.md)).
 
-A **page** is a destination of the navigation: a full screen, one `Route.X` branch of the exhaustive `when` in `Router` ([new-app.md](new-app.md)). A reusable piece
+A **page** is a destination of the navigation: a full screen, one `Route.X` branch of the exhaustive `when` in `Router` ([app-shell.md](app-shell.md)). A reusable piece
 (a card, a row, a toolbar), and a dialog or a sheet that belongs to a page, is **not** a page: it is a plain
 composable in its own file, and a dialog or sheet is drawn by the `XPageContent` of its page.
 
@@ -86,33 +86,9 @@ needed, or passes it to `XPageContent` as a plain parameter ([app-conventions.md
 - **The route of `XPage` is `Route.X`** (`HomePage` is `Route.Home`, `PullRequestPage` is `Route.PullRequest`).
   **`Route` is one `sealed interface`, in `Route.kt`, and every page has a member of it**: a `data object`, or a
   `data class` with the page's arguments. `Route.Home` maps to `HomePage`, `Route.Detail` to `DetailPage`; never a
-  top-level `HomeNavKey`, `HomeKey`, `HomeRoute` or a bare `Home`. The entry only calls the page, with the navigation as
-  lambdas:
-
-  ```kotlin
-  // Route.kt
-  @Serializable
-  sealed interface Route : NavKey {
-      @Serializable data object Home : Route
-      @Serializable data class Detail(val id: String) : Route
-  }
-
-  // Router.kt
-  @Composable
-  fun Router(backStack: NavBackStack<NavKey>, route: Route) {
-      fun navigateTo(target: Route) { backStack.add(target) }
-      fun onBack() { backStack.removeLastOrNull() }
-
-      when (route) { // exhaustive: no `else`
-          Route.Home -> HomePage(onOpenSettings = { navigateTo(Route.Settings) }, onOpenDetail = { navigateTo(Route.Detail(it)) })
-          is Route.Detail -> DetailPage(id = route.id, onBack = ::onBack)
-          Route.Settings -> SettingsPage(onBack = ::onBack)
-      }
-  }
-  ```
-
-  (With a navigation library that has no `NavKey`, `Route` is the same sealed interface with that library's base type, e.g.
-  `Parcelable`.) The `backStack` never goes below the `Router` ([new-app.md](new-app.md)): neither `XPage` nor `XPageContent` gets it.
+  top-level `HomeNavKey`, `HomeKey`, `HomeRoute` or a bare `Home`. The branch of the `Router` only calls the page, with the
+  navigation as lambdas (`onBack = ::onBack`): the `Router`, `Route` and the rest of the app shell are defined in
+  [app-shell.md](app-shell.md), and `XPage` and `XPageContent` never get the `backStack`.
 - Any README screenshots of a page (a page can have several, or none) are separate from the general previews: previews in the app's `screenshot`
   package, each owning its data ([screenshots.md](screenshots.md)).
 
@@ -142,7 +118,7 @@ Do this for every page of the app, in the same change as the rest of its migrati
 6. Update every reference: tests, docs and the app's `CLAUDE.md` lines that name files.
 7. **Not pages:** composables that are only parts of a page keep their names; nothing else gets the `Page` suffix.
 8. **The app shell** (`MainActivity`, `Root`, `AppNavigation`, `Router`, `App`) is migrated in the same change, with its
-   own steps: [new-app.md](new-app.md#6-app-architecture) (the "Migrating an existing app to this shell" paragraph).
+   own steps: [app-shell.md](app-shell.md#migrating-an-existing-app).
 
 A check of the result: `grep -rn "Screen\b\|Screen(" app/src/main` should find no page composables, and every
 branch of the `Router` should be a `Route.X` that calls exactly one `XPage`.
