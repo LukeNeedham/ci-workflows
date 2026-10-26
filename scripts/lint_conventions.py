@@ -30,12 +30,12 @@ RULES = {
     "PAGE-4": "No XScreen, XScreenContent, XView or XContent for a page, no XPageViewModel or XScreenViewModel",
     "PAGE-5": "XPage calls XPageContent once and draws no UI of its own, with no preview",
     "PAGE-6": "XPageContent is stateless: no ViewModel, Koin, Flow, repository or navigator, and it takes the XUiState",
-    "VM-1": "A ViewModel is requested only in XPage, and only as XViewModel",
+    "VM-1": "A ViewModel is requested only in XPage (or the app's Root), and only as XViewModel",
     "VM-2": "A ViewModel is requested by one page only",
     "VM-3": "No ViewModel is scoped to the activity, a navigation graph or a parent",
     "VM-4": "A ViewModel is never a Koin single, factory or scoped definition",
     "VM-5": "A ViewModel holds no other ViewModel",
-    "VM-6": "A ViewModel is named XViewModel and belongs to an XPage in its package",
+    "VM-6": "A ViewModel is named XViewModel and belongs to an XPage in its package (RootViewModel to Root)",
     "VM-7": "A ViewModel declares no SharedFlow: one-off events go through a Channel",
     "UI-1": "An XUiState belongs to an XPage in its package",
     "UI-2": "An XUiState is immutable",
@@ -157,6 +157,17 @@ def role(d):
 def page_of(d):
     """The X of an XPage, XPageContent, XViewModel or XUiState."""
     return d.name[:-len(SUFFIX_OF_ROLE[role(d)])]
+
+
+def is_root(d):
+    """The app root: the composable `Root`, which decides what the app shows. It is not a page (not a destination of the
+    navigation) but it gets its state from a ViewModel, `RootViewModel`, like one."""
+    return d.is_composable and not d.is_preview and d.name == "Root"
+
+
+def viewmodel_of(d):
+    """The name of the ViewModel that the page, or the root, [d] gets."""
+    return "RootViewModel" if is_root(d) else f"{page_of(d)}ViewModel"
 
 
 def returns_value(d):
@@ -284,6 +295,10 @@ class Lint:
 
     # ---- ViewModels ----
 
+    def root_decls(self, f):
+        """The declarations of the other files of the package of [f]: where its `Root` may be."""
+        return [d for g in self.files if g is not f and g.package == f.package for d in g.decls]
+
     def lookups(self, f):
         """(call, name, type, arguments, enclosing declaration) of every request for a ViewModel in [f]."""
         found = []
@@ -316,13 +331,13 @@ class Lint:
                     reported.add(line)
                     self.add(f, line, "VM-3", f"`{name}` shares a ViewModel between pages (scoped to the activity, a navigation "
                                               f"graph or a parent): each page has its own, and state pages share goes in a repository")
-                page = enclosing if enclosing is not None and role(enclosing) == PAGE else None
+                page = enclosing if enclosing is not None and (role(enclosing) == PAGE or is_root(enclosing)) else None
                 if page is None:
                     self.add(f, line, "VM-1", f"`{name}` requests a ViewModel outside an `XPage`: only the page gets its ViewModel")
                 elif short is None:
-                    self.add(f, line, "VM-1", f"`{name}` in `{page.name}` needs its type: `{name}<{page_of(page)}ViewModel>()`")
-                elif short != f"{page_of(page)}ViewModel":
-                    self.add(f, line, "VM-1", f"`{page.name}` requests `{short}`: its ViewModel is `{page_of(page)}ViewModel`")
+                    self.add(f, line, "VM-1", f"`{name}` in `{page.name}` needs its type: `{name}<{viewmodel_of(page)}>()`")
+                elif short != viewmodel_of(page):
+                    self.add(f, line, "VM-1", f"`{page.name}` requests `{short}`: its ViewModel is `{viewmodel_of(page)}`")
                 if short:
                     requests[short].append((f, line, page.name if page else f"{f.path}"))
             for m in OWNER_STANDALONE.finditer(f.clean):
@@ -380,6 +395,11 @@ class Lint:
                     continue
                 if re.search(r"(Page|Screen)ViewModel$", d.name):
                     continue  # PAGE-4
+                if d.name == "RootViewModel":  # the app root's ViewModel
+                    if not any(is_root(c) for c in f.decls + self.root_decls(f)):
+                        self.at(f, d, "VM-6", f"`{d.name}` has no `Root` composable in the package `{f.package}`: it belongs to "
+                                              f"the app root")
+                    continue
                 if not role(d):
                     self.at(f, d, "VM-6", f"`{d.name}` is a ViewModel: name it `XViewModel`, for the page `XPage`")
                 elif not self.has(PAGE, f, page_of(d)):

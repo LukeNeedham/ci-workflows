@@ -27,13 +27,19 @@ and any violation fails the job. There is no warning mode.
 
 | Id | Rule |
 |---|---|
-| `VM-1` | A ViewModel is requested (`koinViewModel`, `viewModel`, `getViewModel`, `hiltViewModel`, `viewModels`, …) only inside an `XPage`, and only as `XViewModel`, with the type written out: `koinViewModel<HomeViewModel>()` or `val vm: HomeViewModel = koinViewModel()`. A Koin definition (`viewModel { … }`) is not a request |
+| `VM-1` | A ViewModel is requested (`koinViewModel`, `viewModel`, `getViewModel`, `hiltViewModel`, `viewModels`, …) only inside an `XPage` (or the app's `Root`, [below](#the-app-root)), and only as `XViewModel` (`RootViewModel` for `Root`), with the type written out: `koinViewModel<HomeViewModel>()` or `val vm: HomeViewModel = koinViewModel()`. A Koin definition (`viewModel { … }`) is not a request |
 | `VM-2` | A ViewModel class is requested by one page only. Two pages that ask for the same one are both reported |
 | `VM-3` | No ViewModel is scoped to something several pages share: no `activityViewModel`, `sharedViewModel`, `viewModelStoreOwner =`, `LocalViewModelStoreOwner`, `ownerProducer`, and no owner, back stack entry, activity or navigation graph in the arguments of a request |
 | `VM-4` | A ViewModel is never a Koin `single`, `factory` or `scoped` definition (`single { HomeViewModel(get()) }`, `singleOf(::HomeViewModel)`): a `single` is one instance for everyone. Use `viewModelOf` or `viewModel { }` |
 | `VM-5` | A ViewModel holds no other ViewModel: none in its constructor, properties or body (`get<OtherViewModel>()`). A base class in its supertypes is not holding |
-| `VM-6` | A concrete ViewModel (a class with a ViewModel supertype that is not `abstract` or `sealed`) is named `XViewModel` and has an `XPage` in its package |
+| `VM-6` | A concrete ViewModel (a class with a ViewModel supertype that is not `abstract` or `sealed`) is named `XViewModel` and has an `XPage` in its package. `RootViewModel` needs a `Root` composable in its package instead |
 | `VM-7` | A ViewModel declares no `SharedFlow` or `MutableSharedFlow`: a one-off event goes through a `Channel` exposed with `receiveAsFlow()` ([app-conventions.md](app-conventions.md#one-off-events)) |
+
+<a id="the-app-root"></a>
+**The app root.** `Root` (the composable that decides what the app shows: a spinner, the permissions, the setup or the app)
+is not a page, since it is not a destination of the navigation, but it may get its state from a ViewModel, which has to be
+`RootViewModel`. That is the one exception to "only an `XPage` requests a ViewModel", and `Root` is the one composable
+that has it. Nothing else may request `RootViewModel`.
 
 State that pages share lives below the ViewModels, in a repository (a Koin `single`) that each page's own ViewModel uses
 ([pages.md](pages.md#names-and-files)).

@@ -81,6 +81,8 @@ below are enough.
   no `Flow` (`UI-1`..`3`), previews (`PRV-1`..`7`: `private fun Preview()` in `XPageContent.kt`, in `AppTheme`, no
   Koin/ViewModel, one in every composable of 10 lines or more) and one public composable per file named after it (`CMP-1`).
   An exception needs `// lint:ignore RULE-ID: reason` on the line or above it, and a reason.
+- **The app root is not a page**: `Root` (+ `RootViewModel`, in `Root.kt` / `RootViewModel.kt`) decides what the app shows
+  and is the one composable besides an `XPage` that requests a ViewModel, only `RootViewModel`; no `RootPage`.
 - **README screenshots live in one package, `<app package>.screenshot`, in `src/debug`**: a file per page that has
   some, named after the page (`HomePage.kt`; more previews = more screenshots, no file = none). Each screenshot is a
   **private `@Preview` composable that owns its mock data** inside its body and renders `HomePageContent` with it

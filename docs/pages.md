@@ -9,6 +9,13 @@ A **page** is a destination of the navigation: a full screen, one `entry<Route.X
 (a card, a row, a toolbar), and a dialog or a sheet that belongs to a page, is **not** a page: it is a plain
 composable in its own file, and a dialog or sheet is drawn by the `XPageContent` of its page.
 
+## The app root is not a page
+
+`Root` is the one composable above the navigation: it decides what the app shows (loading, the permissions, the setup,
+or the app itself) from `RootViewModel`, and themes it. It is **not** a page, because it is not a destination of the
+navigation, so it has no `RootPageContent` and no `Route.Root`; it is `Root.kt` and `RootViewModel.kt`. It is the only
+composable besides an `XPage` that requests a ViewModel, and only that one. The checks of [lint.md](lint.md) know it.
+
 ## The two composables
 
 | | `XPage` | `XPageContent` |
