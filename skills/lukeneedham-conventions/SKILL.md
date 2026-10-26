@@ -11,7 +11,7 @@ callers in `.github/workflows/`.
 
 The long guides are in that repo's `docs/`: `new-app.md` (read first when starting an app), `setup.md`,
 `app-config.md`, `app-icon.md`, `readme.md` (the README layout and `readme.yml`), `pages.md` (`XPage` and
-`XPageContent`), `screenshots.md` (the README screenshots), `app-conventions.md`, `library.md`,
+`XPageContent`), `app-shell.md` (`MainActivity`, `Root`, navigation), `screenshots.md` (the README screenshots), `app-conventions.md`, `library.md`,
 `using-the-library.md` and `consuming-apps.md`. If you can reach GitHub, read the relevant page; otherwise the rules
 below are enough.
 

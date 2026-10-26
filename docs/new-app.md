@@ -213,7 +213,7 @@ sections you skipped and why. Such an app has no `screenshot` package (no Compos
 - [ ] Adaptive launcher icon in place (CI then generates `app-icon.png` at the repo root on the first PR)
 - [ ] Every page is an `XPage` + `XPageContent`, named and split as in [pages.md](pages.md); a `screenshot` package with the screenshots worth showing (any number per page, none for some pages, at least one in all), and its `order.txt` ([screenshots.md](screenshots.md)), or, for an app that cannot render previews, `screenshots: manual` and at least one hand-committed screenshot in `docs/screenshots/`
 - [ ] Handwritten `readme.yml` ([readme.md](readme.md)); CI generates `README.md` from it
-- [ ] Single activity, Compose, Navigation 3, MVVM, Koin for DI, Coil 3 for images, or a stated reason for each departure
+- [ ] The app shell as in [app-shell.md](app-shell.md) (`MainActivity` calling only `Root`, `AppNavigation`, an exhaustive `Router`); Compose, Navigation 3, MVVM, Koin for DI, Coil 3 for images, or a stated reason for each departure
 - [ ] [app-conventions.md](app-conventions.md) followed: strings in `strings.xml`, own `AppTheme` (no `MaterialTheme`), a preview per composable, 48dp touch targets
 - [ ] Shared library added, `DebugKit.init` called first, `Logger` used (debug pages optional)
 - [ ] PR opened, CI green, AppHub link pasted to the user
