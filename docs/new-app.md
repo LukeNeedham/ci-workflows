@@ -175,6 +175,22 @@ Defaults for a normal app. If the user asks for something else, do that instead.
       }
   }
   ```
+
+  **The names of the app shell are fixed in every app**, each in its own file named after it (`MainActivity.kt`,
+  `Root.kt`, ...), so any app reads like any other:
+
+  | Name | What it is |
+  |---|---|
+  | `App` | The `Application` class: starts Koin and the library. |
+  | `MainActivity` | **The one activity, always with this name**: never `HomeActivity`, `AppActivity` or a second activity. It only calls `setContent { Root() }`. |
+  | `Root` | The one composable `MainActivity` calls: `AppTheme`, `ProvideDebugSettings` and the other app-wide providers, then `AppNavigation()`. Never `App`, `AppRoot`, `MainScreen` or `MainContent`. |
+  | `AppNavigation` | Owns the `backStack` and the `NavDisplay`, with `routeEntryProvider`. It is the only composable that calls `NavDisplay`, and `Root` the only one that calls it. |
+  | `Router` | The exhaustive `when (route)` and the common navigation actions (`navigateTo`, `onBack`); the only place that calls `XPage`s. |
+  | `Route` | The one `sealed interface Route : NavKey`, in `Route.kt`. |
+  | `AppTheme` | The app's own theme ([app-conventions.md](app-conventions.md#theme)). |
+
+  No other composable sets up the theme, the providers or the navigation, and none of these has a variant name
+  (`MainRoot`, `AppRouter`, `NavHost`).
 - **Jetpack Compose, themed by the app's own `AppTheme`** (a hand-made composition local, never
   `MaterialTheme`; see [app-conventions.md](app-conventions.md#theme)). No XML layouts.
 - **Navigation 3** (`androidx.navigation3`) for navigation. Destinations are `@Serializable` data

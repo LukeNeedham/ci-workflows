@@ -90,7 +90,10 @@ below are enough.
 ## Architecture
 - Single activity (`ComponentActivity`), Jetpack Compose, no XML, no fragments. **`MainActivity` only calls
   `setContent { Root() }`**: `Root` (`Root.kt`) sets up `AppTheme`, `ProvideDebugSettings` and the other app-wide
-  providers, then calls `AppNavigation`.
+  providers, then calls `AppNavigation`. **The shell names are fixed in every app, one file each**: `App` (the
+  `Application`), `MainActivity` (the one activity, never another name or a second activity), `Root`, `AppNavigation`
+  (owns the `backStack` and the `NavDisplay`; only `Root` calls it), `Router`, `Route`, `AppTheme`; never a variant
+  (`AppRoot`, `MainScreen`, `AppRouter`, `NavHost`).
 - Navigation 3 (the `@Serializable` members of one `sealed interface Route : NavKey`, back stack owned by the app).
   **The `NavDisplay` entry provider is type exhaustive**: a function `routeEntryProvider(backStack, key: NavKey):
   NavEntry<NavKey>` that does `val route = key as Route` and returns `NavEntry(route) { Router(backStack, route) }`;
