@@ -73,7 +73,7 @@ below are enough.
   navigator) and **always has at least one `private` `@Preview` in the same file** (named `Preview`; see Previews below). **Each of `XPage`, `XPageContent`, `XViewModel` and `XUiState` is in its own file**
   (`XPage.kt`, `XPageContent.kt` with the previews, `XViewModel.kt`, `XUiState.kt`). Never `XScreen`, `XContent` or `XView`. **The route is always
   `Route.X`**, a member of the one `sealed interface Route : NavKey` in `Route.kt` (`Route.Home` is `HomePage`:
-  `Route.Home -> NavEntry(route) { HomePage(...) }`; never `HomeNavKey`, `HomeKey` or `HomeRoute`).
+  `Route.Home -> HomePage(...)` in `RouteDestination`; never `HomeNavKey`, `HomeKey` or `HomeRoute`).
 - **README screenshots live in one package, `<app package>.screenshot`, in `src/debug`**: a file per page that has
   some, named after the page (`HomePage.kt`; more previews = more screenshots, no file = none). Each screenshot is a
   **private `@Preview` composable that owns its mock data** inside its body and renders `HomePageContent` with it
@@ -91,8 +91,10 @@ below are enough.
 - Single activity (`ComponentActivity`), Jetpack Compose, no XML, no fragments.
 - Navigation 3 (the `@Serializable` members of one `sealed interface Route : NavKey`, back stack owned by the app).
   **The `NavDisplay` entry provider is type exhaustive**: a function `routeEntryProvider(backStack, key: NavKey):
-  NavEntry<NavKey>` that does `val route = key as Route` and returns `when (route) { ... }` with one `NavEntry(route) { XPage(...) }`
-  per route and **no `else`**; never the `entryProvider { entry<...> { } }` DSL (not exhaustive, a missing route fails at runtime).
+  NavEntry<NavKey>` that does `val route = key as Route` and returns `NavEntry(route) { RouteDestination(backStack, route) }`;
+  the `@Composable RouteDestination` is a `when (route)` with one `XPage(...)` per route and **no `else`** (not a "RoutePage":
+  it is a router, not a page); never the `entryProvider { entry<...> { } }` DSL (not exhaustive, a missing route fails at runtime).
+  A route needing its own `NavEntry` options (`metadata`) builds its own `NavEntry`.
 - MVVM with unidirectional data flow: a `ViewModel` exposes one immutable `UiState` `StateFlow`; composables
   use `collectAsStateWithLifecycle()` and send events up as function calls; no logic in composables.
 - Coroutines + Flow; `viewModelScope` for screen work. UI -> domain/data layers; no Android types in the lower layer.

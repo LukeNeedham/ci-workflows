@@ -175,18 +175,27 @@ Defaults for a normal app. If the user asks for something else, do that instead.
 
   fun routeEntryProvider(backStack: NavBackStack<NavKey>, key: NavKey): NavEntry<NavKey> {
       val route = key as Route
-      return when (route) { // exhaustive: no `else`
-          Route.Home -> NavEntry(route) { HomePage(onOpenDetail = { backStack.add(Route.Detail(it)) }) }
-          is Route.Detail -> NavEntry(route) { DetailPage(id = route.id, onBack = { backStack.removeLastOrNull() }) }
+      return NavEntry(route) {
+          RouteDestination(backStack, route)
+      }
+  }
+
+  @Composable
+  fun RouteDestination(backStack: NavBackStack<NavKey>, route: Route) {
+      when (route) { // exhaustive: no `else`
+          Route.Home -> HomePage(onOpenDetail = { backStack.add(Route.Detail(it)) })
+          is Route.Detail -> DetailPage(id = route.id, onBack = { backStack.removeLastOrNull() })
       }
   }
   ```
 
   **The entry provider is type exhaustive.** Because every route is a member of the one `sealed interface Route`, the
-  entry provider is a plain function with a `when (route)` over it, **never the `entryProvider { entry<...> { } }`
-  DSL**: the DSL does not know the routes are sealed, so a route without an entry only fails at runtime. With the
-  `when`, adding a `Route` member without an entry is a compile error. **No `else` branch**, ever, as it would turn that
-  compile error back into a runtime one.
+  entry provider is a plain function and `RouteDestination` has a `when (route)` over it, **never the
+  `entryProvider { entry<...> { } }` DSL**: the DSL does not know the routes are sealed, so a route without an entry
+  only fails at runtime. With the `when`, adding a `Route` member without a branch is a compile error. **No `else`
+  branch**, ever, as it would turn that compile error back into a runtime one. `RouteDestination` is a router, not a
+  page: it is never called `RoutePage` and has no `XPageContent` or ViewModel. A route that needs its own `NavEntry`
+  options (`metadata`, e.g. a dialog scene) cannot share the one `NavEntry` and builds its own.
 
   **The route of `XPage` is always `Route.X`** ([pages.md](pages.md)): `Route.Home` is `HomePage`.
 
