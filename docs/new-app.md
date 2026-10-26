@@ -202,7 +202,7 @@ floating button on the main page); see [A settings page](using-the-library.md#a-
 
 Some apps are too small for the above, such as the Krillion web-game wrapper: one `WebView` in one
 activity. Still do steps 1 to 5 (project, **debug keystore**, **CI workflows**, **app icon**, **README**) and the **shared
-library** (logger and crash handler, no debug pages), keep it to a single activity, and skip the rest. Say which
+library** (logger and crash handler, debug pages), the **app shell** ([app-shell.md](app-shell.md): a `WebView` is hosted by a page, with a single `Route` member), and skip the rest. Say which
 sections you skipped and why. Such an app has no `screenshot` package (no Compose, no `@Preview`): it sets `screenshots: manual` in `readme.yml` and commits at least one screenshot into `docs/screenshots/` by hand, and CI leaves it alone.
 
 ## Done checklist

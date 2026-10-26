@@ -99,8 +99,8 @@ below are enough.
   `Application`), `MainActivity`, `Root`, `AppNavigation`, `Router`, `Route`, `AppTheme` (the composable `AppTheme { }`, read
   through the `object AppTheme`); never a variant (`AppRoot`, `MainScreen`, `AppRouter`, `NavHost`, `RoutePage`,
   `<AppName>Theme`, `ProvideAppTheme`). Exceptions (`docs/app-shell.md`): an overlay activity (a window over other
-  apps, named after its job) may be a second activity but a screen never is; an app with no pages (a WebView wrapper) has no
-  `Route`/`Router`/`AppNavigation`, only `App`, `MainActivity` and `Root` (when its screen is a View hierarchy, `MainActivity` builds the Views and `Root` is only the Compose debug overlay); Kotlin Multiplatform apps use the JetBrains
+  apps, named after its job) may be a second activity but a screen never is; an app with one page (a WebView wrapper) still has the whole shell, with a single
+  `Route` member for its page, and hosts the WebView in the page with `AndroidView`, owned by the page's ViewModel; Kotlin Multiplatform apps use the JetBrains
   Navigation 3 artifacts (`rememberNavBackStack(config, ...)` with every `Route` member registered in the config, since iOS and the web have no reflection). A route needing its own `NavEntry` options (`metadata`) builds its own.
 - Jetpack Compose, no XML. Navigation 3 (the `@Serializable` members of one `sealed interface Route : NavKey`, back stack owned by the app).
 - MVVM with unidirectional data flow: a `ViewModel` exposes one immutable `UiState` `StateFlow`; composables
