@@ -506,7 +506,9 @@ class PreviewTest(unittest.TestCase):
         private = f"package com.x.ui\n\n@Composable\nprivate fun Big() {{\n{body}\n}}\n"
         needs_koin = f"package com.x.ui\n\n@Composable\ninternal fun Root() {{\n    koinInject<Foo>()\n{body}\n}}\n"
         navigation = f"package com.x.ui\n\n@Composable\ninternal fun AppNavigation() {{\n    NavDisplay()\n{body}\n}}\n"
-        for name, text in (("Small", short), ("Big", private), ("Root", needs_koin), ("AppNavigation", navigation)):
+        back_stack = f"package com.x.ui\n\n@Composable\nfun Router(backStack: NavBackStack<NavKey>) {{\n{body}\n}}\n"
+        for name, text in (("Small", short), ("Big", private), ("Root", needs_koin), ("AppNavigation", navigation),
+                           ("Router", back_stack)):
             self.assertNotIn("PRV-7", rules(lint_app({f"{name}.kt": text})), name)
 
     def test_prv7_a_composable_that_returns_a_value_has_nothing_to_preview(self):

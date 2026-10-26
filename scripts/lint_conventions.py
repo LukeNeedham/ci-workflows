@@ -461,7 +461,7 @@ class Lint:
                 continue
             for d in public:
                 lines = sum(1 for line in d.text.splitlines() if line.strip())
-                if lines >= MIN_PREVIEW_LINES and not returns_value(d) and not re.search(r"(?i)koin|ViewModel|NavDisplay|NavHost|collectAs", d.text):
+                if lines >= MIN_PREVIEW_LINES and not returns_value(d) and not re.search(r"(?i)koin|ViewModel|NavDisplay|NavHost|NavBackStack|NavController|collectAs", d.text):
                     self.at(f, d, "PRV-7", f"`{d.name}` is {lines} lines and has no `@Preview` in {f.rel.name}: every composable "
                                            f"but a trivial one has one (a composable that needs Koin or navigation has none)")
 
