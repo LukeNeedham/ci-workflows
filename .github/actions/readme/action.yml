@@ -13,7 +13,7 @@ inputs:
 runs:
   using: composite
   steps:
-    - uses: LukeNeedham/ci-workflows/.github/actions/checkout-pr-branch@main
+    - uses: LukeNeedham/ci-workflows/.github/actions/checkout-pr-branch@trial-previews
       with:
         token: ${{ inputs.token }}
 

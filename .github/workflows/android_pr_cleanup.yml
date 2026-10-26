@@ -17,7 +17,7 @@ jobs:
       group: android-pr-build-${{ github.repository }}-${{ github.event.pull_request.number || github.ref }}
       cancel-in-progress: true
     steps:
-      - uses: LukeNeedham/ci-workflows/.github/actions/ci-scripts@main
+      - uses: LukeNeedham/ci-workflows/.github/actions/ci-scripts@trial-previews
 
       - name: Delete PR build releases
         shell: bash

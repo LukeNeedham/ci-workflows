@@ -32,7 +32,7 @@ jobs:
       comment-header: ${{ steps.config.outputs.comment-header }}
     steps:
       - id: config
-        uses: LukeNeedham/ci-workflows/.github/actions/app-config@main
+        uses: LukeNeedham/ci-workflows/.github/actions/app-config@trial-previews
 
   # Every app exposes its icon at a fixed path, app-icon.png in the repo root, so tooling such as the app
   # hub can fetch it. It is generated from the app's adaptive launcher icon, so it cannot drift: this job
@@ -54,7 +54,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: LukeNeedham/ci-workflows/.github/actions/app-icon@main
+      - uses: LukeNeedham/ci-workflows/.github/actions/app-icon@trial-previews
         with:
           token: ${{ secrets.GENERATED_COMMIT_TOKEN }}
 
@@ -73,7 +73,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: LukeNeedham/ci-workflows/.github/actions/screenshots@main
+      - uses: LukeNeedham/ci-workflows/.github/actions/screenshots@trial-previews
         with:
           state: ${{ needs.build.outputs.screenshots }}
           token: ${{ secrets.GENERATED_COMMIT_TOKEN }}
@@ -92,14 +92,14 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: LukeNeedham/ci-workflows/.github/actions/readme@main
+      - uses: LukeNeedham/ci-workflows/.github/actions/readme@trial-previews
         with:
           token: ${{ secrets.GENERATED_COMMIT_TOKEN }}
 
   build:
     needs: config
     if: needs.config.outputs.generate == 'true'
-    uses: LukeNeedham/ci-workflows/.github/workflows/android_pr_build.yml@main
+    uses: LukeNeedham/ci-workflows/.github/workflows/android_pr_build.yml@trial-previews
     with:
       gradle-task: ${{ needs.config.outputs.gradle-task }}
       apk-path: ${{ needs.config.outputs.apk-path }}
@@ -111,7 +111,7 @@ jobs:
   cleanup:
     needs: config
     if: needs.config.outputs.cleanup == 'true'
-    uses: LukeNeedham/ci-workflows/.github/workflows/android_pr_cleanup.yml@main
+    uses: LukeNeedham/ci-workflows/.github/workflows/android_pr_cleanup.yml@trial-previews
 
   # Merges the PR that sync_apps.yml opens (its title starts with [auto-merge], see scripts/automerge.py) once every job
   # above has passed or been skipped: a failed or cancelled job leaves it open. It runs in the run that did the work, after
@@ -130,7 +130,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: LukeNeedham/ci-workflows/.github/actions/ci-scripts@main
+      - uses: LukeNeedham/ci-workflows/.github/actions/ci-scripts@trial-previews
 
       - name: Merge the PR
         shell: bash

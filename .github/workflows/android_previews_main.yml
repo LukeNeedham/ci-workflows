@@ -17,9 +17,9 @@ jobs:
       cancel-in-progress: true
     steps:
       - id: config
-        uses: LukeNeedham/ci-workflows/.github/actions/app-config@main
+        uses: LukeNeedham/ci-workflows/.github/actions/app-config@trial-previews
 
-      - uses: LukeNeedham/ci-workflows/.github/actions/ci-scripts@main
+      - uses: LukeNeedham/ci-workflows/.github/actions/ci-scripts@trial-previews
 
       - uses: actions/checkout@v4
 

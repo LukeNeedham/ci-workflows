@@ -11,5 +11,4 @@ permissions:
 
 jobs:
   android:
-    if: github.ref_name == github.event.repository.default_branch
-    uses: LukeNeedham/ci-workflows/.github/workflows/android_previews_main.yml@main
+    uses: LukeNeedham/ci-workflows/.github/workflows/android_previews_main.yml@trial-previews

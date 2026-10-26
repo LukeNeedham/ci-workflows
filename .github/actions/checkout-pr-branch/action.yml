@@ -22,4 +22,4 @@ runs:
         repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
         ref: ${{ github.head_ref || github.ref_name }}
 
-    - uses: LukeNeedham/ci-workflows/.github/actions/ci-scripts@main
+    - uses: LukeNeedham/ci-workflows/.github/actions/ci-scripts@trial-previews
