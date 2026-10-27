@@ -10,9 +10,9 @@ changed, with the image from `main` next to the image from the PR.
   Roborazzi and Robolectric like the README screenshots, to `app/build/previews/<class>.<function>.png`.
   [`scripts/previews.py`](../scripts/previews.py) runs it and hashes the images into a manifest. A preview that cannot be
   rendered is an error that **fails the PR** (below): a preview that does not render does not work in Android Studio either.
-- **Main.** On each push to the default branch the previews caller ([setup.md](setup.md#5-previews-of-main))
-  ([`android_previews_main.yml`](../.github/workflows/android_previews_main.yml)) renders the previews and keeps them as the
-  assets of the pre-release `previews-main` (and `previews-manifest.json`).
+- **Main.** On each push to the default branch the main build ([`android_main_build.yml`](../.github/workflows/android_main_build.yml),
+  [setup.md](setup.md#4-the-main-build-every-push-to-main)) renders the previews and keeps them as the
+  assets of the pre-release `previews-main` (and `previews-manifest.json`). It also builds the APK, which does not stop the previews.
 - **A PR.** The build job of [`android_pr_build.yml`](../.github/workflows/android_pr_build.yml) renders them again after the
   APK (nothing is built twice), uploads **all** of them to the PR build's own pre-release, and posts the comment: the previews
   that are new, modified or removed against `previews-main`, as a table of before (main) and after (PR). More than 20
@@ -28,8 +28,8 @@ Neither the images nor the comment need the app to do anything: the previews are
 
 If any preview cannot be rendered, `previews.py render` fails and lists them as error annotations. In a PR the build job
 still publishes the APK, then the `previews` job of [`android_pr.yml`](../.github/workflows/android_pr.yml) fails (no preview
-comment is posted), so the PR cannot be merged once that check is required. On main the previews workflow fails and keeps
-the last good images. Fix the preview, or mock what it needs (camera, video).
+comment is posted), so the PR cannot be merged once that check is required. On main the main build still publishes the APK, fails the run, and keeps
+the last good previews. Fix the preview, or mock what it needs (camera, video).
 
 **To block merging**, make the check `android / previews` required in the repo's branch protection.
 

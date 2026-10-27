@@ -32,8 +32,8 @@ jobs:
               repo,
               per_page: 100,
             });
-            // previews-main holds the previews of main that PRs compare with (docs/previews.md): not a build
-            const prereleases = releases.filter((release) => release.prerelease && release.tag_name !== 'previews-main');
+            // previews-main (the previews of main that PRs compare with, docs/previews.md) and main-build (the APK of main, docs/setup.md) are kept up to date by the main build: not PR builds
+            const prereleases = releases.filter((release) => release.prerelease && !['previews-main', 'main-build'].includes(release.tag_name));
             console.log(`Found ${prereleases.length} pre-releases (of ${releases.length} releases)`);
 
             let deleted = 0;

@@ -184,7 +184,7 @@ jobs:
 
       # Every @Preview of the app, rendered once more (the build is already done, so it is quick) and uploaded to this
       # build's release; the PR gets a comment with the previews that differ from the ones of main, which
-      # android_previews_main.yml renders on each push to main (docs/previews.md). A preview that cannot be rendered does not
+      # android_main_build.yml renders on each push to main (docs/previews.md). A preview that cannot be rendered does not
       # fail this job (the APK is fine): the previews job of android_pr.yml fails the PR instead.
       - name: Render the previews
         id: previews

@@ -8,7 +8,7 @@ the real logic lives here, so a fix made once reaches every project.
 | [`android_pr.yml`](.github/workflows/android_pr.yml) | **The whole PR flow in one call**: runs the build while the PR is open and the cleanup when it closes | PR opened, pushed to, or closed |
 | [`android_pr_build.yml`](.github/workflows/android_pr_build.yml) | *Building block.* Builds the debug APK, publishes it as a pre-release, keeps one sticky PR comment up to date | PR opened or pushed to |
 | [`android_pr_cleanup.yml`](.github/workflows/android_pr_cleanup.yml) | *Building block.* Deletes the PR's build pre-releases and tags | PR closed |
-| [`android_main_build.yml`](.github/workflows/android_main_build.yml) | Builds the debug APK of **main on demand** and keeps it as an artifact for **one day** | Run by hand or by AppHub, from the caller |
+| [`android_main_build.yml`](.github/workflows/android_main_build.yml) | On every push to **main**, builds the debug APK (kept as the rolling pre-release `main-build`) and renders the previews | Push to main, or by hand, from the caller |
 | [`android_release.yml`](.github/workflows/android_release.yml) | Publishes a **permanent, signed release** (tag + APK) | Run by hand, from the caller |
 | [`sync_apps.yml`](.github/workflows/sync_apps.yml) | Opens a PR in every app of [`apps.json`](apps.json) that keeps its skill, all the callers and `CLAUDE.md` block in line with this repo ([docs/sync.md](docs/sync.md)) | Change here, weekly, or by hand |
 | [`delete_prereleases.yml`](.github/workflows/delete_prereleases.yml) | Deletes **all** pre-releases and tags in the repo | Run by hand |
@@ -127,17 +127,19 @@ deleted. Builds from a manual run have no PR, so nothing ever cleans them up; us
 
 ### `android_main_build.yml`
 
-Builds the APK of the branch it is run on and uploads it as the artifact `apk`, kept for **1 day**. It is
-how AppHub gets a build of `main` without a PR: AppHub starts it through the API, follows the run, and
-downloads the artifact. It can also be run from the *Actions* tab.
+On every push to `main` (and by hand, from the *Actions* tab) it builds the debug APK and renders every `@Preview`, and publishes both:
+
+- **The APK** as the asset `app-debug.apk` of the rolling pre-release `main-build`, replaced by every run, so there is always an
+  up-to-date main APK to test: this is what AppHub offers as the main build. The release notes start with a `commit: <sha>`
+  line and the tag `main-build` is moved to that commit. Release assets, unlike artifacts, need no token to download.
+- **The previews** as the assets of the pre-release `previews-main`, which PRs compare theirs with ([docs/previews.md](docs/previews.md)).
 
 No inputs: every app is built the same way ([docs/app-config.md](docs/app-config.md)).
 
-- **The caller is `build_main.yml`** ([`callers/build_main.yml`](callers/build_main.yml)): AppHub starts that
-  file by name, on `main`. It needs `workflow_dispatch` and `contents: read`.
-- **An artifact, not a release.** It expires after a day by itself, so there is no tag, no pre-release and no
-  cleanup. Artifacts, unlike release assets, can only be downloaded with a token (*Actions: read*), which AppHub
-  has. The artifact is a zip with the APK as its only file.
+- **The caller is `build_main.yml`** ([`callers/build_main.yml`](callers/build_main.yml)). It needs `contents: write` and
+  `pull-requests: write` (the previews comment on the open PRs).
+- **Independent halves.** A failing preview does not stop the APK from being published, nor the other way round; the run still
+  fails if either failed.
 - **One build at a time.** A second run on the same branch cancels the first: only the newest main is of interest.
 - Runs on the default branch write the Gradle cache that PR builds read.
 

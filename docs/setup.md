@@ -94,26 +94,17 @@ Release builds are signed with a different key from the debug builds on pull req
 moving from a PR build to a release uninstalls once. The tester link is
 `https://github.com/<owner>/<repo>/releases/latest/download/<RepoName>.apk`.
 
-## 4. Build main on demand (optional, expected by AppHub)
+## 4. The main build (every push to main)
 
-A manual build of the default branch that keeps its APK for one day, as a workflow artifact. AppHub shows a
-*Build main* button for every repo that has it, starts the run through the API, reports its progress, and
-offers the APK to install. It can also be run from the *Actions* tab.
+On every push to the default branch, builds the debug APK and renders the previews, and keeps both up to date: the APK as the
+rolling pre-release `main-build` (so there is always a current main APK to test; AppHub shows it), and the previews as the baseline that PRs
+compare theirs with ([previews.md](previews.md)). It can also be run by hand from the *Actions* tab. It needs no settings.
 
 **File:** [`callers/build_main.yml`](../callers/build_main.yml): copy it, unchanged, to
 `.github/workflows/build_main.yml` in your project.
-**Keep the file name**: AppHub starts `build_main.yml` on `main`. It must be on `main` before it can be run.
 
-Starting it from AppHub needs a GitHub token with **Actions: Read and write** on the repo; downloading the
-APK needs *Actions: Read*. See the AppHub README for creating one.
-
-## 5. Previews of main
-
-On each push to `main`, renders every `@Preview` of the app and keeps the images as the baseline that PRs compare their previews
-with ([previews.md](previews.md)). It needs no settings and does not build or publish an APK.
-
-**File:** [`callers/previews_main.yml`](../callers/previews_main.yml): copy it, unchanged, to
-`.github/workflows/previews_main.yml` in your project.
+Both releases are replaced in place by every run and are kept by the "delete pre-releases" sweep. The asset of `main-build` is
+`app-debug.apk`; its release notes start with a `commit: <sha>` line, which is what tells a tool which commit the APK is.
 
 ## Setting up a new project
 
