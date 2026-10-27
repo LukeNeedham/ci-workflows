@@ -29,7 +29,7 @@ Neither the images nor the comment need the app to do anything: the previews are
 If any preview cannot be rendered, `previews.py render` fails and lists them as error annotations. In a PR the build job
 still publishes the APK, then the `previews` job of [`android_pr.yml`](../.github/workflows/android_pr.yml) fails (no preview
 comment is posted), so the PR cannot be merged once that check is required. On main the previews workflow fails and keeps
-the last good images. Fix the preview, or mock what it needs (camera, video, Koin, ViewModel).
+the last good images. Fix the preview, or mock what it needs (camera, video).
 
 **To block merging**, make the check `android / previews` required in the repo's branch protection.
 
