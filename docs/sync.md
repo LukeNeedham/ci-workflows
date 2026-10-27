@@ -8,7 +8,7 @@ Claude: nothing needs to remember to copy anything.
 | What | Where in the app | How |
 |---|---|---|
 | The Claude skill | `.claude/skills/lukeneedham-conventions/` | Mirrored exactly: files that no longer exist here are deleted |
-| The callers | `.github/workflows/`: `trigger_on_pull_request.yml`, `build_main.yml`, `delete_prereleases.yml`, `release.yml`, `previews_main.yml` | Copied **byte for byte** from [`callers/`](../callers), **all five to every app**. They hold no settings, so every app has identical files. `release.yml` fails with a clear message in an app that is not set up for releases |
+| The callers | `.github/workflows/`: `trigger_on_pull_request.yml`, `build_main.yml`, `delete_prereleases.yml`, `release.yml`, `previews_main.yml` | Copied **byte for byte** from [`callers/`](../callers), **all of them to every app**. They hold no settings, so every app has identical files. `release.yml` fails with a clear message in an app that is not set up for releases |
 | A note for Claude | A block in the app's `CLAUDE.md`, between `ci-workflows:begin` and `ci-workflows:end` | Replaced each time. Also tells Claude to always paste the PR's AppHub link into the chat when work completes, and to answer the Stop hook's git warnings with `git fetch origin` and nothing else (`CLAUDE.md` is always loaded, unlike the skill). The old "copy the skill by hand" line is replaced by it. The rest of `CLAUDE.md` is the app's |
 
 Not synced: the app's `readme.yml`, which is handwritten, and its `README.md`, which the PR build generates from it
