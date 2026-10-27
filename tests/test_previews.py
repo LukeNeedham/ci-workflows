@@ -26,6 +26,17 @@ class Manifest(unittest.TestCase):
         self.assertEqual(list(m["previews"]), ["x.Y"])
 
 
+class Failed(unittest.TestCase):
+    def test_no_file_means_all_rendered(self):
+        with tempfile.TemporaryDirectory() as d:
+            self.assertEqual(p.failed_previews(d), [])
+
+    def test_lists_the_failures(self):
+        with tempfile.TemporaryDirectory() as d:
+            (Path(d) / "failed.txt").write_text("a.B.Preview: IllegalStateException: no Koin\n\nc.D.Preview: X: y\n")
+            self.assertEqual(p.failed_previews(d), ["a.B.Preview: IllegalStateException: no Koin", "c.D.Preview: X: y"])
+
+
 class Names(unittest.TestCase):
     def test_short_name_is_file_and_function(self):
         self.assertEqual(p.short_name("com.app.ui.HomePageContentKt.PreviewEmpty"), "HomePageContent · PreviewEmpty")

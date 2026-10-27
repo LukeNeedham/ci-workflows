@@ -19,7 +19,7 @@ import sergio.sastre.composable.preview.scanner.core.preview.ComposablePreview
 // Plain test code of LukeNeedham/ci-workflows (scripts/previews.py, docs/previews.md), compiled into the app's unit tests
 // by the Gradle init script for the preview run only: it is never copied into an app. Renders EVERY @Preview of the app's
 // package (private ones included) to build/previews/<class>.<function>.png of the app module, so that the PR can show the
-// ones that changed. A preview that fails to render is reported in build/previews/failed.txt and does not fail the run.
+// ones that changed. A preview that fails to render is listed in build/previews/failed.txt (the other previews still render); scripts/previews.py then fails the run.
 @RunWith(ParameterizedRobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34], qualifiers = "w360dp-h800dp-xxhdpi", application = Application::class)

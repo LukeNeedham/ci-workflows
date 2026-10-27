@@ -6,8 +6,8 @@
     python3 previews.py pr            --repo R --pr N --tag TAG --sha SHA [--app DIR]
     python3 previews.py refresh       --repo R --base BRANCH
 
-`render` renders every preview of the app to app/build/previews/ (AllPreviewsTest) and writes the manifest there:
-the SHA-256 of each image. `publish-main` keeps the images of main as the assets of the pre-release `previews-main`.
+`render` renders every preview of the app to app/build/previews/ (AllPreviewsTest); it fails if any preview cannot be
+rendered, so a PR cannot be merged with one that does not render. `publish-main` keeps the images of main as the assets of the pre-release `previews-main`.
 `pr` uploads all the images of a PR build to the pre-release TAG of that build and comments on the PR with the previews
 that differ from main's. `refresh` redoes that comment for every open PR into BASE, after main moved. Uses GH_TOKEN.
 """
@@ -150,6 +150,12 @@ def upsert_comment(repo, pr, body):
 # Commands
 # ---------------------------------------------------------------------------------------------------
 
+def failed_previews(images_dir):
+    """The previews AllPreviewsTest could not render, one `name: reason` line each (empty if all rendered)."""
+    path = Path(images_dir) / "failed.txt"
+    return [l for l in path.read_text().splitlines() if l.strip()] if path.exists() else []
+
+
 def render(app_dir, gradle_args):
     """Renders every preview into app/build/previews/. Returns the exit code."""
     rendered = app_dir / "app" / "build" / "previews"
@@ -162,11 +168,15 @@ def render(app_dir, gradle_args):
     )
     if result.returncode != 0:
         return result.returncode
-    failed = rendered / "failed.txt"
-    if failed.exists():
-        print("::warning::These previews could not be rendered, so they are not compared:\n" + failed.read_text())
+    failures = failed_previews(rendered)
+    for line in failures:
+        print(f"::error title=Preview could not be rendered::{line}")
+    if failures:
+        print(f"{len(failures)} preview(s) could not be rendered: a preview that does not render does not work in "
+              f"Android Studio either. Fix it, or mock what it needs (docs/app-conventions.md).", file=sys.stderr)
+        return 1
     if not list(rendered.glob("*.png")):
-        print("::warning::No preview was rendered.")
+        print("::error::No preview was rendered.")
         return 1
     return 0
 
