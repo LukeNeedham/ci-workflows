@@ -31,9 +31,9 @@ below are enough.
 - Every app is built the same way and nothing is configured per app: module `:app`, debug APK at
   `app/build/outputs/apk/debug/app-debug.apk`, PRs into `main` only (never `master` or `develop`), JDK 17.
   A new app needs only its entry (`name`, `repo`) in `ci-workflows`' `apps.json`.
-- Every app has all the callers: `trigger_on_pull_request.yml`, `build_main.yml` (AppHub builds main through
-  it, so keep the name), `delete_prereleases.yml`, `release.yml` and `previews_main.yml` (renders the previews of main, for the PR comment that shows the previews a PR changed: `docs/previews.md`). `release.yml` fails at once, with a message
-  that lists what is missing, until the app has the four release secrets and `gradle/android-release.gradle`.
+- Every app has all the callers of `ci-workflows`' `callers/`, copied by the sync: never edit, rename or delete one
+  (`docs/setup.md` there documents each). The release run fails at once, with a message that lists what is missing, until the
+  app has the four release secrets and `gradle/android-release.gradle`.
 - A PR that changes only `.claude/skills/` is not built, so it has no APK and no AppHub comment from CI.
 - CI's own commits (generated screenshots, icon and README) are pushed with the owner's `GENERATED_COMMIT_TOKEN` when the app has it, and are not built again.
 - Debug mode always comes from `BuildConfig.DEBUG`.

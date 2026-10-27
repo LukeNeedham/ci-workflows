@@ -10,7 +10,7 @@ changed, with the image from `main` next to the image from the PR.
   Roborazzi and Robolectric like the README screenshots, to `app/build/previews/<class>.<function>.png`.
   [`scripts/previews.py`](../scripts/previews.py) runs it and hashes the images into a manifest. A preview that cannot be
   rendered is an error that **fails the PR** (below): a preview that does not render does not work in Android Studio either.
-- **Main.** On each push to the default branch the caller `previews_main.yml`
+- **Main.** On each push to the default branch the previews caller ([setup.md](setup.md#5-previews-of-main))
   ([`android_previews_main.yml`](../.github/workflows/android_previews_main.yml)) renders the previews and keeps them as the
   assets of the pre-release `previews-main` (and `previews-manifest.json`).
 - **A PR.** The build job of [`android_pr_build.yml`](../.github/workflows/android_pr_build.yml) renders them again after the

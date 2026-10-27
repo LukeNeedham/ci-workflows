@@ -40,6 +40,9 @@ closes.
 **File:** [`callers/trigger_on_pull_request.yml`](../callers/trigger_on_pull_request.yml): copy it, unchanged, to
 `.github/workflows/trigger_on_pull_request.yml` in your project. There is nothing to edit in it.
 
+It runs on all the pull request types (`opened`, `reopened`, `synchronize`, `closed`): `closed` runs the cleanup of the PR's
+builds, the others build. Only PRs into `main` are built; the shared workflow skips the rest.
+
 ### Settings
 
 There are none: every app is built the same way ([app-config.md](app-config.md)). The debug APK has to be at
@@ -79,7 +82,8 @@ comes from a git tag (`0.3.0`, no `v`), which the workflow creates.
    sets them. Builds then need network to fetch the script the first time, and
    `--refresh-dependencies` picks up a changed script on a machine that cached the old one.
 2. **`release.yml`** is already in the app (every app has it, from the sync). Until steps 1 and 3 are done, running it
-   fails in its first step, before anything is tagged, with an error that lists what is missing.
+   fails in its first step, before anything is tagged or built, with one error that lists what is missing: the four repo
+   secrets of step 3 and the Gradle script of step 1.
 3. **Make a signing key** and add four repo secrets (*Settings → Secrets and variables → Actions*):
    `RELEASE_KEYSTORE_BASE64` (the keystore, base64 on one line), `RELEASE_KEYSTORE_PASSWORD`,
    `RELEASE_KEY_ALIAS`, `RELEASE_KEY_PASSWORD`. Keep a copy of the key somewhere safe: an app signed
@@ -103,11 +107,18 @@ offers the APK to install. It can also be run from the *Actions* tab.
 Starting it from AppHub needs a GitHub token with **Actions: Read and write** on the repo; downloading the
 APK needs *Actions: Read*. See the AppHub README for creating one.
 
+## 5. Previews of main
+
+On each push to `main`, renders every `@Preview` of the app and keeps the images as the baseline that PRs compare their previews
+with ([previews.md](previews.md)). It needs no settings and does not build or publish an APK.
+
+**File:** [`callers/previews_main.yml`](../callers/previews_main.yml): copy it, unchanged, to
+`.github/workflows/previews_main.yml` in your project.
+
 ## Setting up a new project
 
 1. Add the project to [`apps.json`](../apps.json): its `name` and `repo`.
-2. Copy all the files of `callers/` (`trigger_on_pull_request.yml`, `build_main.yml` so AppHub can build main,
-   `delete_prereleases.yml`, `release.yml` and `previews_main.yml`) to `.github/workflows/` in the project, unchanged. After the first
+2. Copy all the files of `callers/` to `.github/workflows/` in the project, unchanged. After the first
    copy the [sync](sync.md) keeps them in line.
 3. Commit them on a branch and open a PR to the target branch.
 4. [Check it works](#check-that-it-works).

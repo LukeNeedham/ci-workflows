@@ -93,23 +93,17 @@ Permanent, signed **release** builds are separate (own key, kept in repo secrets
 Every app uses the shared workflows in this repo. Follow **[setup.md](setup.md)**, which has the
 details. In short, for a new app:
 
-1. Copy [`callers/trigger_on_pull_request.yml`](../callers/trigger_on_pull_request.yml) to
-   `.github/workflows/trigger_on_pull_request.yml`, unchanged. The callers have no settings.
-2. Copy [`callers/delete_prereleases.yml`](../callers/delete_prereleases.yml) to
-   `.github/workflows/delete_prereleases.yml`, unchanged.
-3. Copy [`callers/build_main.yml`](../callers/build_main.yml) to `.github/workflows/build_main.yml`, unchanged.
-   AppHub builds `main` on demand through it, so keep the file name.
-4. Copy [`callers/release.yml`](../callers/release.yml) to `.github/workflows/release.yml`, unchanged. Every app has
-   it. It fails at once, with a clear message, until the app has the release key and the Gradle script
-   ([setup.md](setup.md#3-permanent-releases-optional)); only do that when the user wants installable releases (the
+1. Copy every file of [`callers/`](../callers) to `.github/workflows/`, unchanged ([setup.md](setup.md) documents each). The
+   callers have no settings. The release caller fails at once, with a clear message, until the app has the release key and the
+   Gradle script ([setup.md](setup.md#3-permanent-releases-optional)); only do that when the user wants installable releases (the
    four repo secrets are for the user to add).
-5. Add the app to [`apps.json`](../apps.json) ([consuming-apps.md](consuming-apps.md)), **in the same change as
+2. Add the app to [`apps.json`](../apps.json) ([consuming-apps.md](consuming-apps.md)), **in the same change as
    the callers**: just its `name` and `repo`, there is nothing else to configure ([app-config.md](app-config.md)). The
    app has to follow the standard: module `:app`, so the debug APK is
    `app/build/outputs/apk/debug/app-debug.apk`, and the default branch `main`. CI then gives it the Claude skill and
-   the `CLAUDE.md` block and keeps the callers above in line, through a "Sync from ci-workflows" PR
+   the `CLAUDE.md` block and keeps the callers in line, through a "Sync from ci-workflows" PR
    ([sync.md](sync.md)): the callers are copied by hand only this once, so that the app's first PR has CI.
-6. `ci-workflows` is a public repo, so don't worry about access.
+3. `ci-workflows` is a public repo, so don't worry about access.
 
 Open a PR: CI first comments with an **AppHub** link (`https://www.lukeneedham.com/apphub/pr/<repo name>/<number>`,
 the PR's page in the AppHub app, where the build can be downloaded and installed), then builds the debug APK and
@@ -209,7 +203,7 @@ sections you skipped and why. Such an app has no `screenshot` package (no Compos
 
 - [ ] Package is `com.lukeneedham.<app>`; versions match this repo
 - [ ] `app/debug.keystore` committed and used by the `debug` signing config
-- [ ] All callers copied unchanged (`trigger_on_pull_request.yml`, `build_main.yml`, `delete_prereleases.yml`, `release.yml`, `previews_main.yml`), module `:app`, default branch `main`
+- [ ] All callers copied unchanged, module `:app`, default branch `main`
 - [ ] Adaptive launcher icon in place (CI then generates `app-icon.png` at the repo root on the first PR)
 - [ ] Every page is an `XPage` + `XPageContent`, named and split as in [pages.md](pages.md); a `screenshot` package with the screenshots worth showing (any number per page, none for some pages, at least one in all), and its `order.txt` ([screenshots.md](screenshots.md)), or, for an app that cannot render previews, `screenshots: manual` and at least one hand-committed screenshot in `docs/screenshots/`
 - [ ] Handwritten `readme.yml` ([readme.md](readme.md)); CI generates `README.md` from it
