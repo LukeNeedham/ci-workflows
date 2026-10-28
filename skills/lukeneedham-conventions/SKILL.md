@@ -80,6 +80,8 @@ below are enough.
   scoped, never a Koin `single`, never holding another ViewModel, no `SharedFlow` (`VM-1`..`7`), an immutable `UiState` with
   no `Flow` (`UI-1`..`3`), previews (`PRV-1`..`7`: `private fun Preview()` in `XPageContent.kt`, in `AppTheme`, no
   Koin/ViewModel, **a preview for every public or `internal` composable**, however short) and one public composable per file named after it (`CMP-1`).
+  A bottom sheet is only ever used inside an `XSheet` composable that puts an `XSheetContent` (own file, own preview, stateless,
+  no sheet in it) in the sheet (`SHEET-1`..`5`).
   An exception needs `// lint:ignore RULE-ID: reason` on the line or above it, and a reason.
 - **Only an `XPage` requests a ViewModel.** `Root` is the root composable, not a page, and holds none: a state-driven `Root`
   (loading, a missing permission, the setup) holds a **`RootCoordinator`** instead, a plain class registered with `single { }`

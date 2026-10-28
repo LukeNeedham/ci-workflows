@@ -50,11 +50,27 @@ State that pages share lives below the ViewModels, in a repository (a Koin `sing
 | `UI-2` | An `XUiState` is immutable: no `var`, no `MutableList`, `ArrayList`, `mutableStateOf` or other mutable type. Change it with `copy` |
 | `UI-3` | An `XUiState` is plain data: it holds no `Flow`, `StateFlow`, `SharedFlow` or `Channel` |
 
+### Bottom sheets
+
+A bottom sheet is `XSheet` (the container: the sheet itself, its scrim, state, animation) that puts `XSheetContent` (what it shows,
+in its own file with its own preview) in it ([pages.md](pages.md)). A composable is an `XSheet` when its name ends in `Sheet` and an
+`XSheetContent` when it ends in `SheetContent`; they are matched by `X` **and package**, like the files of a page.
+
+| Id | Rule |
+|---|---|
+| `SHEET-1` | Every `XSheet` has an `XSheetContent` in its package and calls it: the sheet delegates its content |
+| `SHEET-2` | Every `XSheetContent` has an `XSheet` in its package |
+| `SHEET-3` | A bottom sheet (`ModalBottomSheet`, `ModalBottomSheetLayout`, `BottomSheetScaffold`, `BottomSheetDialog`, …) is only used inside an `XSheet` composable (or a `private` helper in its file); a page, a card or a preview that wants a sheet calls `XSheet` |
+| `SHEET-4` | `XSheetContent` knows nothing of the sheet around it: it uses no sheet, no sheet state (`SheetState`, `rememberModalBottomSheetState`) and no shared sheet layout (`SheetLayout`, `SheetDefaults`) |
+| `SHEET-5` | `XSheetContent` is stateless: it mentions no ViewModel, Koin, `Flow` (or `collectAs…`), repository or navigator, like `XPageContent` (`PAGE-6`) |
+
+Its preview is `PRV-1`, its file name and the one public composable per file `CMP-1`. The `screenshot` package is not checked for these.
+
 ### Previews and composables
 
 | Id | Rule |
 |---|---|
-| `PRV-1` | Every `XPageContent` has a `private` `@Preview` function named exactly `Preview` in its file |
+| `PRV-1` | Every `XPageContent` and every `XSheetContent` has a `private` `@Preview` function named exactly `Preview` in its file |
 | `PRV-2` | A general preview is `private` and named `Preview`, or `Preview` and a capital differentiator (`PreviewEmpty`, `PreviewLoading`), once per file |
 | `PRV-3` | A preview is in the file of the composable it previews: its body shows a composable declared in that file |
 | `PRV-4` | A preview, and a screenshot, is wrapped in `AppTheme { … }` |

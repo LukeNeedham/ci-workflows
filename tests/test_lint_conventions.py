@@ -645,9 +645,109 @@ class CommandTest(unittest.TestCase):
 
     def test_every_rule_is_documented_and_every_documented_rule_exists(self):
         docs = (Path(__file__).resolve().parent.parent / "docs" / "lint.md").read_text()
-        documented = set(__import__("re").findall(r"`((?:PAGE|VM|UI|PRV|CMP|SHOT|IGNORE)-\d+)`", docs))
+        documented = set(__import__("re").findall(r"`((?:PAGE|VM|UI|SHEET|PRV|CMP|SHOT|IGNORE)-\d+)`", docs))
         self.assertEqual(documented, set(lc.RULES))
 
+
+SHEET = """
+    package com.x.ui
+
+    @Composable
+    internal fun PickSheet(onDismiss: () -> Unit, onPick: (String) -> Unit) {
+        ModalBottomSheet(onDismissRequest = onDismiss) {
+            PickSheetContent(onPick = onPick)
+        }
+    }
+
+    @Preview
+    @Composable
+    private fun Preview() {
+        AppTheme { PickSheet(onDismiss = {}, onPick = {}) }
+    }
+"""
+SHEET_CONTENT = """
+    package com.x.ui
+
+    @Composable
+    internal fun PickSheetContent(onPick: (String) -> Unit) {
+        Text("Pick")
+    }
+
+    @Preview
+    @Composable
+    private fun Preview() {
+        AppTheme { PickSheetContent(onPick = {}) }
+    }
+"""
+SHEETS = {"PickSheet.kt": SHEET, "PickSheetContent.kt": SHEET_CONTENT}
+
+
+class SheetTest(unittest.TestCase):
+    def test_a_sheet_with_its_content_passes(self):
+        self.assertEqual(lint_app(SHEETS), [])
+
+    def test_a_sheet_without_content_is_sheet_1(self):
+        found = lint_app({"PickSheet.kt": SHEET})
+        assert_rule(self, found, "SHEET-1", "has no `PickSheetContent`")
+
+    def test_a_sheet_that_does_not_call_its_content_is_sheet_1(self):
+        sheet = SHEET.replace("PickSheetContent(onPick = onPick)", "Text(\"inline\")")
+        found = lint_app({"PickSheet.kt": sheet, "PickSheetContent.kt": SHEET_CONTENT})
+        assert_rule(self, found, "SHEET-1", "does not call `PickSheetContent`")
+
+    def test_content_without_a_sheet_is_sheet_2(self):
+        assert_rule(self, lint_app({"PickSheetContent.kt": SHEET_CONTENT}), "SHEET-2", "has no `PickSheet`")
+
+    def test_a_bottom_sheet_outside_an_xsheet_is_sheet_3(self):
+        card = """
+            package com.x.ui
+
+            @Composable
+            internal fun HomeCard(title: String) {
+                ModalBottomSheet(onDismissRequest = {}) { Text(title) }
+            }
+
+            @Preview
+            @Composable
+            private fun Preview() {
+                AppTheme { HomeCard("a") }
+            }
+        """
+        assert_rule(self, lint_app({"HomeCard.kt": card}), "SHEET-3", "only drawn inside an `XSheet`")
+
+    def test_a_private_helper_of_the_sheet_may_draw_it(self):
+        sheet = SHEET.replace("    @Preview", "    @Composable\n    private fun Frame(content: @Composable () -> Unit) {\n"
+                                                "        ModalBottomSheet(onDismissRequest = {}) { content() }\n    }\n\n    @Preview")
+        self.assertEqual([v for v in lint_app({"PickSheet.kt": sheet, "PickSheetContent.kt": SHEET_CONTENT}) if v.rule == "SHEET-3"], [])
+
+    def test_content_that_knows_the_sheet_is_sheet_4(self):
+        content = SHEET_CONTENT.replace('Text("Pick")', "SheetLayout(onClose = {}) { Text(\"Pick\") }")
+        assert_rule(self, lint_app({"PickSheet.kt": SHEET, "PickSheetContent.kt": content}), "SHEET-4", "SheetLayout")
+
+    def test_content_that_draws_the_sheet_is_sheet_4(self):
+        content = SHEET_CONTENT.replace('Text("Pick")', "ModalBottomSheet(onDismissRequest = {}) { Text(\"Pick\") }")
+        assert_rule(self, lint_app({"PickSheet.kt": SHEET, "PickSheetContent.kt": content}), "SHEET-4", "ModalBottomSheet")
+
+    def test_stateful_content_is_sheet_5(self):
+        content = SHEET_CONTENT.replace('Text("Pick")', "val vm = koinViewModel<PickViewModel>()")
+        assert_rule(self, lint_app({"PickSheet.kt": SHEET, "PickSheetContent.kt": content}), "SHEET-5")
+
+    def test_content_without_its_own_preview_is_prv_1(self):
+        content = SHEET_CONTENT.split("    @Preview")[0]
+        assert_rule(self, lint_app({"PickSheet.kt": SHEET, "PickSheetContent.kt": content}), "PRV-1", "PickSheetContent")
+
+    def test_a_sheet_in_the_screenshot_package_is_not_checked(self):
+        shot = """
+            package com.x.screenshot
+
+            @Preview
+            @Composable
+            private fun SheetScreenshot() {
+                AppTheme { ModalBottomSheet(onDismissRequest = {}) { Text("a") } }
+            }
+        """
+        found = lint_app(outside={"app/src/main/java/com/x/screenshot/SheetScreenshot.kt": shot})
+        self.assertEqual([v for v in found if v.rule.startswith("SHEET")], [])
 
 if __name__ == "__main__":
     unittest.main()

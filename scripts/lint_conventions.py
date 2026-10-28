@@ -40,7 +40,12 @@ RULES = {
     "UI-1": "An XUiState belongs to an XPage in its package",
     "UI-2": "An XUiState is immutable",
     "UI-3": "An XUiState holds no Flow or Channel",
-    "PRV-1": "Every XPageContent has a private @Preview named Preview in its file",
+    "SHEET-1": "Every XSheet has an XSheetContent in its package and calls it",
+    "SHEET-2": "Every XSheetContent has an XSheet in its package",
+    "SHEET-3": "A bottom sheet (ModalBottomSheet, BottomSheetScaffold…) is only used inside an XSheet composable",
+    "SHEET-4": "XSheetContent knows nothing of the sheet around it: no sheet, sheet state or sheet layout",
+    "SHEET-5": "XSheetContent is stateless: no ViewModel, Koin, Flow, repository or navigator",
+    "PRV-1": "Every XPageContent and XSheetContent has a private @Preview named Preview in its file",
     "PRV-2": "A preview is private and named Preview or Preview<Variant>, once per file",
     "PRV-3": "A preview is in the file of the composable it previews",
     "PRV-4": "A preview is wrapped in AppTheme",
@@ -52,6 +57,18 @@ RULES = {
     "SHOT-2": "The screenshot package has an order.txt that lists every screenshot once",
     "IGNORE-1": "A lint:ignore names a rule of this list and gives a reason",
 }
+
+# A bottom sheet is only ever drawn by the XSheet composable of its sheet, which puts XSheetContent in it
+SHEET_PRIMITIVE = re.compile(
+    r"(?<![\w.])(ModalBottomSheet|ModalBottomSheetLayout|BottomSheetScaffold|BottomSheetDialog|ModalBottomSheetDialog|"
+    r"BottomSheetDialogFragment)\b\s*[({:<]"
+)
+# What XSheetContent leaves to its sheet: the sheet itself, its state and the shared layout that wraps a sheet
+SHEET_PARTS = re.compile(
+    r"\b(?:ModalBottomSheet\w*|BottomSheet\w*|SheetState|rememberModalBottomSheetState|rememberStandardBottomSheetState|"
+    r"SheetLayout|SheetDefaults|SheetValue)\b"
+)
+SHEET_CONTENT, SHEET = "SheetContent", "Sheet"
 
 SKIP_DIRS = {"build", ".gradle", ".git", ".idea", "node_modules"}
 # The composables of the app shell (docs/app-shell.md) wire the whole app together, and the theme only provides values:
@@ -156,6 +173,16 @@ def role(d):
     return None
 
 
+def sheet_role(d):
+    """SHEET for an `XSheet` composable, SHEET_CONTENT for an `XSheetContent` one, else None."""
+    if d.is_composable and not d.is_preview:
+        if d.name.endswith("SheetContent") and len(d.name) > len("SheetContent"):
+            return SHEET_CONTENT
+        if d.name.endswith("Sheet") and len(d.name) > len("Sheet"):
+            return SHEET
+    return None
+
+
 def page_of(d):
     """The X of an XPage, XPageContent, XViewModel or XUiState."""
     return d.name[:-len(SUFFIX_OF_ROLE[role(d)])]
@@ -187,6 +214,13 @@ class Lint:
                 if role(d):
                     self.by_role[role(d)].setdefault((f.package, page_of(d)), (f, d))
         self.known = {x for pairs in self.by_role.values() for (_, x) in pairs}
+        self.sheets = defaultdict(dict)  # SHEET or SHEET_CONTENT -> {(package, X): (file, declaration)}
+        for f in self.files:
+            if f.is_screenshot:
+                continue
+            for d in f.decls:
+                if sheet_role(d):
+                    self.sheets[sheet_role(d)].setdefault((f.package, d.name[:-len(sheet_role(d))]), (f, d))
 
     def add(self, f, line, rule, message, anchor=None):
         self.violations.append(Violation(f.path, line, rule, message, anchor or line))
@@ -283,6 +317,47 @@ class Lint:
                              d.first_line)
             if (f.package, x) in self.by_role[UI_STATE] and not re.search(rf"\b{x}UiState\b", d.params):
                 self.at(f, d, "PAGE-6", f"`{d.name}` takes the `{x}UiState` as its state")
+
+    # ---- bottom sheets ----
+
+    def check_sheets(self):
+        for (package, x), (f, d) in self.sheets[SHEET].items():
+            content = self.sheets[SHEET_CONTENT].get((package, x))
+            if content is None:
+                self.at(f, d, "SHEET-1", f"`{d.name}` has no `{x}SheetContent` in the package `{package}`: a sheet only draws "
+                                         f"the sheet, and puts `{x}SheetContent` (its own file, with its own preview) in it")
+            elif not re.search(rf"\b{x}SheetContent\s*\(", d.text):
+                self.at(f, d, "SHEET-1", f"`{d.name}` does not call `{x}SheetContent`: the sheet delegates its content to it")
+        for (package, x), (f, d) in self.sheets[SHEET_CONTENT].items():
+            if (package, x) not in self.sheets[SHEET]:
+                self.at(f, d, "SHEET-2", f"`{d.name}` has no `{x}Sheet` in the package `{package}`: the content of a sheet is "
+                                         f"shown by the sheet that goes with it")
+            for pattern, what in STATEFUL:
+                m = re.search(pattern, d.text)
+                if m:
+                    self.add(f, k.line_of(f.clean, d.keyword + m.start()), "SHEET-5",
+                             f"`{d.name}` is stateless but touches {what} (`{m.group().strip()}`): that goes up into the "
+                             f"page that shows `{x}Sheet`", d.first_line)
+            m = SHEET_PARTS.search(d.text)
+            if m:
+                self.add(f, k.line_of(f.clean, d.keyword + m.start()), "SHEET-4",
+                         f"`{d.name}` uses `{m.group()}`: the content of a sheet does not know about the sheet around it "
+                         f"(`{x}Sheet` does that)", d.first_line)
+        for f in self.files:
+            if f.is_screenshot:
+                continue
+            has_sheet = any(sheet_role(d) == SHEET for d in f.decls)
+            for d in f.decls:
+                if sheet_role(d):
+                    continue  # XSheet draws the sheet; XSheetContent is SHEET-4's
+                m = SHEET_PRIMITIVE.search(d.text)
+                if not m or d.kind != "fun":
+                    continue
+                if d.is_private and not d.is_preview and has_sheet:
+                    continue  # a helper of the XSheet of this file
+                self.add(f, k.line_of(f.clean, d.keyword + m.start()), "SHEET-3",
+                         f"`{d.name}` uses `{m.group(1)}`: a bottom sheet is only drawn inside an `XSheet` composable "
+                         f"(`XSheet.kt`), which the page calls and which puts `XSheetContent` in it", d.first_line)
 
     # ---- ViewModels ----
 
@@ -427,7 +502,8 @@ class Lint:
                     self.at(f, d, "PRV-5", f"`{d.name}` has a URL but not Coil's `LocalAsyncImagePreviewHandler`: a preview "
                                            f"never depends on the network")
             for d in composables:
-                if role(d) == PAGE_CONTENT and not any(p.name == "Preview" and p.is_private for p in previews):
+                if (role(d) == PAGE_CONTENT or sheet_role(d) == SHEET_CONTENT) and not any(
+                        p.name == "Preview" and p.is_private for p in previews):
                     self.at(f, d, "PRV-1", f"`{d.name}` has no `private fun Preview()` with `@Preview` in {f.rel.name}")
 
     def check_general_preview(self, f, d, composables, counts):
@@ -504,7 +580,7 @@ class Lint:
     def run(self):
         for check in (self.check_files, self.check_pairs, self.check_visibility, self.check_names, self.check_page_body,
                       self.check_page_content, self.check_lookups, self.check_definitions, self.check_viewmodels,
-                      self.check_ui_states, self.check_previews, self.check_composables, self.check_screenshots):
+                      self.check_ui_states, self.check_sheets, self.check_previews, self.check_composables, self.check_screenshots):
             check()
         unique = {(v.path, v.line, v.rule, v.message): v for v in self.violations}
         self.violations = list(unique.values())
