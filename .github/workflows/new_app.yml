@@ -5,6 +5,9 @@ name: New App
 # -> New App -> Run workflow*) or by the New app button of AppHub, which calls the dispatch API. The logic is
 # scripts/new_app.py; setup, including the NEW_APP_TOKEN secret, is docs/create-app.md.
 
+# The run is named after the app, so that a program that started it (AppHub) can find its own run among the others
+run-name: New App ${{ inputs.name }}
+
 on:
   workflow_dispatch:
     inputs:

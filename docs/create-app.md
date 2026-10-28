@@ -87,4 +87,6 @@ python3 -m unittest discover -s tests                  # the tests (need pyyaml;
 `POST /repos/LukeNeedham/ci-workflows/actions/workflows/new_app.yml/dispatches` with `{"ref": "main", "inputs": {"name":
 "LyricTutor", "private": "false"}}` (inputs are strings) and a token that may write Actions on this repo (the token of
 AppHub that builds main is enough). It answers `204` with no run id: the run is found in
-`GET /repos/LukeNeedham/ci-workflows/actions/workflows/new_app.yml/runs?event=workflow_dispatch`, newest first.
+`GET /repos/LukeNeedham/ci-workflows/actions/workflows/new_app.yml/runs?event=workflow_dispatch`, newest first, by its
+`display_title`, which is `New App <name>` (the `run-name` of the workflow). A caller that may start the same app twice
+notes the ids of the runs there are before it dispatches, and takes the new one.
