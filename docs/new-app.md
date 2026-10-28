@@ -22,7 +22,7 @@ then follow it, and tell the user about anything you skipped and why.
 - **Ask for what you do not know**, in one go: app name, package name (`com.lukeneedham.<app>`), what
   the app does, and anything unusual (orientation, minimum Android version, login).
 - **The repo.** Claude cannot create GitHub repos (the integration gets a 403). The user creates it with the
-  **New app** button of AppHub or the *New App* workflow ([create-app.md](create-app.md)), which makes the repo with a README,
+  **New app** button of AppHub (which makes the repo with its own token and runs the *New App* workflow, [create-app.md](create-app.md)), which gives the repo a README,
   its first commit (the first sync, the Gradle wrapper, `settings.gradle.kts`, `.gitignore`, `LICENSE` and the debug
   keystore), the secret and the `apps.json` entry: then skip steps 2 and 3 below for what it did (the keystore, the callers, the
   `apps.json` entry). Without it, ask the user to create an empty repo named after the app, **with a README** so `main`

@@ -415,7 +415,7 @@ class CreateApp(unittest.TestCase):
             ("POST", "/user/repos"): RuntimeError("POST /user/repos returned 403: Resource not accessible by personal access token"),
         })
 
-        with self.assertRaisesRegex(RuntimeError, "scope `repo`.*Repository creation"):
+        with self.assertRaisesRegex(RuntimeError, "Create it first.*resume"):
             n.create_app("LyricTutor", create_token="t", make_caller=lambda token: call)
 
     def test_a_private_repo_is_reported_as_private(self):
