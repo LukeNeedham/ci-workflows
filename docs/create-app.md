@@ -51,7 +51,7 @@ and a name that is taken (a repo, or an entry of `apps.json`), unless *resume* i
 
 | Secret | Used for | Notes |
 |---|---|---|
-| `NEW_APP_TOKEN` | **Creating the repo** | Must be allowed to create repos for the account. A **classic** token with the scope `repo` can. Whether a fine-grained token can is not settled (see below). Without this secret `SYNC_TOKEN` is tried |
+| `NEW_APP_TOKEN` | **Creating the repo** | Must be allowed to create repos for the account. A **classic** token with the scope `repo` can, and GitHub lists the call for **fine-grained** tokens too (see below). Without this secret `SYNC_TOKEN` is tried |
 | `SYNC_TOKEN` | The first commit, the secret, and the line of `apps.json` | The token of [sync.md](sync.md#the-token-one-time-setup): Contents, Workflows and Secrets on **All repositories**, which covers a repo made later; Contents on this repo |
 | `GENERATED_COMMIT_TOKEN` | Handed on to the new app | Already there for the sync |
 
@@ -62,8 +62,15 @@ and a name that is taken (a repo, or an entry of `apps.json`), unless *resume* i
 A classic token with `repo` can write to every repo of the account, so keep it to this one secret and renew it with the
 rest ([sync.md](sync.md#the-token-one-time-setup)).
 
-**Fine-grained tokens.** GitHub's reference for `POST /user/repos` says whether the endpoint accepts them and with which
-permission; this was not confirmed when this was written. To test one, run the call with it and read the answer:
+**Fine-grained tokens.** GitHub's own data for the permissions table of the REST API (`fine-grained-pat-permissions.json` of
+`github/docs`) lists `POST /user/repos`, the call that creates a repo for a personal account, as available to fine-grained
+personal access tokens, under two permissions, both at the level *write*: **Administration** (a repository permission) and
+**Repository creation**. It is flagged as needing additional permissions, which the data does not spell out, so what this does
+not tell is whether either one alone is enough, and whether the token page offers "Repository creation" to a personal
+token. A fine-grained token is made for **All repositories** of `LukeNeedham`, so that it covers a repo that does not exist yet.
+Prefer *Repository creation* if the page offers it: *Administration* also lets the token change settings and delete repos.
+
+This was read from the documentation source, not tried with a token, so test the one you make before relying on it:
 
 ```
 curl -s -o /dev/null -D - -X POST https://api.github.com/user/repos \
@@ -71,8 +78,9 @@ curl -s -o /dev/null -D - -X POST https://api.github.com/user/repos \
   -d '{"name":"token-test-delete-me","private":true}' | grep -i "^HTTP\|x-accepted-github-permissions"
 ```
 
-A `201` means it works (delete the repo again); a `403` names the permission it wanted in `x-accepted-github-permissions`.
-If it works, use it as `NEW_APP_TOKEN` and drop the classic one.
+A `201` means it works (delete the test repo again); a `403` names the permission it wanted in
+`x-accepted-github-permissions`. If it works, use it as `NEW_APP_TOKEN` and drop the classic one, which can write to
+every repo of the account.
 
 ## Running it yourself
 

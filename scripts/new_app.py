@@ -14,8 +14,8 @@ What it does, in this order (see docs/create-app.md):
 Every step can be repeated: with --resume an existing repo is carried on with, and a step that is done is skipped.
 
 Needs PyYAML, PyNaCl (for the secret) and keytool (any JDK). Environment variables:
-  NEW_APP_TOKEN          may create repos for the account: a classic token with the scope `repo`, or a fine-grained one if
-                         GitHub lets it. Defaults to SYNC_TOKEN
+  NEW_APP_TOKEN          may create repos for the account: a classic token with the scope `repo`, or a fine-grained one for all
+                         repositories with the permission Administration or Repository creation (write). Defaults to SYNC_TOKEN
   SYNC_TOKEN             the token of sync_apps.py (contents, workflows and secrets of the apps; contents of this repo)
   GENERATED_COMMIT_TOKEN the secret that every app holds (docs/sync.md)
 
@@ -261,8 +261,8 @@ def create_app(name, private=False, resume=False, create_token=None, sync_token=
     except RuntimeError as e:
         if " returned 403:" in str(e) and "/user/repos" in str(e):
             raise RuntimeError(
-                f"{e}\nThe token may not create repositories. A classic token with the scope `repo` can; a fine-grained one "
-                "may not (docs/create-app.md)") from None
+                f"{e}\nThe token may not create repositories. It needs the scope `repo` (a classic token), or the permission "
+                "Administration or Repository creation, write, on all repositories (a fine-grained one). See docs/create-app.md") from None
         raise
     lines.append(f"repo https://github.com/{repo} ({'private' if private else 'public'})")
 
