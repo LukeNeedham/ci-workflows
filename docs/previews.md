@@ -35,6 +35,8 @@ the last good previews. Fix the preview, or mock what it needs (camera, video).
 
 ## Things to know
 
+- An app with no `@Preview` at all (a WebView wrapper, with no composables) has nothing to render: the render step succeeds,
+  the comment says the app has no previews, and nothing fails.
 - `previews-main` is a pre-release that is not a build: the "delete pre-releases" sweep skips it, and PR cleanup never
   matches it (a build tag is `<branch>-<run>-<attempt>`).
 - A comparison is by the hash of the PNG, so a preview that draws something different on each render (time, animation, a

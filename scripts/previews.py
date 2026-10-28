@@ -79,6 +79,9 @@ def comment_body(repo, pr_tag, head, base, main_sha_now=None):
     if main_sha_now and main_sha_now != base["sha"]:
         lines.append(f"⚠️ `main` has moved on to `{main_sha_now[:7]}`; this comment updates when its previews are rendered.")
     lines.append("")
+    if not head["previews"] and not base["previews"]:
+        lines.append("This app has no previews.")
+        return "\n".join(lines) + "\n"
     total = len(added) + len(changed) + len(removed)
     if total == 0:
         lines.append("No preview changed ✅")
@@ -163,11 +166,12 @@ def render(app_dir, gradle_args):
     result = subprocess.run(
         [str(app_dir / "gradlew"), "testDebugUnitTest", "--tests", "*AllPreviewsTest",
          "--init-script", str(SCREENSHOTS / "screenshots.init.gradle"),
-         f"-Pscreenshots.sources={SCREENSHOTS / 'test'}", *gradle_args],
+         f"-Pscreenshots.sources={SCREENSHOTS / 'test'}", "-Ppreviews.allowEmpty=true", *gradle_args],
         cwd=app_dir,
     )
     if result.returncode != 0:
         return result.returncode
+    rendered.mkdir(parents=True, exist_ok=True)
     failures = failed_previews(rendered)
     for line in failures:
         print(f"::error title=Preview could not be rendered::{line}")
@@ -176,8 +180,8 @@ def render(app_dir, gradle_args):
               f"Android Studio either. Fix it, or mock what it needs (docs/app-conventions.md).", file=sys.stderr)
         return 1
     if not list(rendered.glob("*.png")):
-        print("::error::No preview was rendered.")
-        return 1
+        # An app with no @Preview at all: nothing to render, and nothing to compare
+        print("::notice::The app has no previews, so there is nothing to render.")
     return 0
 
 
