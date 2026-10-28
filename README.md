@@ -11,6 +11,7 @@ the real logic lives here, so a fix made once reaches every project.
 | [`android_main_build.yml`](.github/workflows/android_main_build.yml) | On every push to **main**, builds the debug APK (kept as the rolling pre-release `main-build`) and renders the previews | Push to main, or by hand, from the caller |
 | [`android_release.yml`](.github/workflows/android_release.yml) | Publishes a **permanent, signed release** (tag + APK) | Run by hand, from the caller |
 | [`sync_apps.yml`](.github/workflows/sync_apps.yml) | Opens a PR in every app of [`apps.json`](apps.json) that keeps its skill, all the callers and `CLAUDE.md` block in line with this repo ([docs/sync.md](docs/sync.md)) | Change here, weekly, or by hand |
+| [`new_app.yml`](.github/workflows/new_app.yml) | Creates a new app repo with its first commit, secret and `apps.json` entry ([docs/create-app.md](docs/create-app.md)) | By hand, or the New app button of AppHub |
 | [`delete_prereleases.yml`](.github/workflows/delete_prereleases.yml) | Deletes **all** pre-releases and tags in the repo | Run by hand |
 
 `android_pr.yml` just chooses between the build and the cleanup workflow from the event. It is the
@@ -41,7 +42,7 @@ conventions into each app's repo.
 
 **See [docs/new-app.md](docs/new-app.md)** for the full checklist: project setup, the committed debug
 keystore, these CI workflows, and the standard architecture (single activity, Compose, Navigation 3,
-MVVM). Read it first when starting any new app.
+MVVM). Read it first when starting any new app. The repo itself is made by [docs/create-app.md](docs/create-app.md).
 
 ## README standard
 

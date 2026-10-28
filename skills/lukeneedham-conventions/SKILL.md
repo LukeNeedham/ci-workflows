@@ -12,7 +12,7 @@ there. The same goes for the callers in `.github/workflows/`.
 The long guides are in that repo's `docs/`: `new-app.md` (read first when starting an app), `setup.md`,
 `app-config.md`, `app-icon.md`, `readme.md` (the README layout and `readme.yml`), `pages.md` (`XPage` and
 `XPageContent`), `app-shell.md` (`MainActivity`, `Root`, navigation), `screenshots.md` (the README screenshots), `app-conventions.md`, `library.md`,
-`using-the-library.md` and `consuming-apps.md`. If you can reach GitHub, read the relevant page; otherwise the rules
+`using-the-library.md`, `consuming-apps.md` and `create-app.md` (how a new app repo is created). If you can reach GitHub, read the relevant page; otherwise the rules
 below are enough.
 
 ## Project
@@ -31,6 +31,8 @@ below are enough.
 - Every app is built the same way and nothing is configured per app: module `:app`, debug APK at
   `app/build/outputs/apk/debug/app-debug.apk`, PRs into `main` only (never `master` or `develop`), JDK 17.
   A new app needs only its entry (`name`, `repo`) in `ci-workflows`' `apps.json`.
+  Claude cannot create the repo (403): the user makes it with AppHub's New app button or the *New App* workflow of
+  `ci-workflows` (`docs/create-app.md`), which also adds the entry, the first sync, the debug keystore and the basic scaffold.
 - Every app has all the callers of `ci-workflows`' `callers/`, copied by the sync: never edit, rename or delete one
   (`docs/setup.md` there documents each). The release run fails at once, with a message that lists what is missing, until the
   app has the four release secrets and `gradle/android-release.gradle`.

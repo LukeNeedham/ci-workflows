@@ -1,0 +1,51 @@
+name: New App
+
+# Creates a new app repo and sets it up: the repo (with a README, so that `main` exists), its first commit (the first
+# sync and the basic scaffold), the secret GENERATED_COMMIT_TOKEN, and the entry in apps.json. Started by hand (*Actions
+# -> New App -> Run workflow*) or by the New app button of AppHub, which calls the dispatch API. The logic is
+# scripts/new_app.py; setup, including the NEW_APP_TOKEN secret, is docs/create-app.md.
+
+on:
+  workflow_dispatch:
+    inputs:
+      name:
+        description: The name of the app and of its repo (letters, digits, hyphens and underscores), for example LyricTutor
+        type: string
+        required: true
+      private:
+        description: Create a private repo (the default is public, which is what AppHub lists)
+        type: boolean
+        default: false
+      resume:
+        description: Carry on with a repo that already exists (a run that stopped half way)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  create:
+    runs-on: ubuntu-latest
+    # With the sync: both change apps.json and push to the apps
+    concurrency:
+      group: sync-apps
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+
+      - run: pip install --quiet pyyaml pynacl
+
+      - name: Create the app
+        env:
+          NEW_APP_TOKEN: ${{ secrets.NEW_APP_TOKEN }}
+          SYNC_TOKEN: ${{ secrets.SYNC_TOKEN }}
+          GENERATED_COMMIT_TOKEN: ${{ secrets.GENERATED_COMMIT_TOKEN }}
+          APP_NAME: ${{ inputs.name }}
+          PRIVATE: ${{ inputs.private }}
+          RESUME: ${{ inputs.resume }}
+        run: |
+          args=()
+          if [ "$PRIVATE" = "true" ]; then args+=(--private); fi
+          if [ "$RESUME" = "true" ]; then args+=(--resume); fi
+          python3 scripts/new_app.py "$APP_NAME" "${args[@]}"
