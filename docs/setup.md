@@ -1,7 +1,7 @@
 # Setting up a project
 
 How to start using these workflows in a new project, or move an existing project over to them. The
-caller files are in [`callers/`](../callers) and have no settings: copy them as they are (all four). For an app
+caller files are in [`callers/`](../callers) and have no settings: copy them as they are (all of them). For an app
 in `apps.json` the [sync](sync.md) copies the callers by itself.
 
 For what each workflow does, its inputs and the PR comment it posts, see the
@@ -39,6 +39,9 @@ closes.
 
 **File:** [`callers/trigger_on_pull_request.yml`](../callers/trigger_on_pull_request.yml): copy it, unchanged, to
 `.github/workflows/trigger_on_pull_request.yml` in your project. There is nothing to edit in it.
+
+It runs on all the pull request types (`opened`, `reopened`, `synchronize`, `closed`): `closed` runs the cleanup of the PR's
+builds, the others build. Only PRs into `main` are built; the shared workflow skips the rest.
 
 ### Settings
 
@@ -79,7 +82,8 @@ comes from a git tag (`0.3.0`, no `v`), which the workflow creates.
    sets them. Builds then need network to fetch the script the first time, and
    `--refresh-dependencies` picks up a changed script on a machine that cached the old one.
 2. **`release.yml`** is already in the app (every app has it, from the sync). Until steps 1 and 3 are done, running it
-   fails in its first step, before anything is tagged, with an error that lists what is missing.
+   fails in its first step, before anything is tagged or built, with one error that lists what is missing: the four repo
+   secrets of step 3 and the Gradle script of step 1.
 3. **Make a signing key** and add four repo secrets (*Settings → Secrets and variables → Actions*):
    `RELEASE_KEYSTORE_BASE64` (the keystore, base64 on one line), `RELEASE_KEYSTORE_PASSWORD`,
    `RELEASE_KEY_ALIAS`, `RELEASE_KEY_PASSWORD`. Keep a copy of the key somewhere safe: an app signed
@@ -90,24 +94,22 @@ Release builds are signed with a different key from the debug builds on pull req
 moving from a PR build to a release uninstalls once. The tester link is
 `https://github.com/<owner>/<repo>/releases/latest/download/<RepoName>.apk`.
 
-## 4. Build main on demand (optional, expected by AppHub)
+## 4. The main build (every push to main)
 
-A manual build of the default branch that keeps its APK for one day, as a workflow artifact. AppHub shows a
-*Build main* button for every repo that has it, starts the run through the API, reports its progress, and
-offers the APK to install. It can also be run from the *Actions* tab.
+On every push to the default branch, builds the debug APK and renders the previews, and keeps both up to date: the APK as the
+rolling pre-release `main-build` (so there is always a current main APK to test; AppHub shows it), and the previews as the baseline that PRs
+compare theirs with ([previews.md](previews.md)). It can also be run by hand from the *Actions* tab. It needs no settings.
 
 **File:** [`callers/build_main.yml`](../callers/build_main.yml): copy it, unchanged, to
 `.github/workflows/build_main.yml` in your project.
-**Keep the file name**: AppHub starts `build_main.yml` on `main`. It must be on `main` before it can be run.
 
-Starting it from AppHub needs a GitHub token with **Actions: Read and write** on the repo; downloading the
-APK needs *Actions: Read*. See the AppHub README for creating one.
+Both releases are replaced in place by every run and are kept by the "delete pre-releases" sweep. The asset of `main-build` is
+`app-debug.apk`; its release notes start with a `commit: <sha>` line, which is what tells a tool which commit the APK is.
 
 ## Setting up a new project
 
 1. Add the project to [`apps.json`](../apps.json): its `name` and `repo`.
-2. Copy the four files of `callers/` (`trigger_on_pull_request.yml`, `build_main.yml` so AppHub can build main,
-   `delete_prereleases.yml` and `release.yml`) to `.github/workflows/` in the project, unchanged. After the first
+2. Copy all the files of `callers/` to `.github/workflows/` in the project, unchanged. After the first
    copy the [sync](sync.md) keeps them in line.
 3. Commit them on a branch and open a PR to the target branch.
 4. [Check it works](#check-that-it-works).

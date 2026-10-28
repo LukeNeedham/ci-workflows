@@ -35,6 +35,9 @@ on:
         type: string
         required: true
     outputs:
+      previews:
+        description: 'What became of the previews: rendered, failed (the previews job of android_pr.yml then fails the PR), or skipped (not a pull request)'
+        value: ${{ jobs.build.outputs.previews }}
       screenshots:
         description: 'What became of the README screenshots: rendered (uploaded as the artifact screenshots), failed, or skipped (nothing to render)'
         value: ${{ jobs.build.outputs.screenshots }}
@@ -43,6 +46,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     outputs:
+      previews: ${{ steps.previews.outcome == 'success' && 'rendered' || (steps.previews.outcome == 'failure' && 'failed' || 'skipped') }}
       screenshots: ${{ steps.shots.outcome == 'success' && 'rendered' || (steps.shots.outcome == 'failure' && 'failed' || 'skipped') }}
     # A newer push to the same PR cancels the running build, so an older build cannot finish last
     # and overwrite the newer build's comment.
@@ -177,6 +181,26 @@ jobs:
           overwrite: true
           # Only a hand-over to the screenshots job: the committed PNGs in docs/screenshots/ are what the README shows
           retention-days: 1
+
+      # Every @Preview of the app, rendered once more (the build is already done, so it is quick) and uploaded to this
+      # build's release; the PR gets a comment with the previews that differ from the ones of main, which
+      # android_main_build.yml renders on each push to main (docs/previews.md). A preview that cannot be rendered does not
+      # fail this job (the APK is fine): the previews job of android_pr.yml fails the PR instead.
+      - name: Render the previews
+        id: previews
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        run: python3 "$CI_SCRIPTS/previews.py" render --no-daemon --build-cache
+
+      - name: Show the changed previews on the PR
+        if: steps.previews.outcome == 'success'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >
+          python3 "$CI_SCRIPTS/previews.py" pr --repo "${{ github.repository }}" --pr "${{ github.event.pull_request.number }}"
+          --tag "${{ steps.meta.outputs.tag }}" --sha "${{ github.event.pull_request.head.sha }}"
+          --base "${{ github.event.pull_request.base.ref }}"
 
       # Don't leave the comment claiming a build is in progress if the job dies
       # A run cancelled by a newer push must stay quiet: the newer run owns the comment now.

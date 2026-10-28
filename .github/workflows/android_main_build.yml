@@ -1,14 +1,15 @@
 name: Android Main Build
 
-# Reusable workflow: builds the debug APK of the branch it is run on (main, in practice) on demand and
-# keeps it as a workflow artifact for ONE day. It is run by hand, from the Actions tab or by AppHub, which
-# starts it through the API, follows the run, and downloads the artifact.
+# Reusable workflow: on each push to main (and by hand), builds the debug APK and renders every @Preview of the app, and
+# publishes both:
+#   - the APK as the asset `app-debug.apk` of the rolling pre-release `main-build`, replaced on each run, so there is always
+#     an up-to-date main APK to test (AppHub shows it). The release notes carry the commit as a `commit:` line.
+#   - the previews as the assets of the pre-release `previews-main`, which PRs compare their previews with (docs/previews.md);
+#     after that the comment of every open PR is redone against them.
+# The two do not depend on each other: a failing preview does not stop the APK from being published, nor the other way round.
+# The run still fails when either failed. A newer push cancels the running build: only the newest main is of interest.
 #
-# Unlike a PR build it publishes no release, no tag and no comment: the artifact expires on its own, so
-# nothing needs cleaning up. The artifact is named `apk` and holds the APK as a single file.
-#
-# The caller must be named build_main.yml, because that is the file AppHub starts.
-# Caller: callers/build_main.yml. It needs `contents: read` only and has no settings.
+# Caller: callers/build_main.yml. It needs `contents: write` and `pull-requests: write` and has no settings.
 
 on:
   # No inputs: every app is built the same way (docs/app-config.md)
@@ -17,13 +18,14 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    # A second request for the same branch replaces the running build: only the newest main is of interest
     concurrency:
       group: android-main-build-${{ github.repository }}-${{ github.ref }}
       cancel-in-progress: true
     steps:
       - id: config
         uses: LukeNeedham/ci-workflows/.github/actions/app-config@main
+
+      - uses: LukeNeedham/ci-workflows/.github/actions/ci-scripts@main
 
       - uses: actions/checkout@v4
 
@@ -40,12 +42,38 @@ jobs:
           cache-read-only: ${{ github.ref_name != github.event.repository.default_branch }}
 
       - name: Build APK
+        id: apk
+        continue-on-error: true
         run: ./gradlew ${{ steps.config.outputs.gradle-task }} --no-daemon --build-cache
 
-      - name: Keep the APK for a day
-        uses: actions/upload-artifact@v4
-        with:
-          name: apk
-          path: ${{ steps.config.outputs.apk-path }}
-          retention-days: 1
-          if-no-files-found: error
+      - name: Publish the APK as the main build
+        if: steps.apk.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >
+          python3 "$CI_SCRIPTS/main_build.py" publish
+          --repo "${{ github.repository }}" --sha "${{ github.sha }}" --apk-path "${{ steps.config.outputs.apk-path }}"
+          --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+      - name: Render the previews
+        id: previews
+        continue-on-error: true
+        run: python3 "$CI_SCRIPTS/previews.py" render --no-daemon --build-cache
+
+      - name: Publish them as the previews of main
+        if: steps.previews.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 "$CI_SCRIPTS/previews.py" publish-main --repo "${{ github.repository }}" --sha "${{ github.sha }}"
+
+      - name: Update the comments of the open pull requests
+        if: steps.previews.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 "$CI_SCRIPTS/previews.py" refresh --repo "${{ github.repository }}" --base "${{ github.event.repository.default_branch }}"
+
+      - name: Fail the run if the build or the previews failed
+        if: steps.apk.outcome == 'failure' || steps.previews.outcome == 'failure'
+        run: |
+          echo "::error::The APK build ('${{ steps.apk.outcome }}') or the previews ('${{ steps.previews.outcome }}') failed: see the steps above"
+          exit 1

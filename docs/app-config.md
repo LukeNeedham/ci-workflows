@@ -16,7 +16,7 @@ get an option to differ from it.
 | Timezone of the timestamps | `Europe/Amsterdam` |
 | PR comment id | `<repo name, lower case>-app-link` |
 | Library | The shared library ([library.md](library.md)), with `DebugKit.init` called first thing and `Logger` used for logging. The debug pages are optional |
-| Workflow files | All four callers in `.github/workflows/`: `trigger_on_pull_request.yml`, `build_main.yml`, `delete_prereleases.yml` and `release.yml` |
+| Workflow files | All callers of [`callers/`](../callers) in `.github/workflows/` ([setup.md](setup.md) documents each) |
 
 The values are in `scripts/app_config.py` and only there. Changing one changes it for every app, so change the apps
 first if they do not match yet. An app that cannot follow a rule has to be changed, not given an exception.
@@ -59,23 +59,9 @@ see it reported and wait for ever, so require `android / build` instead. A PR th
 branch rule: its cleanup finds no releases when nothing was built. Manual runs are never skipped. If the list of the PR's
 files cannot be read, the PR is built.
 
-## Every app has the release caller
-
-`release.yml` is in every app, so it is always there to run. An app that is not set up for releases yet fails in its
-first step, before anything is tagged or built, with one error that lists what is missing: the four repo secrets
-(`RELEASE_KEYSTORE_BASE64`, `RELEASE_KEYSTORE_PASSWORD`, `RELEASE_KEY_ALIAS`, `RELEASE_KEY_PASSWORD`) and the
-`gradle/android-release.gradle` script in the app's build file, with a link to
-[how to set it up](setup.md#3-permanent-releases-optional).
-
 ## What stays in the caller
 
 What GitHub only reads from the caller file itself, so it is the same in every app: the triggers (`on:`), the
-`permissions:`, and the inputs of a manual run (the version and notes of `release.yml`). The files in
-[`callers/`](../callers) carry one comment, that they are copied from here and not to be edited in the app; what they
-do is documented here and in [setup.md](setup.md):
-
-- `trigger_on_pull_request.yml` lists all four pull request types: `closed` runs the release cleanup, the others
-  build. Only PRs into `main` are built; the shared workflow skips the rest.
-- `build_main.yml` must keep its file name: AppHub starts it by name. It builds the branch it is run on and keeps the
-  APK as an artifact for one day.
-- `delete_prereleases.yml` deletes **every** pre-release and tag in the repo, so it is only run by hand.
+`permissions:`, and the inputs of a manual run (the version and notes of the release caller). The files in
+[`callers/`](../callers) carry one comment, that they are copied from here and not to be edited in the app; what each one
+does is documented in [setup.md](setup.md), the one place that describes the callers.
