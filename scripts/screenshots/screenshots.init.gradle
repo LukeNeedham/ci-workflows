@@ -69,6 +69,11 @@ allprojects {
             // take it from the build cache, or nothing would be rendered
             outputs.upToDateWhen { false }
             outputs.cacheIf { false }
+            // An app with no @Preview at all (a WebView wrapper) has no test to run: that is not a failure of the previews run
+            // (scripts/previews.py passes this property; the screenshots run still wants its test)
+            if (findProperty('previews.allowEmpty') != null) {
+                filter.failOnNoMatchingTests = false
+            }
             // A failing preview must say why in the CI log: the whole chain of causes, not only the first exception
             testLogging {
                 exceptionFormat 'full'

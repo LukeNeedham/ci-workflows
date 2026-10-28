@@ -53,6 +53,10 @@ class Comment(unittest.TestCase):
     def test_no_baseline(self):
         self.assertIn("not rendered yet", self.body(None, manifest("h" * 40, {})))
 
+    def test_an_app_without_previews(self):
+        body = self.body(manifest("a" * 40, {}), manifest("b" * 40, {}))
+        self.assertIn("no previews", body)
+
     def test_no_change(self):
         m = manifest("a" * 40, {"c.F.P": "1"})
         body = self.body(m, manifest("b" * 40, {"c.F.P": "1"}))
