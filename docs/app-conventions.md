@@ -75,6 +75,8 @@ object AppTheme {
   nothing about the composable because the file does. The previews of the `screenshot` package are the exception: they
   are named `XScreenshot`, since their names are unique across the package and become the images and the lines of
   `order.txt` ([screenshots.md](screenshots.md)).
+- **The content of a bottom sheet is its own composable, in its own file, with its own preview**: `XSheetContent` in
+  `XSheetContent.kt`, stateless and independent of the sheet (`XSheet`, which only draws the sheet around it), see [pages.md](pages.md).
 - **Every composable has a preview, except trivial ones.** Previews wrap the content in `AppTheme` and
   use fake `UiState` / sample data, so they need no ViewModel, Koin or network.
 - **Every page is an `XPage` and an `XPageContent`**, defined in [pages.md](pages.md): `XPage` holds its `XViewModel` and

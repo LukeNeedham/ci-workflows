@@ -9,6 +9,12 @@ A **page** is a destination of the navigation: a full screen, one `Route.X` bran
 (a card, a row, a toolbar), and a dialog or a sheet that belongs to a page, is **not** a page: it is a plain
 composable in its own file, and a dialog or sheet is drawn by the `XPageContent` of its page.
 
+**The content of a bottom sheet is always its own composable, in its own file, with its own preview.** A sheet `XSheet` is only
+the container (the scrim, the surface and its drag handle, the animation, the insets), which is hard to preview. What it shows is
+`XSheetContent`, in `XSheetContent.kt`: stateless like a `PageContent` (state down, events up), it knows nothing of the sheet around it,
+and it has at least one `private` `Preview` in its file, wrapped in `AppTheme`. `XSheet` only puts `XSheetContent` in the sheet: nothing
+else is drawn inside it.
+
 ## The two composables
 
 | | `XPage` | `XPageContent` |
