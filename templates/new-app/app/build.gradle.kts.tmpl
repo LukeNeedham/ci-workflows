@@ -1,11 +1,71 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
+    alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidApplication)
-    alias(libs.plugins.kotlinAndroid)
     alias(libs.plugins.kotlinSerialization)
+    alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.ksp)
+}
+
+kotlin {
+    // Only Android for now. The code of commonMain uses nothing but multiplatform libraries, so another target (iosArm64,
+    // iosSimulatorArm64, wasmJs) is a target here and an entry point of its own: see "A Kotlin Multiplatform app" in
+    // docs/app-shell.md and docs/using-the-library.md of LukeNeedham/ci-workflows (no iosX64; Kotlin 2.3 for the web)
+    androidTarget {
+        compilerOptions {
+            jvmTarget.set(JvmTarget.JVM_17)
+        }
+    }
+
+    sourceSets {
+        commonMain.dependencies {
+            implementation(compose.runtime)
+            implementation(compose.foundation)
+            implementation(compose.ui)
+            implementation(compose.components.resources)
+            implementation(compose.components.uiToolingPreview)
+
+            implementation(libs.jetbrains.navigation3.ui)
+            implementation(libs.jetbrains.lifecycle.viewmodel.navigation3)
+            implementation(libs.jetbrains.lifecycle.runtime.compose)
+
+            implementation(project.dependencies.platform(libs.koin.bom))
+            implementation(libs.koin.core)
+            implementation(libs.koin.compose)
+            implementation(libs.koin.compose.viewmodel)
+
+            implementation(libs.coil.compose)
+
+            implementation(libs.ktor.client.core)
+            implementation(libs.ktor.client.content.negotiation)
+            implementation(libs.ktor.serialization.kotlinx.json)
+            implementation(libs.kotlinx.serialization.json)
+
+            implementation(libs.kotlinx.coroutines.core)
+            implementation(libs.kotlinx.datetime)
+
+            implementation(libs.common)
+        }
+        // What has no version for every target stays here, and moves to the source set of the targets that have it
+        androidMain.dependencies {
+            implementation(compose.preview)
+            implementation(libs.androidx.activity.compose)
+            implementation(libs.koin.android)
+            implementation(libs.kotlinx.coroutines.android)
+            implementation(libs.coil.network.okhttp)
+            implementation(libs.ktor.client.okhttp)
+            implementation(libs.room.runtime)
+            implementation(libs.room.ktx)
+            implementation(libs.datastore.preferences)
+            implementation(libs.media3.exoplayer)
+        }
+        commonTest.dependencies {
+            implementation(kotlin("test"))
+            implementation(libs.kotlinx.coroutines.test)
+        }
+    }
 }
 
 android {
@@ -38,7 +98,6 @@ android {
     }
 
     buildFeatures {
-        compose = true
         buildConfig = true
     }
 
@@ -48,47 +107,16 @@ android {
     }
 }
 
-kotlin {
-    compilerOptions { jvmTarget.set(JvmTarget.JVM_17) }
+dependencies {
+    debugImplementation(compose.uiTooling)
+    add("kspAndroid", libs.room.compiler)
 }
 
-dependencies {
-    implementation(libs.common)
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
+}
 
-    implementation(platform(libs.compose.bom))
-    implementation(libs.compose.ui)
-    implementation(libs.compose.foundation)
-    implementation(libs.compose.ui.tooling.preview)
-    debugImplementation(libs.compose.ui.tooling)
-    implementation(libs.androidx.activity.compose)
-    implementation(libs.androidx.lifecycle.runtime.compose)
-    implementation(libs.androidx.lifecycle.viewmodel.navigation3)
-    implementation(libs.androidx.navigation3.runtime)
-    implementation(libs.androidx.navigation3.ui)
-
-    implementation(platform(libs.koin.bom))
-    implementation(libs.koin.android)
-    implementation(libs.koin.compose.viewmodel)
-
-    implementation(libs.coil.compose)
-    implementation(libs.coil.network.okhttp)
-
-    implementation(libs.ktor.client.core)
-    implementation(libs.ktor.client.okhttp)
-    implementation(libs.ktor.client.content.negotiation)
-    implementation(libs.ktor.serialization.kotlinx.json)
-    implementation(libs.kotlinx.serialization.json)
-
-    implementation(libs.kotlinx.coroutines.android)
-    implementation(libs.kotlinx.datetime)
-
-    implementation(libs.room.runtime)
-    implementation(libs.room.ktx)
-    ksp(libs.room.compiler)
-    implementation(libs.datastore.preferences)
-
-    implementation(libs.media3.exoplayer)
-
-    testImplementation(libs.junit)
-    testImplementation(libs.kotlinx.coroutines.test)
+compose.resources {
+    // Pinned so that the generated `Res` does not move with the name of the Gradle root project
+    packageOfResClass = "__PACKAGE__.generated.resources"
 }

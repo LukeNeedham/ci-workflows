@@ -6,9 +6,10 @@ What it does, in this order (see docs/create-app.md):
      if the account's default is another)
   2. pushes the first commit to `main`: the first sync (the skill, the callers and the `CLAUDE.md` block, exactly as
      sync_apps.py makes them) and a project that builds: the Gradle wrapper, `settings.gradle.kts`, `.gitignore`,
-     `LICENSE`, the committed `app/debug.keystore`, and the app of templates/new-app (the dependencies of the architecture,
-     `App`, `MainActivity`, the app shell, the theme, and a settings page that opens the debug pages). The push starts
-     the main build, which is the first check that the template still builds
+     `LICENSE`, the committed `app/debug.keystore`, and the app of templates/new-app: Kotlin Multiplatform with the Android
+     target only (the dependencies of the architecture, the app shell, the theme and a settings page that opens the debug pages
+     in `commonMain`; `App`, `MainActivity` and the manifest in `androidMain`). The push starts the main build, which is the
+     first check that the template still builds
   3. writes the Actions secret GENERATED_COMMIT_TOKEN into the repo
   4. adds the app to apps.json of this repo, with a commit to `main`. This is last, so that the sync it starts finds
      the app up to date and opens no PR
@@ -138,8 +139,8 @@ def fetch_common_version(call):
 
 
 def template_values(name, common_version, tools=TOOLS):
-    """What each token of the templates stands for. The versions of the build tools are this repo's own, so that new apps
-    start on the ones the docs name (docs/new-app.md). The longer token comes first: one is the start of the other."""
+    """What each token of the templates stands for. The versions of the build tools (AGP, Kotlin, Compose Multiplatform) are
+    this repo's own, which the shared library is built with, so that new apps start on the ones the docs name (docs/new-app.md). The longer token comes first: one is the start of the other."""
     catalog = (tools / "gradle" / "libs.versions.toml").read_text()
 
     def version(key):
@@ -155,6 +156,7 @@ def template_values(name, common_version, tools=TOOLS):
         "__APP_NAME__": name,
         "__AGP__": version("agp"),
         "__KOTLIN__": version("kotlin"),
+        "__COMPOSE_PLUGIN__": version("compose-plugin"),
         "__COMMON_VERSION__": common_version,
     }
 

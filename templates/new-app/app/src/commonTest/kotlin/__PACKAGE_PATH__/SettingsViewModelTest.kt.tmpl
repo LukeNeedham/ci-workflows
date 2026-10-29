@@ -1,13 +1,14 @@
 package __PACKAGE__
 
 import __PACKAGE__.ui.SettingsViewModel
-import org.junit.Assert.assertEquals
-import org.junit.Test
+import kotlin.test.Test
+import kotlin.test.assertEquals
 
+// Names without spaces: a test of commonTest also runs on the targets that do not allow them
 class SettingsViewModelTest {
 
     @Test
-    fun `the state says whether debugging is on`() {
+    fun theStateSaysWhetherDebuggingIsOn() {
         assertEquals(true, SettingsViewModel(isDebugEnabled = true).uiState.value.isDebugEnabled)
         assertEquals(false, SettingsViewModel(isDebugEnabled = false).uiState.value.isDebugEnabled)
     }

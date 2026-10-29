@@ -22,28 +22,49 @@ In this order. Every step can be repeated, so a run that stopped half way is fin
 2. **Pushes the first commit to `main`** (not a PR: there is nothing to protect yet). It holds:
    - **the first sync**, made by the same code as [`sync_apps.py`](../scripts/sync_apps.py) (the skill, all the callers and the
      managed block of `CLAUDE.md`), so the next sync finds the app up to date and opens no PR;
-   - **a project that builds**, so that the app starts where [new-app.md](new-app.md) leaves off after its project, shell and
-     library steps. The files are the templates of [`templates/new-app/`](../templates/new-app), with the package
-     (`com.lukeneedham.<name>`), the name, the versions of AGP and Kotlin of this repo and the latest version of the shared
-     library filled in, plus the Gradle wrapper (a copy of this repo's), `settings.gradle.kts` (this repo's repository rules, the
-     repository of the shared library, the app's name, and the module `:app`), `.gitignore`, `LICENSE` (*Copyright (c) year Luke
-     Needham. All rights reserved.*, the default of [readme.md](readme.md)) and the committed `app/debug.keystore`
+   - **a Kotlin Multiplatform project that builds, with the Android target only**, so that the app starts where
+     [new-app.md](new-app.md) leaves off after its project, shell and library steps. The files are the templates of
+     [`templates/new-app/`](../templates/new-app), with the package (`com.lukeneedham.<name>`), the name, the versions of AGP,
+     Kotlin and Compose Multiplatform of this repo (the ones the shared library is built with) and the latest version of the
+     shared library filled in, plus the Gradle wrapper (a copy of this repo's), `settings.gradle.kts` (this repo's repository
+     rules, the repository of the shared library, the app's name, and the module `:app`), `.gitignore`, `LICENSE` (*Copyright (c)
+     year Luke Needham. All rights reserved.*, the default of [readme.md](readme.md)) and the committed `app/debug.keystore`
      ([new-app.md](new-app.md#2-debug-keystore)).
 
+   **The app is Kotlin Multiplatform from the start**, as `:app` with the plugins `kotlinMultiplatform` and `androidApplication`
+   together (the debug APK stays at `app/build/outputs/apk/debug/app-debug.apk`), and only the `androidTarget`. What is in each
+   source set:
+   - **`commonMain`**: everything that is the app, and nothing that only Android has: the shell, the theme, the pages, the Koin
+     module, `initDebugKit(isDebug)`, and the strings as **Compose Multiplatform resources**
+     (`composeResources/values/strings.xml`, read with `stringResource(Res.string.…)`; `Res` is generated in
+     `<package>.generated.resources`). A test checks that no file of it imports `android.*`, `BuildConfig`, `java.*` or an
+     Android-only library, so that another target can be added without moving code;
+   - **`androidMain`**: `App` (`initDebugKit(BuildConfig.DEBUG)` first, then Koin with `androidContext`), `MainActivity` (only
+     `setContent { Root() }`), the manifest and the Android resources (the app name, the theme, the launcher icon);
+   - **`androidDebug`**: the `screenshot` package ([screenshots.md](screenshots.md));
+   - **`commonTest`**: the tests (`kotlin.test`, names without spaces, so that they run on every target).
+
    The app of the templates has:
-   - **the dependencies of the architecture** in `gradle/libs.versions.toml` and `app/build.gradle.kts`: Compose, Navigation 3,
-     Koin, Coil 3, `kotlinx.serialization`, Room (with KSP), DataStore, Ktor (OkHttp), `kotlinx-datetime`, Media3, the
-     coroutines and the shared library; release builds are minified, with the keep rules (`proguard-rules.pro`);
-   - **`App`** (`DebugKit.init` first, then Koin) and **`MainActivity`** (only `setContent { Root() }`);
+   - **the dependencies of the architecture** in `gradle/libs.versions.toml` and `app/build.gradle.kts`. In `commonMain`: Compose
+     Multiplatform, Navigation 3 (the JetBrains artifacts) and the lifecycle, Koin, Coil 3, `kotlinx.serialization`, Ktor, the
+     coroutines, `kotlinx-datetime` and the shared library. In `androidMain`, as they are not for every target: activity-compose,
+     Koin's Android part, Room (with KSP, `kspAndroid`), DataStore, Media3, the OkHttp engines of Coil and Ktor and the coroutines'
+     Android part; they move to the source set of the targets that have them. Release builds are minified, with the keep rules
+     (`proguard-rules.pro`);
+   - **`App`** and **`MainActivity`**, as above;
    - **the shell of [app-shell.md](app-shell.md)**: `Root` (`AppTheme`, `ProvideDebugSettings`, `AppNavigation()`),
      `AppNavigation`, an exhaustive `Router` and the one `sealed interface Route : NavKey` with `Settings`, `Debug`, `Logs`
-     and `Crashes` (the three of the library's pages);
+     and `Crashes` (the three of the library's pages). The back stack is saved with a `SavedStateConfiguration` that registers
+     every route, as iOS and the web need ([app-shell.md](app-shell.md#exceptions)): a new route is added there too;
    - **the app's own `AppTheme`** (a composition local, light and dark, no Material) and `toDebugTheme()`;
    - **one page, `SettingsPage`** ([pages.md](pages.md)): `SettingsPage`, `SettingsPageContent` (the title and the library's
      `DebugButton`, which opens the library's debug page) with its `Preview`, `SettingsViewModel` and `SettingsUiState`, each in its
-     own file, its screenshot in the `screenshot` package (with `order.txt`) and a unit test of its ViewModel;
-   - **strings in `strings.xml`**, a placeholder adaptive launcher icon (a white diamond: replace it) and a manifest.
+     own file, its screenshot and a unit test of its ViewModel;
+   - **a manifest and a placeholder adaptive launcher icon** (a white diamond: replace it).
 
+   **Adding a target later** (iOS, the web): add it in `app/build.gradle.kts` (`iosArm64()` and `iosSimulatorArm64()`, never
+   `iosX64`; the web needs Kotlin 2.3 or newer: [app-shell.md](app-shell.md#exceptions)), give it its entry point and its own
+   `initDebugKit(...)` call, and move what is Android-only in `androidMain` to a source set that has it.
    - **a `readme.yml`** with the name and **placeholder text** (`TODO: ...`) for the tagline and the description, so that
      the README, its screenshots and the sync's report apply from the first PR. It is the app's to write: replace the text.
 

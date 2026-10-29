@@ -126,7 +126,10 @@ fun Router(backStack: NavBackStack<NavKey>, route: Route) {
   4. **The browser address and history** are not synced by the library. An app that syncs them (FlagTutor on the web)
      keeps its own sync, driven by the back stack, and passes `onBack = {}` to `AppNavigation` so that the browser's back
      button, which the sync handles, does not also pop the stack; or it uses the `navigation3-browser` library.
-  5. The `Application`, `MainActivity` and manifest rules apply to the Android target only.
+  5. The `Application`, `MainActivity` and manifest rules apply to the Android target only: they are in `androidMain`, and the
+     rest of the shell in `commonMain`. The source folders are `src/commonMain`, `src/androidMain`, `src/androidDebug` and
+     `src/commonTest` where this page says `src/main`, `src/debug` and `src/test`. An app made by the [New App workflow](create-app.md)
+     is Kotlin Multiplatform with the Android target only, with the code of `commonMain` free of anything Android-only.
 
 ## Migrating an existing app
 

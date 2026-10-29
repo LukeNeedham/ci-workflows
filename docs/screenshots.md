@@ -26,8 +26,8 @@ general previews.
 
 ## The `screenshot` package
 
-All the screenshot code is in **one package, `<the app's package>.screenshot`**, in `src/debug` (so that the mock data
-is not in the release APK; `internal` composables of `src/main` are visible from it). **A page that has screenshots has
+All the screenshot code is in **one package, `<the app's package>.screenshot`**, in `src/debug` (`src/androidDebug` in a Kotlin Multiplatform app, so that the mock data
+is not in the release APK; `internal` composables of `src/main`, or `commonMain` and `androidMain`, are visible from it). **A page that has screenshots has
 a file here, named after the page; not every page needs one, and a page can have several screenshots.** Each file
 holds the screenshots of its page, and **each screenshot is one private `@Preview` composable that owns its mock data
 and renders the page's content with it**:

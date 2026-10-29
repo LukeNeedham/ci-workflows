@@ -8,11 +8,29 @@ import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
+import androidx.savedstate.serialization.SavedStateConfiguration
+import kotlinx.serialization.modules.SerializersModule
+import kotlinx.serialization.modules.polymorphic
+
+/**
+ * Saving the back stack needs every route registered: iOS and the web have no reflection to find them. A new [Route] member is
+ * added here too (docs/app-shell.md in LukeNeedham/ci-workflows).
+ */
+private val backStackConfig = SavedStateConfiguration {
+    serializersModule = SerializersModule {
+        polymorphic(NavKey::class) {
+            subclass(Route.Settings::class, Route.Settings.serializer())
+            subclass(Route.Debug::class, Route.Debug.serializer())
+            subclass(Route.Logs::class, Route.Logs.serializer())
+            subclass(Route.Crashes::class, Route.Crashes.serializer())
+        }
+    }
+}
 
 /** Owns the back stack and the [NavDisplay]. Called only by [Root]. */
 @Composable
 fun AppNavigation() {
-    val backStack = rememberNavBackStack(Route.Settings)
+    val backStack = rememberNavBackStack(backStackConfig, Route.Settings)
 
     NavDisplay(
         backStack = backStack,

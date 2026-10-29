@@ -444,14 +444,19 @@ class RenderedApp(unittest.TestCase):
     these checks are what stands between a typo in a template and a red first build."""
 
     PACKAGE = "com.lukeneedham.lyrictutor"
+    PATH = "com/lukeneedham/lyrictutor"
 
     @classmethod
     def setUpClass(cls):
         cls._tmp = tempfile.TemporaryDirectory()
         cls.dir = Path(cls._tmp.name)
         n.scaffold(cls.dir, "LyricTutor", COMMON, keystore=fake_keystore)
-        cls.root = cls.dir / "app" / "src" / "main" / "kotlin" / "com" / "lukeneedham" / "lyrictutor"
+        src = cls.dir / "app" / "src"
+        cls.common = src / "commonMain" / "kotlin" / "com" / "lukeneedham" / "lyrictutor"
+        cls.android = src / "androidMain" / "kotlin" / "com" / "lukeneedham" / "lyrictutor"
         cls.sources = sorted(cls.dir.rglob("*.kt"))
+        cls.shared = [p for p in cls.sources if "/commonMain/" in p.as_posix()]
+        cls.main = [p for p in cls.sources if "/commonMain/" in p.as_posix() or "/androidMain/" in p.as_posix()]
 
     @classmethod
     def tearDownClass(cls):
@@ -461,7 +466,12 @@ class RenderedApp(unittest.TestCase):
         return (self.dir / relative).read_text()
 
     def ui(self, name):
-        return (self.root / "ui" / name).read_text()
+        return (self.common / "ui" / name).read_text()
+
+    @staticmethod
+    def code(text):
+        """[text] of Kotlin or Gradle without its comments."""
+        return re.sub(r"//[^\n]*", "", re.sub(r"/\*.*?\*/", "", text, flags=re.S))
 
     def test_every_template_is_a_tmpl_and_nothing_is_left_of_a_token_or_the_suffix(self):
         templates = n.TOOLS.joinpath(*n.TEMPLATE_DIR)
@@ -472,37 +482,46 @@ class RenderedApp(unittest.TestCase):
                 self.assertFalse(path.name.endswith(n.TEMPLATE_SUFFIX), path)
         self.assertEqual([], [p for p in self.dir.rglob("*") if "__" in p.name])
 
-    def test_the_app_is_in_the_files_the_task_names(self):
+    def test_the_app_is_in_the_files_the_task_names_in_the_source_sets_of_a_multiplatform_app(self):
         for relative in (
-            "App.kt", "MainActivity.kt", "di/AppModule.kt",
+            "DebugKitSetup.kt", "di/AppModule.kt",
             "ui/Root.kt", "ui/AppNavigation.kt", "ui/Router.kt", "ui/Route.kt",
             "ui/SettingsPage.kt", "ui/SettingsPageContent.kt", "ui/SettingsViewModel.kt", "ui/SettingsUiState.kt",
             "ui/theme/AppTheme.kt", "ui/theme/AppThemeValues.kt", "ui/theme/ToDebugTheme.kt",
         ):
-            self.assertTrue((self.root / relative).is_file(), relative)
-        self.assertTrue((self.dir / "app/src/debug/kotlin/com/lukeneedham/lyrictutor/screenshot/SettingsPage.kt").is_file())
-        self.assertTrue((self.dir / "app/src/debug/kotlin/com/lukeneedham/lyrictutor/screenshot/order.txt").is_file())
-        self.assertTrue((self.dir / "app/src/test/kotlin/com/lukeneedham/lyrictutor/SettingsViewModelTest.kt").is_file())
-        self.assertTrue((self.dir / "readme.yml").is_file())
+            self.assertTrue((self.common / relative).is_file(), f"commonMain: {relative}")
+        for relative in ("App.kt", "MainActivity.kt"):
+            self.assertTrue((self.android / relative).is_file(), f"androidMain: {relative}")
+        src = "app/src"
+        for relative in (
+            f"{src}/androidMain/AndroidManifest.xml",
+            f"{src}/androidMain/res/values/strings.xml",
+            f"{src}/commonMain/composeResources/values/strings.xml",
+            f"{src}/androidDebug/kotlin/{self.PATH}/screenshot/SettingsPage.kt",
+            f"{src}/androidDebug/kotlin/{self.PATH}/screenshot/order.txt",
+            f"{src}/commonTest/kotlin/{self.PATH}/SettingsViewModelTest.kt",
+            "readme.yml",
+        ):
+            self.assertTrue((self.dir / relative).is_file(), relative)
+        self.assertFalse((self.dir / "app/src/main").exists(), "an Android-only layout")
 
     def test_every_source_declares_the_package_of_its_folder(self):
         for path in self.sources:
-            folder = path.parent.relative_to(self.dir / "app" / "src").parts[2:]  # after main|debug|test, and kotlin
+            folder = path.parent.relative_to(self.dir / "app" / "src").parts[2:]  # after the source set, and kotlin
             package = re.search(r"(?m)^package (\S+)$", path.read_text()).group(1)
             self.assertEqual(".".join(folder), package, path)
 
     def test_the_braces_of_every_source_balance(self):
         for path in self.sources:
             code = re.sub(r'"(?:\\.|[^"\\\n])*"', '""', path.read_text())  # strings
-            code = re.sub(r"/\*.*?\*/", "", code, flags=re.S)
-            code = re.sub(r"//[^\n]*", "", code)
+            code = self.code(code)
             for opening, closing in ("{}", "()", "[]"):
                 self.assertEqual(code.count(opening), code.count(closing), f"{path}: {opening}{closing}")
 
     def test_the_versions_are_this_repos_and_the_library_is_the_one_asked_for(self):
         catalog = self.text("gradle/libs.versions.toml")
         repo = (n.TOOLS / "gradle" / "libs.versions.toml").read_text()
-        for key in ("agp", "kotlin"):
+        for key in ("agp", "kotlin", "compose-plugin"):
             self.assertIn(re.search(rf'(?m)^{key} = "[^"]+"$', repo).group(0), catalog)
         kotlin = re.search(r'(?m)^kotlin = "([^"]+)"', repo).group(1)
         self.assertIn(f'ksp = "{kotlin}-2.0.4"', catalog)
@@ -523,14 +542,17 @@ class RenderedApp(unittest.TestCase):
     def test_the_dependencies_of_the_architecture_are_all_there(self):
         build = self.text("app/build.gradle.kts")
         for needle in (
-            "libs.common", "libs.compose.ui)", "libs.compose.foundation", "libs.androidx.activity.compose",
-            "libs.androidx.navigation3.runtime", "libs.androidx.navigation3.ui", "libs.androidx.lifecycle.viewmodel.navigation3",
-            "libs.koin.android", "libs.koin.compose.viewmodel", "platform(libs.koin.bom)",
+            "libs.common", "compose.runtime", "compose.foundation", "compose.ui)", "compose.components.resources",
+            "compose.components.uiToolingPreview", "libs.androidx.activity.compose",
+            "libs.jetbrains.navigation3.ui", "libs.jetbrains.lifecycle.viewmodel.navigation3", "libs.jetbrains.lifecycle.runtime.compose",
+            "libs.koin.core", "libs.koin.compose.viewmodel", "libs.koin.android", "platform(libs.koin.bom)",
             "libs.coil.compose", "libs.coil.network.okhttp",
-            "libs.kotlinx.serialization.json", "libs.kotlinx.coroutines.android", "libs.kotlinx.datetime",
-            "libs.room.runtime", "libs.room.ktx", "ksp(libs.room.compiler)", "libs.datastore.preferences",
-            "libs.ktor.client.okhttp", "libs.ktor.client.core", "libs.media3.exoplayer",
-            "libs.junit", "libs.kotlinx.coroutines.test", "libs.plugins.kotlinSerialization", "libs.plugins.composeCompiler",
+            "libs.kotlinx.serialization.json", "libs.kotlinx.coroutines.core", "libs.kotlinx.coroutines.android", "libs.kotlinx.datetime",
+            "libs.room.runtime", "libs.room.ktx", 'add("kspAndroid", libs.room.compiler)', "libs.datastore.preferences",
+            "libs.ktor.client.core", "libs.ktor.client.okhttp", "libs.ktor.client.content.negotiation", "libs.ktor.serialization.kotlinx.json",
+            "libs.media3.exoplayer", 'kotlin("test")', "libs.kotlinx.coroutines.test",
+            "libs.plugins.kotlinMultiplatform", "libs.plugins.composeMultiplatform", "libs.plugins.kotlinSerialization",
+            "libs.plugins.composeCompiler", "libs.plugins.androidApplication", "libs.plugins.ksp",
         ):
             self.assertIn(needle, build)
         self.assertNotIn("material", build.lower(), "no Material: the app has its own theme")
@@ -540,10 +562,53 @@ class RenderedApp(unittest.TestCase):
         self.assertIn(f'namespace = "{self.PACKAGE}"', build)
         self.assertIn(f'applicationId = "{self.PACKAGE}"', build)
         for needle in ("compileSdk = 36", "targetSdk = 36", "minSdk = 23", 'storeFile = file("debug.keystore")', "buildConfig = true",
-                       "isMinifyEnabled = true", "isShrinkResources = true", "VERSION_17"):
+                       "isMinifyEnabled = true", "isShrinkResources = true", "VERSION_17", "JVM_17"):
             self.assertIn(needle, build)
+        self.assertIn(f'packageOfResClass = "{self.PACKAGE}.generated.resources"', build)
         self.assertIn(self.PACKAGE, self.text("app/proguard-rules.pro"))
         self.assertIn("com.lukeneedham.common.logger.LogEntry", self.text("app/proguard-rules.pro"))
+
+    def test_the_app_is_multiplatform_with_the_android_target_and_no_other(self):
+        build = self.code(self.text("app/build.gradle.kts"))
+        self.assertIn("alias(libs.plugins.kotlinMultiplatform)", build)
+        self.assertIn("androidTarget {", build)
+        for other in ("iosX64", "iosArm64", "iosSimulatorArm64", "wasmJs", "js(", "jvm(", "linux", "macos", "mingw"):
+            self.assertNotIn(other, build, f"a second target: {other}")
+        self.assertNotIn("iosX64", self.text("app/build.gradle.kts").replace("no iosX64", ""), "no iosX64 target, ever (docs/app-shell.md)")
+        # The way to add a target is said where it is added
+        self.assertIn("docs/app-shell.md", self.text("app/build.gradle.kts"))
+
+    def test_commonmain_uses_only_what_every_target_has(self):
+        banned_imports = (
+            "android.", "androidx.activity", "java.", "javax.", "org.koin.android", "kotlinx.coroutines.android",
+            "androidx.compose.ui.tooling.preview", "androidx.compose.ui.res", "coil3.network.okhttp", "io.ktor.client.engine.okhttp",
+            "androidx.room", "androidx.datastore", "androidx.media3",
+        )
+        for path in self.shared:
+            text = path.read_text()
+            for line in re.findall(r"(?m)^import (\S+)", text):
+                for banned in banned_imports:
+                    self.assertFalse(line.startswith(banned), f"{path.name}: import {line} is not in every target")
+            for word in ("BuildConfig", "ComponentActivity", "Application()", "startKoin", "android.R"):
+                self.assertNotIn(word, self.code(text), f"{path.name}: {word} belongs in androidMain")
+            self.assertNotRegex(self.code(text), r"\bR\.(string|drawable|color)\b", f"{path.name}: android resources")
+        build = self.text("app/build.gradle.kts")
+        common_block = build.split("commonMain.dependencies {")[1].split("// What has no version")[0]
+        for android_only in ("androidx.activity", "koin.android", "coil.network.okhttp", "ktor.client.okhttp", "libs.room", "libs.datastore",
+                             "libs.media3", "compose.preview", "coroutines.android"):
+            self.assertNotIn(android_only, common_block, f"commonMain depends on {android_only}")
+
+    def test_the_android_entry_points_are_in_androidmain_and_nowhere_else(self):
+        names = {p.name: p.read_text() for p in self.main}
+        in_android = {p.name for p in self.main if "/androidMain/" in p.as_posix()}
+        self.assertEqual({"App.kt", "MainActivity.kt"}, in_android)
+        self.assertEqual(["MainActivity.kt"], [n_ for n_, t in names.items() if "ComponentActivity()" in t])
+        self.assertEqual(["MainActivity.kt"], [n_ for n_, t in names.items() if "setContent" in t])
+        self.assertIn("setContent { Root() }", names["MainActivity.kt"])
+        self.assertEqual(["App.kt"], [n_ for n_, t in names.items() if "startKoin {" in t])
+        manifest = self.text("app/src/androidMain/AndroidManifest.xml")
+        self.assertIn('android:name=".App"', manifest)
+        self.assertIn('android:name=".MainActivity"', manifest)
 
     def test_every_library_api_the_app_imports_exists_in_common(self):
         declarations = "\n".join(p.read_text() for p in (n.TOOLS / "common" / "src").rglob("*.kt"))
@@ -554,13 +619,10 @@ class RenderedApp(unittest.TestCase):
             self.assertRegex(declarations, rf"\b(fun|class|object|val|var|interface)\s+(\w+\.)?{simple}\b", f"common.{name}")
 
     def test_the_shell_is_the_one_of_app_shell_md(self):
-        everything = {p.name: p.read_text() for p in self.sources if "/src/main/" in p.as_posix()}
+        everything = {p.name: p.read_text() for p in self.main}
         for text in everything.values():
             for forbidden in ("NavHost(", "entryProvider {", "MaterialTheme", "material3"):
                 self.assertNotIn(forbidden, text)
-        self.assertEqual(["MainActivity.kt"], [n for n, t in everything.items() if "ComponentActivity()" in t])
-        self.assertEqual(["MainActivity.kt"], [name for name, text in everything.items() if "setContent" in text])
-        self.assertIn("setContent { Root() }", everything["MainActivity.kt"])
         root = everything["Root.kt"]
         self.assertLess(root.index("AppTheme {"), root.index("ProvideDebugSettings("))
         self.assertLess(root.index("ProvideDebugSettings("), root.index("AppNavigation()"))
@@ -578,12 +640,22 @@ class RenderedApp(unittest.TestCase):
         for page in ("DebugPage", "LogsPage", "CrashesPage"):
             self.assertIn(f"{page}(", router)
 
+    def test_every_route_is_registered_for_saving_the_back_stack(self):
+        navigation = self.ui("AppNavigation.kt")
+        members = re.findall(r"data (?:object|class) (\w+)", self.ui("Route.kt"))
+        registered = re.findall(r"subclass\(Route\.(\w+)::class, Route\.\1\.serializer\(\)\)", navigation)
+        self.assertEqual(sorted(members), sorted(registered), "iOS and the web have no reflection: every route is registered")
+        self.assertIn("rememberNavBackStack(backStackConfig, Route.Settings)", navigation)
+        self.assertIn("SavedStateConfiguration", navigation)
+
     def test_the_application_starts_the_library_first_then_koin(self):
-        app = (self.root / "App.kt").read_text()
+        app = (self.android / "App.kt").read_text()
         body = app.split("override fun onCreate() {")[1]
-        self.assertLess(body.index("super.onCreate()"), body.index("DebugKit.init("))
-        self.assertLess(body.index("DebugKit.init("), body.index("startKoin"))
-        self.assertIn("BuildConfig.DEBUG", app)
+        self.assertLess(body.index("super.onCreate()"), body.index("initDebugKit(BuildConfig.DEBUG)"))
+        self.assertLess(body.index("initDebugKit(BuildConfig.DEBUG)"), body.index("startKoin"))
+        setup = (self.common / "DebugKitSetup.kt").read_text()
+        self.assertIn("fun initDebugKit(isDebug: Boolean)", setup)
+        self.assertIn("DebugKit.init(DebugKitConfig(enabled = isDebug))", setup)
 
     def test_the_settings_page_is_the_page_pattern_with_a_file_for_each(self):
         page, content, model, state = (self.ui(f"Settings{x}.kt") for x in ("Page", "PageContent", "ViewModel", "UiState"))
@@ -596,8 +668,8 @@ class RenderedApp(unittest.TestCase):
         self.assertEqual(1, content.count("@Preview"))
         self.assertIn("class SettingsViewModel(", model)
         self.assertIn("class SettingsUiState(", state)
-        for name, text in (("SettingsPageContent", page), ("SettingsViewModel", content), ("SettingsUiState", content), ("SettingsPage(", model)):
-            self.assertNotIn(f"fun {name}" if name[0] != "S" or "(" in name else f"class {name}", text)
+        for needle, text in (("fun SettingsPageContent", page), ("class SettingsViewModel", content), ("class SettingsUiState", content), ("fun SettingsPage(", model)):
+            self.assertNotIn(needle, text)
         for forbidden in ("koinViewModel", "ViewModel()", "Flow<", "collectAsState"):
             self.assertNotIn(forbidden, content, "the content is stateless: state down, events up")
 
@@ -607,13 +679,18 @@ class RenderedApp(unittest.TestCase):
         self.assertIn("Route.Settings -> SettingsPage(onOpenDebug = { navigateTo(Route.Debug) })", self.ui("Router.kt"))
         self.assertIn("Route.Debug -> DebugPage(", self.ui("Router.kt"))
 
-    def test_all_text_of_the_ui_is_in_strings_xml(self):
+    def test_all_text_of_the_ui_is_in_strings_xml_as_a_compose_resource(self):
         content = self.ui("SettingsPageContent.kt")
-        self.assertIn("stringResource(R.string.settings_title)", content)
+        self.assertIn("stringResource(Res.string.settings_title)", content)
+        self.assertIn(f"import {self.PACKAGE}.generated.resources.Res", content)
+        self.assertIn(f"import {self.PACKAGE}.generated.resources.settings_title", content)
+        self.assertIn("import org.jetbrains.compose.resources.stringResource", content)
         self.assertNotRegex(content, r'text = "')
-        strings = self.text("app/src/main/res/values/strings.xml")
+        strings = self.text("app/src/commonMain/composeResources/values/strings.xml")
         self.assertIn('<string name="settings_title">', strings)
-        self.assertIn('<string name="app_name">LyricTutor</string>', strings)
+        # The name under the launcher icon is the platform's: the manifest reads it
+        self.assertIn('<string name="app_name">LyricTutor</string>', self.text("app/src/androidMain/res/values/strings.xml"))
+        self.assertIn('android:label="@string/app_name"', self.text("app/src/androidMain/AndroidManifest.xml"))
 
     def test_the_theme_is_the_apps_own_and_maps_every_debug_colour(self):
         theme, values, mapping = (self.ui(f"theme/{x}.kt") for x in ("AppTheme", "AppThemeValues", "ToDebugTheme"))
@@ -630,27 +707,28 @@ class RenderedApp(unittest.TestCase):
         import check_screenshot_package as check
 
         self.assertEqual([], check.setup_problems(self.dir))
-        screenshot = self.dir / "app/src/debug/kotlin/com/lukeneedham/lyrictutor/screenshot/SettingsPage.kt"
+        screenshot = self.dir / "app/src/androidDebug/kotlin/com/lukeneedham/lyrictutor/screenshot/SettingsPage.kt"
         self.assertEqual([], check.problems(screenshot.read_text()))
         self.assertEqual(["SettingsPage"], check.preview_names(self.dir))
         self.assertEqual("SettingsPage\n", (screenshot.parent / "order.txt").read_text())
+        # The Preview of ui-tooling-preview: the one the scanner of CI looks for
+        self.assertIn("import androidx.compose.ui.tooling.preview.Preview", screenshot.read_text())
 
     def test_the_resources_are_well_formed_and_the_manifest_resolves_into_them(self):
         import xml.etree.ElementTree as ET
 
-        for path in (self.dir / "app" / "src" / "main").rglob("*.xml"):
-            ET.parse(path)
-        manifest = self.text("app/src/main/AndroidManifest.xml")
-        self.assertIn('android:name=".App"', manifest)
-        self.assertIn('android:name=".MainActivity"', manifest)
+        for folder in ("androidMain", "commonMain/composeResources"):
+            for path in (self.dir / "app" / "src" / folder).rglob("*.xml"):
+                ET.parse(path)
+        manifest = self.text("app/src/androidMain/AndroidManifest.xml")
         self.assertIn('android:icon="@mipmap/ic_launcher"', manifest)
         self.assertIn("android.permission.INTERNET", manifest)
         self.assertIn('android:theme="@style/Theme.App"', manifest)
-        self.assertIn('<style name="Theme.App"', self.text("app/src/main/res/values/themes.xml"))
-        icon = self.text("app/src/main/res/mipmap-anydpi/ic_launcher.xml")
-        self.assertIn("<adaptive-icon", icon)
-        self.assertTrue((self.dir / "app/src/main/res/drawable/ic_launcher_foreground.xml").is_file())
-        self.assertIn('name="ic_launcher_background"', self.text("app/src/main/res/values/colors.xml"))
+        res = "app/src/androidMain/res"
+        self.assertIn('<style name="Theme.App"', self.text(f"{res}/values/themes.xml"))
+        self.assertIn("<adaptive-icon", self.text(f"{res}/mipmap-anydpi/ic_launcher.xml"))
+        self.assertTrue((self.dir / f"{res}/drawable/ic_launcher_foreground.xml").is_file())
+        self.assertIn('name="ic_launcher_background"', self.text(f"{res}/values/colors.xml"))
 
     def test_the_readme_generator_can_read_the_project_and_accepts_the_readme_yml(self):
         import generate_readme
@@ -681,10 +759,14 @@ class RenderedApp(unittest.TestCase):
                 n.scaffold(app, name, COMMON, keystore=fake_keystore)
                 self.assertEqual(name, generate_readme.load(app)["name"])
 
-    def test_the_viewmodel_test_and_the_koin_module_agree_on_the_constructor(self):
-        self.assertIn("SettingsViewModel(isDebugEnabled = DebugKit.enabled)", self.text("app/src/main/kotlin/com/lukeneedham/lyrictutor/di/AppModule.kt"))
+    def test_the_viewmodel_test_is_a_commontest_that_runs_on_every_target_and_agrees_with_the_koin_module(self):
+        test = self.text(f"app/src/commonTest/kotlin/{self.PATH}/SettingsViewModelTest.kt")
+        self.assertIn("import kotlin.test.Test", test)
+        self.assertNotIn("org.junit", test)
+        self.assertNotIn("`", test, "a name with spaces is not allowed on every target")
+        self.assertIn("SettingsViewModel(isDebugEnabled = true)", test)
+        self.assertIn("SettingsViewModel(isDebugEnabled = DebugKit.enabled)", (self.common / "di" / "AppModule.kt").read_text())
         self.assertIn("class SettingsViewModel(isDebugEnabled: Boolean)", self.ui("SettingsViewModel.kt"))
-        self.assertIn("SettingsViewModel(isDebugEnabled = true)", self.text("app/src/test/kotlin/com/lukeneedham/lyrictutor/SettingsViewModelTest.kt"))
 
     def test_a_second_run_changes_nothing_and_an_existing_file_is_kept(self):
         self.assertEqual([], n.scaffold(self.dir, "LyricTutor", COMMON, keystore=lambda p: self.fail("there")))
@@ -703,7 +785,7 @@ class RenderedApp(unittest.TestCase):
             template.mkdir(parents=True)
             (template / "a.txt.tmpl").write_text("hello __NOT_A_TOKEN__")
             (tools / "gradle").mkdir()
-            (tools / "gradle" / "libs.versions.toml").write_text('agp = "1"\nkotlin = "2"\n')
+            (tools / "gradle" / "libs.versions.toml").write_text('agp = "1"\nkotlin = "2"\ncompose-plugin = "3"\n')
             with self.assertRaisesRegex(ValueError, "__NOT_A_TOKEN__"):
                 n.render_templates(Path(tools) / "out", n.template_values("LyricTutor", COMMON, tools), [], tools)
 
