@@ -1,0 +1,14 @@
+package __PACKAGE__.ui
+
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import org.koin.compose.viewmodel.koinViewModel
+
+/** The page: connects to the ViewModel and the navigation, and delegates all UI. No preview. */
+@Composable
+fun SettingsPage(onOpenDebug: () -> Unit) {
+    val viewModel = koinViewModel<SettingsViewModel>()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    SettingsPageContent(state = state, onOpenDebug = onOpenDebug)
+}

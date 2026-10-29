@@ -1,0 +1,16 @@
+package __PACKAGE__.ui
+
+import androidx.compose.runtime.Composable
+import __PACKAGE__.ui.theme.AppTheme
+import __PACKAGE__.ui.theme.toDebugTheme
+import com.lukeneedham.common.ui.ProvideDebugSettings
+
+/** The one composable `MainActivity` calls: everything the UI sits in, then the navigation. */
+@Composable
+fun Root() {
+    AppTheme {
+        ProvideDebugSettings(theme = AppTheme.current.toDebugTheme()) {
+            AppNavigation()
+        }
+    }
+}

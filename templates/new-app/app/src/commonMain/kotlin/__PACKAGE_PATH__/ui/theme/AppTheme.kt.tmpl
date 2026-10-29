@@ -1,0 +1,20 @@
+package __PACKAGE__.ui.theme
+
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.staticCompositionLocalOf
+
+val LocalAppTheme = staticCompositionLocalOf<AppThemeValues> { error("No AppTheme provided") }
+
+/** The app's own theme, set up by hand with a composition local, and no Material theme. Light and dark are decided here. */
+@Composable
+fun AppTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
+    val values = if (darkTheme) DarkAppThemeValues else LightAppThemeValues
+    CompositionLocalProvider(LocalAppTheme provides values, content = content)
+}
+
+object AppTheme {
+    val current: AppThemeValues
+        @Composable get() = LocalAppTheme.current
+}
