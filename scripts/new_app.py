@@ -18,8 +18,8 @@ Every step can be repeated: with --resume an existing repo is carried on with, a
 
 Needs PyYAML, PyNaCl (for the secret) and keytool (any JDK). Environment variables:
   NEW_APP_TOKEN          optional: may create repos for the account (a classic token with the scope `repo`, or a fine-grained one
-                         with Repository creation or Administration, write). AppHub creates the repo itself, with its own
-                         token, so the workflow does not need it: it is then run with --resume
+                         with Repository creation or Administration, write). A caller that creates the repo itself, with its
+                         own token, does not need it: the workflow is then run with --resume
   SYNC_TOKEN             the token of sync_apps.py (contents, workflows and secrets of the apps; contents of this repo)
   GENERATED_COMMIT_TOKEN the secret that every app holds (docs/sync.md)
 
@@ -338,7 +338,7 @@ def create_app(name, private=False, resume=False, create_token=None, sync_token=
     except RuntimeError as e:
         if " returned 403:" in str(e) and "/user/repos" in str(e):
             raise RuntimeError(
-                f"{e}\nThis token may not create repositories, and the repo does not exist. Create it first (AppHub does, with its own "
+                f"{e}\nThis token may not create repositories, and the repo does not exist. Create it first (the caller does, with its own "
                 "token) and run again with resume, or set NEW_APP_TOKEN. See docs/create-app.md") from None
         raise
     lines.append(f"repo https://github.com/{repo} ({'private' if private else 'public'})")

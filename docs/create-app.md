@@ -4,19 +4,20 @@ A new app repo is created and set up with no LLM. Claude cannot create repos (th
 replaces creating the repo by hand in the browser. It is split in two, so that **this repo holds no token that can create
 repos**:
 
-1. **The repo is created by AppHub**, with its own token, kept on the phone (the **New app** button).
+1. **The repo is created by the caller**, with a token of its own that may create repos: a person, or a program that calls the
+   dispatch API (below), such as the app hub.
 2. **The setup of the repo is done here**, by **[`new_app.yml`](../.github/workflows/new_app.yml)**, which runs
-   [`scripts/new_app.py`](../scripts/new_app.py) with the secrets this repo already has for the [sync](sync.md). AppHub
-   starts it with the dispatch API, with *resume* on, as the repo is there already.
+   [`scripts/new_app.py`](../scripts/new_app.py) with the secrets this repo already has for the [sync](sync.md). The caller
+   starts it, from the Actions tab or with the dispatch API, with *resume* on, as the repo is there already.
 
 ## What it does
 
 In this order. Every step can be repeated, so a run that stopped half way is finished by running it again with
 **resume**.
 
-1. **The repo** `LukeNeedham/<name>`, with a README so that `main` exists, public by default (AppHub lists public repos, and the
-   images of the preview comment on PRs are served from the repo's public releases ([previews.md](previews.md)); the **private**
-   option makes it private, and then neither works), and its default branch is `main`. AppHub does this before it starts the
+1. **The repo** `LukeNeedham/<name>`, with a README so that `main` exists, public by default (the
+   images of the preview comment on PRs are served from the repo's public releases, [previews.md](previews.md), so a private repo has
+   none; the **private** option makes it private), and its default branch is `main`. The caller does this before it starts the
    workflow. The workflow does it too, only when it has a token that may create repos (`NEW_APP_TOKEN`, optional, below);
    without one it needs the repo to exist, and *resume* on.
 2. **Pushes the first commit to `main`** (not a PR: there is nothing to protect yet). It holds:
@@ -104,15 +105,15 @@ and a name that is taken (a repo, or an entry of `apps.json`), unless *resume* i
 |---|---|---|
 | `SYNC_TOKEN` | The first commit, the secret, and the line of `apps.json` | The token of [sync.md](sync.md#the-token-one-time-setup): Contents, Workflows and Secrets on **All repositories**, which covers a repo made later; Contents on this repo. **It is not given the power to create repos** |
 | `GENERATED_COMMIT_TOKEN` | Handed on to the new app | Already there for the sync |
-| `NEW_APP_TOKEN` | *Optional.* Creating the repo from the workflow | Only for running the workflow by hand without making the repo first. Left out, the workflow needs the repo to exist. A token that can create repos is better kept off this repo: AppHub does not need it |
+| `NEW_APP_TOKEN` | *Optional.* Creating the repo from the workflow | Only for running the workflow by hand without making the repo first. Left out, the workflow needs the repo to exist. A token that can create repos is better kept off this repo: a caller that makes the repo itself does not need it |
 
-**In AppHub** (on the phone, Keystore-encrypted), the **New app** page uses two tokens:
+**Outside this repo**, the caller has two tokens:
 
-- **The token of Settings**, with the Actions permission (read and write) for this repo: it starts the workflow and reads its run.
-- **A repo creation token**, entered on the New app page: it only creates the repo (and renames its branch to `main`). A
-  **fine-grained** token for all repositories of `LukeNeedham` with **Repository creation** (write), or **Administration**
-  (write) if the token page does not offer it; or a **classic** token with the scope `repo`. Prefer the fine-grained one with
-  *Repository creation*: *Administration* also lets a token change settings and delete repos.
+- **A token that starts the workflow**: the Actions permission (read and write) for this repo, to start it and read its run.
+- **A token that creates the repo** (and renames its branch to `main`): kept by the caller, never in this repo's secrets, and it
+  only creates repos. A **fine-grained** token for all repositories of `LukeNeedham` with **Repository creation** (write), or
+  **Administration** (write) if the token page does not offer it; or a **classic** token with the scope `repo`. Prefer the
+  fine-grained one with *Repository creation*: *Administration* also lets a token change settings and delete repos.
 
 **Fine-grained tokens.** GitHub's own data for the permissions table of the REST API (`fine-grained-pat-permissions.json` of
 `github/docs`) lists `POST /user/repos`, the call that creates a repo for a personal account, as available to fine-grained
@@ -131,7 +132,7 @@ curl -s -o /dev/null -D - -X POST https://api.github.com/user/repos \
 
 A `201` means it works (delete the test repo again); a `403` names the permission it wanted in
 `x-accepted-github-permissions`. If it does not work, use a classic token with `repo`, which can write to every repo of the
-account: it is kept in AppHub only.
+account: keep it with the caller, not in this repo.
 
 ## Running it yourself
 
@@ -143,7 +144,7 @@ python3 -m unittest discover -s tests                  # the tests (need pyyaml;
 
 Without `NEW_APP_TOKEN` the repo has to exist: pass `--resume`.
 
-## Starting the dispatch from another program (AppHub)
+## Starting the dispatch from another program
 
 `POST /repos/LukeNeedham/ci-workflows/actions/workflows/new_app.yml/dispatches` with `{"ref": "main", "inputs": {"name":
 "LyricTutor", "resume": "true"}}` (inputs are strings) and a token that may write Actions on this repo. It answers `204`
