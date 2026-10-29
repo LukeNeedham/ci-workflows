@@ -79,8 +79,9 @@ class AppsJson(unittest.TestCase):
 
     def test_the_real_file_stays_valid_and_gains_exactly_one_entry(self):
         text = (n.TOOLS / "apps.json").read_text()
-        new = n.add_to_apps_json(text, "LyricTutor", "LukeNeedham/LyricTutor")
-        self.assertEqual(json.loads(text) + [{"name": "LyricTutor", "repo": "LukeNeedham/LyricTutor"}], json.loads(new))
+        # A name that is not in the file, whatever apps it holds by now
+        new = n.add_to_apps_json(text, "ANewApp", "LukeNeedham/ANewApp")
+        self.assertEqual(json.loads(text) + [{"name": "ANewApp", "repo": "LukeNeedham/ANewApp"}], json.loads(new))
 
     def test_an_app_that_is_listed_is_not_added_again(self):
         self.assertIsNone(n.add_to_apps_json(APPS, "AppHub", "LukeNeedham/AppHub"))
@@ -726,9 +727,36 @@ class RenderedApp(unittest.TestCase):
         self.assertIn('android:theme="@style/Theme.App"', manifest)
         res = "app/src/androidMain/res"
         self.assertIn('<style name="Theme.App"', self.text(f"{res}/values/themes.xml"))
-        self.assertIn("<adaptive-icon", self.text(f"{res}/mipmap-anydpi/ic_launcher.xml"))
+        # An <adaptive-icon> needs API 26, and the app starts at 23: it is in the folder for 26 and up (a build fails otherwise),
+        # with a plain icon below it. The icon job of CI looks in mipmap-anydpi* and takes the adaptive one
+        self.assertIn("<adaptive-icon", self.text(f"{res}/mipmap-anydpi-v26/ic_launcher.xml"))
+        self.assertNotIn("<adaptive-icon", self.text(f"{res}/mipmap-anydpi/ic_launcher.xml"))
+        self.assertIn("<layer-list", self.text(f"{res}/mipmap-anydpi/ic_launcher.xml"))
         self.assertTrue((self.dir / f"{res}/drawable/ic_launcher_foreground.xml").is_file())
         self.assertIn('name="ic_launcher_background"', self.text(f"{res}/values/colors.xml"))
+
+    def test_no_adaptive_icon_sits_where_the_minimum_android_version_cannot_have_it(self):
+        build = self.text("app/build.gradle.kts")
+        min_sdk = int(re.search(r"minSdk = (\d+)", build).group(1))
+        for icon in (self.dir / "app" / "src" / "androidMain" / "res").rglob("*.xml"):
+            if icon.parent.name.startswith("mipmap") and "<adaptive-icon" in icon.read_text():
+                self.assertTrue(
+                    min_sdk >= 26 or re.search(r"-v(2[6-9]|[3-9]\d)\b", icon.parent.name),
+                    f"{icon.relative_to(self.dir)}: an adaptive icon needs API 26, and minSdk is {min_sdk}")
+
+    def test_the_icon_renderer_of_ci_finds_the_adaptive_icon_and_not_the_plain_one(self):
+        import render_app_icon
+
+        manifests = list((self.dir / "app" / "src").rglob("AndroidManifest.xml"))
+        self.assertEqual(1, len(manifests))
+        res = manifests[0].parent / "res"
+        found = None
+        for folder in sorted(res.glob("mipmap-anydpi*"), reverse=True):  # the lookup of render_app_icon.py: -v26 before the bare one
+            f = folder / "ic_launcher.xml"
+            if f.exists() and __import__("xml.etree.ElementTree", fromlist=["x"]).parse(f).getroot().tag == "adaptive-icon":
+                found = f
+                break
+        self.assertEqual("mipmap-anydpi-v26", found.parent.name)
 
     def test_the_readme_generator_can_read_the_project_and_accepts_the_readme_yml(self):
         import generate_readme
