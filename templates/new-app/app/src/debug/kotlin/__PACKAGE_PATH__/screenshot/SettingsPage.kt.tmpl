@@ -1,0 +1,15 @@
+package __PACKAGE__.screenshot
+
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.tooling.preview.Preview
+import __PACKAGE__.ui.SettingsPageContent
+import __PACKAGE__.ui.SettingsUiState
+import __PACKAGE__.ui.theme.AppTheme
+
+/** Rendered by CI to docs/screenshots/<position in order.txt>-SettingsPage.png. */
+@Preview
+@Composable
+private fun SettingsPageScreenshot() {
+    val state = SettingsUiState(isDebugEnabled = true)
+    AppTheme { SettingsPageContent(state = state, onOpenDebug = {}) }
+}

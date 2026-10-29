@@ -32,8 +32,9 @@ below are enough.
   `app/build/outputs/apk/debug/app-debug.apk`, PRs into `main` only (never `master` or `develop`), JDK 17.
   A new app needs only its entry (`name`, `repo`) in `ci-workflows`' `apps.json`.
   Claude cannot create the repo (403): the user makes it with AppHub's New app button, which creates the repo and then runs
-  the *New App* workflow of `ci-workflows` (`docs/create-app.md`), which adds the entry, the first sync, the debug keystore
-  and the basic scaffold.
+  the *New App* workflow of `ci-workflows` (`docs/create-app.md`), which adds the entry, the first sync and a project that
+  builds: the debug keystore, the dependencies, `App`, `MainActivity`, the app shell, `AppTheme` and a `SettingsPage` with the
+  `DebugButton`. Look at what is there before adding anything.
 - Every app has all the callers of `ci-workflows`' `callers/`, copied by the sync: never edit, rename or delete one
   (`docs/setup.md` there documents each). The release run fails at once, with a message that lists what is missing, until the
   app has the four release secrets and `gradle/android-release.gradle`.

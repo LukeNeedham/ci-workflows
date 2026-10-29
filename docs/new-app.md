@@ -23,9 +23,10 @@ then follow it, and tell the user about anything you skipped and why.
   the app does, and anything unusual (orientation, minimum Android version, login).
 - **The repo.** Claude cannot create GitHub repos (the integration gets a 403). The user creates it with the
   **New app** button of AppHub (which makes the repo with its own token and runs the *New App* workflow, [create-app.md](create-app.md)), which gives the repo a README,
-  its first commit (the first sync, the Gradle wrapper, `settings.gradle.kts`, `.gitignore`, `LICENSE` and the debug
-  keystore), the secret and the `apps.json` entry: then skip steps 2 and 3 below for what it did (the keystore, the callers, the
-  `apps.json` entry). Without it, ask the user to create an empty repo named after the app, **with a README** so `main`
+  and a first commit with the first sync and **a project that builds** (the Gradle wrapper, the dependencies of this
+  architecture, the debug keystore, `App`, `MainActivity`, the app shell, `AppTheme`, a `SettingsPage` with the library's
+  `DebugButton`, its screenshot and a test), then the secret and the `apps.json` entry. Then **steps 1 to 3, the app shell and the
+  library (6 and 7) are done**: look at what is there and carry on from it (the `readme.yml`, the real icon, the pages of the app). Without it, ask the user to create an empty repo named after the app, **with a README** so `main`
   exists. Either way the user gives the Claude GitHub App access to it
   (<https://github.com/apps/claude/installations/select_target>) unless its installation covers all repositories. Until
   they have, pushing fails with a 403.

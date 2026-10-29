@@ -5,8 +5,10 @@ What it does, in this order (see docs/create-app.md):
   1. creates the repo LukeNeedham/<name> with a README, so that `main` exists (and renames the default branch to `main`
      if the account's default is another)
   2. pushes the first commit to `main`: the first sync (the skill, the callers and the `CLAUDE.md` block, exactly as
-     sync_apps.py makes them) and the basic scaffold (the Gradle wrapper, `settings.gradle.kts`, `.gitignore`, `LICENSE`
-     and the committed `app/debug.keystore`). The commit says `[skip ci]`: there is no project to build yet
+     sync_apps.py makes them) and a project that builds: the Gradle wrapper, `settings.gradle.kts`, `.gitignore`,
+     `LICENSE`, the committed `app/debug.keystore`, and the app of templates/new-app (the dependencies of the architecture,
+     `App`, `MainActivity`, the app shell, the theme, and a settings page that opens the debug pages). The push starts
+     the main build, which is the first check that the template still builds
   3. writes the Actions secret GENERATED_COMMIT_TOKEN into the repo
   4. adds the app to apps.json of this repo, with a commit to `main`. This is last, so that the sync it starts finds
      the app up to date and opens no PR
@@ -49,7 +51,18 @@ COMMON_REPO = f"{OWNER}/ci-workflows"
 APPS_FILE = "apps.json"
 DEFAULT_BRANCH = "main"
 PACKAGE_PREFIX = "com.lukeneedham"
-COMMIT_MESSAGE = "Set up the app from ci-workflows [skip ci]"
+COMMIT_MESSAGE = "Set up the app from ci-workflows"
+
+# The app of a new project: files with the tokens below, in the paths and in the text. `.tmpl` is taken off the name
+TEMPLATE_DIR = ("templates", "new-app")
+TEMPLATE_SUFFIX = ".tmpl"
+TOKEN_RE = re.compile(r"__[A-Z][A-Z_]*__")
+COMMON_TAG_RE = re.compile(r"^common-(\d+)\.(\d+)\.(\d+)$")
+# The library lives in its own Maven repository (docs/using-the-library.md), asked only for its own group
+MAVEN_REPOSITORY = '''        maven("https://lukeneedham.github.io/ci-workflows/maven") {
+            content { includeGroup("com.lukeneedham") }
+        }
+'''
 
 # Letters, digits, hyphens and underscores, starting with a letter: a name GitHub takes, that `com.lukeneedham.<name>`
 # can be made from (the package keeps its letters and digits)
@@ -99,9 +112,68 @@ def add_to_apps_json(text, name, repo):
 
 def settings_gradle(tools=TOOLS):
     """`settings.gradle.kts` of this repo for an app: the same repository rules (they decide which repository may serve
-    which group) and the one module `:app`. The project name is still this repo's: `scaffold` sets it."""
+    which group), the repository of the shared library, and the one module `:app`. The project name is still this repo's:
+    `scaffold` sets it."""
     text = (tools / "settings.gradle.kts").read_text()
-    return re.sub(r'(?m)^include\(":common"\)\n?', 'include(":app")\n', text)
+    head, found, tail = text.partition("dependencyResolutionManagement")
+    after_central = tail.replace("        mavenCentral()\n", "        mavenCentral()\n" + MAVEN_REPOSITORY, 1)
+    if not found or after_central == tail:
+        raise ValueError("settings.gradle.kts has no dependencyResolutionManagement with mavenCentral() to add the library's repository to")
+    return re.sub(r'(?m)^include\(":common"\)\n?', 'include(":app")\n', head + found + after_central)
+
+
+def latest_common_version(tags):
+    """The newest version of the shared library among [tags] (names like `common-0.8.0`, others ignored), as `0.8.0`."""
+    versions = [tuple(int(part) for part in m.groups()) for m in map(COMMON_TAG_RE.match, tags) if m]
+    if not versions:
+        raise ValueError("No release of the shared library (a tag common-<version>) in " + COMMON_REPO)
+    return ".".join(map(str, max(versions)))
+
+
+def fetch_common_version(call):
+    """The latest version of the shared library released from this repo (docs/library.md), from its releases and tags."""
+    tags = [r["tag_name"] for r in call("GET", f"/repos/{COMMON_REPO}/releases?per_page=100") if not r.get("draft")]
+    tags += [t["name"] for t in call("GET", f"/repos/{COMMON_REPO}/tags?per_page=100")]
+    return latest_common_version(tags)
+
+
+def template_values(name, common_version, tools=TOOLS):
+    """What each token of the templates stands for. The versions of the build tools are this repo's own, so that new apps
+    start on the ones the docs name (docs/new-app.md). The longer token comes first: one is the start of the other."""
+    catalog = (tools / "gradle" / "libs.versions.toml").read_text()
+
+    def version(key):
+        found = re.search(rf'(?m)^{key} = "([^"]+)"', catalog)
+        if not found:
+            raise ValueError(f"gradle/libs.versions.toml has no {key} version")
+        return found.group(1)
+
+    package = package_name(name)
+    return {
+        "__PACKAGE_PATH__": package.replace(".", "/"),
+        "__PACKAGE__": package,
+        "__APP_NAME__": name,
+        "__AGP__": version("agp"),
+        "__KOTLIN__": version("kotlin"),
+        "__COMMON_VERSION__": common_version,
+    }
+
+
+def render_templates(app_dir, values, changed, tools=TOOLS):
+    """Writes the app of templates/new-app into [app_dir], with the tokens of [values] replaced in the paths and the text.
+    A file that is there is not touched. Fails if a token is left over, which is a typo in a template."""
+    root = tools.joinpath(*TEMPLATE_DIR)
+    for source in sorted(p for p in root.rglob("*") if p.is_file()):
+        relative = source.relative_to(root).as_posix()
+        text = source.read_text()
+        for token, value in values.items():
+            relative = relative.replace(token, value)
+            text = text.replace(token, value)
+        relative = relative.removesuffix(TEMPLATE_SUFFIX)
+        left = TOKEN_RE.findall(relative + text)
+        if left:
+            raise ValueError(f"{source.relative_to(root)} has a token that nothing fills: {sorted(set(left))}")
+        write_new(app_dir, relative, text, changed)
 
 
 def write_new(app_dir, relative, content, changed, mode=None):
@@ -128,9 +200,10 @@ def make_debug_keystore(path):
     )
 
 
-def scaffold(app_dir, name, tools=TOOLS, keystore=make_debug_keystore, year=None):
-    """The basic scaffold of a new app: the Gradle wrapper, `settings.gradle.kts`, `.gitignore`, `LICENSE` and
-    `app/debug.keystore`. Nothing that is already there is touched. Returns the paths written."""
+def scaffold(app_dir, name, common_version, tools=TOOLS, keystore=make_debug_keystore, year=None):
+    """A new app that builds: the Gradle wrapper, `settings.gradle.kts`, `.gitignore`, `LICENSE`, `app/debug.keystore`, and
+    the app of templates/new-app, on version [common_version] of the shared library. Nothing that is already there is
+    touched. Returns the paths written."""
     changed = []
     for relative in WRAPPER_FILES:
         source = tools / relative
@@ -143,12 +216,13 @@ def scaffold(app_dir, name, tools=TOOLS, keystore=make_debug_keystore, year=None
     if not (app_dir / "app" / "debug.keystore").exists():
         keystore(app_dir / "app" / "debug.keystore")
         changed.append("app/debug.keystore")
+    render_templates(app_dir, template_values(name, common_version, tools), changed, tools)
     return changed
 
 
-def set_up_app(app_dir, name, tools=TOOLS, keystore=make_debug_keystore):
+def set_up_app(app_dir, name, common_version, tools=TOOLS, keystore=make_debug_keystore):
     """The first sync and the scaffold, applied to the checkout [app_dir]. Returns the paths that changed."""
-    return sync_apps.sync_app(app_dir, tools) + scaffold(app_dir, name, tools, keystore)
+    return sync_apps.sync_app(app_dir, tools) + scaffold(app_dir, name, common_version, tools, keystore)
 
 
 # ---------------------------------------------------------------------------------------------------
@@ -236,10 +310,10 @@ def clone_new_repo(repo, token, work, attempts=6, wait=3):
     raise RuntimeError(f"Could not clone {repo}, which has no commit yet")
 
 
-def push_first_commit(repo, name, token, work, keystore=make_debug_keystore):
+def push_first_commit(repo, name, token, work, common_version, keystore=make_debug_keystore):
     """Clones the new repo, sets it up and pushes the commit to its default branch. Returns the paths written."""
     checkout = clone_new_repo(repo, token, work)
-    changed = set_up_app(checkout, name, keystore=keystore)
+    changed = set_up_app(checkout, name, common_version, keystore=keystore)
     if changed:
         sync_apps.git(checkout, "add", "-A")
         sync_apps.git(checkout, "commit", "--quiet", "-m", COMMIT_MESSAGE)
@@ -267,9 +341,12 @@ def create_app(name, private=False, resume=False, create_token=None, sync_token=
         raise
     lines.append(f"repo https://github.com/{repo} ({'private' if private else 'public'})")
 
+    common_version = fetch_common_version(make_caller(sync_token))
+    lines.append(f"shared library common {common_version}")
+
     work = tempfile.mkdtemp(prefix="new_app_")
     try:
-        changed = push(repo, name, sync_token, work)
+        changed = push(repo, name, sync_token, work, common_version)
     finally:
         shutil.rmtree(work, ignore_errors=True)
     lines.append(f"first commit on {DEFAULT_BRANCH}: {len(changed)} files" if changed else "first commit: nothing to add, already done")

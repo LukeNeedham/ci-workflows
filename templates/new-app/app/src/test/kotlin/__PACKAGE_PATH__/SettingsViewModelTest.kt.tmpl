@@ -1,0 +1,14 @@
+package __PACKAGE__
+
+import __PACKAGE__.ui.SettingsViewModel
+import org.junit.Assert.assertEquals
+import org.junit.Test
+
+class SettingsViewModelTest {
+
+    @Test
+    fun `the state says whether debugging is on`() {
+        assertEquals(true, SettingsViewModel(isDebugEnabled = true).uiState.value.isDebugEnabled)
+        assertEquals(false, SettingsViewModel(isDebugEnabled = false).uiState.value.isDebugEnabled)
+    }
+}

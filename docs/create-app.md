@@ -18,18 +18,37 @@ In this order. Every step can be repeated, so a run that stopped half way is fin
    the **private** option makes it private), and its default branch is `main`. AppHub does this before it starts the
    workflow. The workflow does it too, only when it has a token that may create repos (`NEW_APP_TOKEN`, optional, below);
    without one it needs the repo to exist, and *resume* on.
-2. **Pushes the first commit to `main`** (not a PR: there is nothing to protect or build yet). The message ends in
-   `[skip ci]`, as there is no project for the build to run on. It holds:
+2. **Pushes the first commit to `main`** (not a PR: there is nothing to protect yet). It holds:
    - **the first sync**, made by the same code as [`sync_apps.py`](../scripts/sync_apps.py) (the skill, all the callers and the
      managed block of `CLAUDE.md`), so the next sync finds the app up to date and opens no PR;
-   - **the basic scaffold**: the Gradle wrapper (a copy of this repo's), `settings.gradle.kts` (this repo's repository rules,
-     the app's name, and the module `:app`), `.gitignore`, `LICENSE` (*Copyright (c) year Luke Needham. All rights
-     reserved.*, the default of [readme.md](readme.md)) and the committed `app/debug.keystore`
+   - **a project that builds**, so that the app starts where [new-app.md](new-app.md) leaves off after its project, shell and
+     library steps. The files are the templates of [`templates/new-app/`](../templates/new-app), with the package
+     (`com.lukeneedham.<name>`), the name, the versions of AGP and Kotlin of this repo and the latest version of the shared
+     library filled in, plus the Gradle wrapper (a copy of this repo's), `settings.gradle.kts` (this repo's repository rules, the
+     repository of the shared library, the app's name, and the module `:app`), `.gitignore`, `LICENSE` (*Copyright (c) year Luke
+     Needham. All rights reserved.*, the default of [readme.md](readme.md)) and the committed `app/debug.keystore`
      ([new-app.md](new-app.md#2-debug-keystore)).
 
-   What it does **not** make is the project itself: `build.gradle.kts`, the `:app` module, the app shell, the theme, the icon,
-   `readme.yml` and the screenshots. That is the first session on the app, which follows [new-app.md](new-app.md). Nothing
+   The app of the templates has:
+   - **the dependencies of the architecture** in `gradle/libs.versions.toml` and `app/build.gradle.kts`: Compose, Navigation 3,
+     Koin, Coil 3, `kotlinx.serialization`, Room (with KSP), DataStore, Ktor (OkHttp), `kotlinx-datetime`, Media3, the
+     coroutines and the shared library; release builds are minified, with the keep rules (`proguard-rules.pro`);
+   - **`App`** (`DebugKit.init` first, then Koin) and **`MainActivity`** (only `setContent { Root() }`);
+   - **the shell of [app-shell.md](app-shell.md)**: `Root` (`AppTheme`, `ProvideDebugSettings`, `AppNavigation()`),
+     `AppNavigation`, an exhaustive `Router` and the one `sealed interface Route : NavKey` with `Settings`, `Debug`, `Logs`
+     and `Crashes` (the three of the library's pages);
+   - **the app's own `AppTheme`** (a composition local, light and dark, no Material) and `toDebugTheme()`;
+   - **one page, `SettingsPage`** ([pages.md](pages.md)): `SettingsPage`, `SettingsPageContent` (the title and the library's
+     `DebugButton`, which opens the library's debug page) with its `Preview`, `SettingsViewModel` and `SettingsUiState`, each in its
+     own file, its screenshot in the `screenshot` package (with `order.txt`) and a unit test of its ViewModel;
+   - **strings in `strings.xml`**, a placeholder adaptive launcher icon (a white diamond: replace it) and a manifest.
+
+   What it does **not** make is what is the app's own: the readme (`readme.yml`), the real icon, the other pages, the
+   release setup, and what the app does. That is the first session on the app, which follows [new-app.md](new-app.md). Nothing
    the app already has is overwritten.
+
+   The push starts the **main build** of the new repo ([`build_main.yml`](../callers/build_main.yml)): it is the first check that
+   the templates still build, as they cannot be compiled here. A red build of a new app means a template needs fixing.
 3. **Writes the secret** `GENERATED_COMMIT_TOKEN` into the repo ([sync.md](sync.md#the-token-of-the-generated-commits)).
 4. **Adds the app to [`apps.json`](../apps.json)** with a commit to `main` of this repo: one new line, nothing else, and not
    if the app is listed. It is last, so that the sync this starts finds nothing left to do. A commit that lands at the same
