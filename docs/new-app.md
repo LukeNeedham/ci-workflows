@@ -21,13 +21,14 @@ then follow it, and tell the user about anything you skipped and why.
 
 - **Ask for what you do not know**, in one go: app name, package name (`com.lukeneedham.<app>`), what
   the app does, and anything unusual (orientation, minimum Android version, login).
-- **The repo.** Claude cannot create GitHub repos (the integration gets a 403). The user creates it with the
-  **New app** button of AppHub (which makes the repo with its own token and runs the *New App* workflow, [create-app.md](create-app.md)), which gives the repo a README,
-  and a first commit with the first sync and **a Kotlin Multiplatform project that builds** (Android target only, [create-app.md](create-app.md)) (the Gradle wrapper, the dependencies of this
-  architecture, the debug keystore, `App`, `MainActivity`, the app shell, `AppTheme`, a `SettingsPage` with the library's
-  `DebugButton`, its screenshot and a test), then the secret and the `apps.json` entry. Then **steps 1 to 3, the app shell and the
-  library (6 and 7) are done**: look at what is there and carry on from it (the `readme.yml`, the real icon, the pages of the app). Without it, ask the user to create an empty repo named after the app, **with a README** so `main`
-  exists. Either way the user gives the Claude GitHub App access to it
+- **The repo.** Claude cannot create GitHub repos (the integration gets a 403). The user sets it up with the *New App*
+  workflow ([create-app.md](create-app.md)): a caller creates the repo with a README and starts the workflow, which gives it a
+  first commit with the first sync and **a Kotlin Multiplatform project that builds** (Android target only: the Gradle wrapper,
+  the dependencies of this architecture, the debug keystore, `App`, `MainActivity`, the app shell, `AppTheme`, a `SettingsPage`
+  with the library's `DebugButton`, its screenshot and a test), then the secret and the `apps.json` entry. Then **steps 1 to 3, the
+  app shell and the library (6 and 7) are done**: look at what is there and carry on from it (the `readme.yml` placeholders, the
+  real icon, the pages of the app). Without it, ask the user to create an empty repo named after the app, **with a README** so
+  `main` exists. Either way the user gives the Claude GitHub App access to it
   (<https://github.com/apps/claude/installations/select_target>) unless its installation covers all repositories. Until
   they have, pushing fails with a 403.
 - **Work on a branch and open a PR to `main`.** The PR build (step 3) only runs on PRs.

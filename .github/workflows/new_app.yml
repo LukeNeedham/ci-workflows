@@ -2,11 +2,11 @@ name: New App
 
 # Creates a new app repo and sets it up: the repo (with a README, so that `main` exists), its first commit (the first
 # sync and a project that builds, from templates/new-app), the secret GENERATED_COMMIT_TOKEN, and the entry in apps.json. Started by hand (*Actions
-# -> New App -> Run workflow*) or by the New app button of AppHub, which calls the dispatch API. The logic is
-# scripts/new_app.py; setup is docs/create-app.md. AppHub makes the repo itself, with a token of its own, and runs this
-# with resume on, so no secret of this repo can create repos; NEW_APP_TOKEN is optional, for creating it from here.
+# -> New App -> Run workflow*) or by a program that calls the dispatch API. The logic is scripts/new_app.py; setup is
+# docs/create-app.md. The caller makes the repo itself, with a token of its own, and runs this with resume on, so no secret of
+# this repo can create repos; NEW_APP_TOKEN is optional, for creating it from here.
 
-# The run is named after the app, so that a program that started it (AppHub) can find its own run among the others
+# The run is named after the app, so that a program that started it can find its own run among the others
 run-name: New App ${{ inputs.name }}
 
 on:
@@ -17,11 +17,11 @@ on:
         type: string
         required: true
       private:
-        description: Create a private repo (the default is public, which is what AppHub lists). Only used when the workflow creates the repo itself
+        description: Create a private repo (the default is public). Only used when the workflow creates the repo itself
         type: boolean
         default: false
       resume:
-        description: The repo exists already (AppHub makes it, then runs this with resume on), or a run stopped half way. Needed unless NEW_APP_TOKEN is set
+        description: The repo exists already (the caller makes it, then runs this with resume on), or a run stopped half way. Needed unless NEW_APP_TOKEN is set
         type: boolean
         default: false
 
