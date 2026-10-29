@@ -36,6 +36,9 @@ kotlin {
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.okio)
         }
+        androidMain.dependencies {
+            api(libs.okhttp)
+        }
         commonTest.dependencies {
             implementation(kotlin("test"))
             implementation(libs.okio.fakefilesystem)

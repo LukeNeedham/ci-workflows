@@ -9,6 +9,7 @@ import com.lukeneedham.common.logger.LogSink
 import com.lukeneedham.common.logger.NoOpLogSink
 import com.lukeneedham.common.logger.PersistentLogSink
 import com.lukeneedham.common.logger.LogRepository
+import com.lukeneedham.common.network.NetworkLog
 import com.lukeneedham.common.storage.createDefaultFileStore
 
 class DebugKitConfig(
@@ -71,6 +72,9 @@ object DebugKit {
     fun crashes(): List<CrashEntry> = crashes.entries()
 
     fun clearCrashes() = crashes.clear()
+
+    /** The network calls made since the app started, recorded only while [enabled]. See [NetworkLog]. */
+    val network: NetworkLog by lazy { NetworkLog(enabled = { enabled }) }
 
     /** Debug-only settings, such as the animation speed. */
     val settings: DebugSettings by lazy { DebugSettings(fileStore) }

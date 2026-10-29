@@ -145,7 +145,8 @@ below are enough.
 - The debug pages are optional. An app that shows them wraps the UI in
   `ProvideDebugSettings(theme = AppTheme.current.toDebugTheme())`, inside `AppTheme` (the library uses no Material:
   the app maps `AppTheme` to a `DebugTheme` in one function), adds `DebugPage`, `LogsPage` and `CrashesPage` to
-  navigation, and puts a `DebugButton` on a settings page (never a floating button). The library's `DebugPage` shows
+  navigation (an app with network calls also adds `NetworkPage`, passes `onOpenNetwork` to `DebugPage` and adds
+  `NetworkLogInterceptor()` to its OkHttp client), and puts a `DebugButton` on a settings page (never a floating button). The library's `DebugPage` shows
   the app's package and version; an app with its own debug tools keeps its own debug page with a button to it.
   Scale animation durations with `LocalAnimationSpeed.current.scale(ms)`.
 - "Update all consuming apps" means every app in `apps.json` of `ci-workflows`: bump `common` in each, one PR per
