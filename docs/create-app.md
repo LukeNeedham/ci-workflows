@@ -14,8 +14,9 @@ repos**:
 In this order. Every step can be repeated, so a run that stopped half way is finished by running it again with
 **resume**.
 
-1. **The repo** `LukeNeedham/<name>`, with a README so that `main` exists, public by default (AppHub lists public repos;
-   the **private** option makes it private), and its default branch is `main`. AppHub does this before it starts the
+1. **The repo** `LukeNeedham/<name>`, with a README so that `main` exists, public by default (AppHub lists public repos, and the
+   images of the preview comment on PRs are served from the repo's public releases ([previews.md](previews.md)); the **private**
+   option makes it private, and then neither works), and its default branch is `main`. AppHub does this before it starts the
    workflow. The workflow does it too, only when it has a token that may create repos (`NEW_APP_TOKEN`, optional, below);
    without one it needs the repo to exist, and *resume* on.
 2. **Pushes the first commit to `main`** (not a PR: there is nothing to protect yet). It holds:
@@ -43,8 +44,10 @@ In this order. Every step can be repeated, so a run that stopped half way is fin
      own file, its screenshot in the `screenshot` package (with `order.txt`) and a unit test of its ViewModel;
    - **strings in `strings.xml`**, a placeholder adaptive launcher icon (a white diamond: replace it) and a manifest.
 
-   What it does **not** make is what is the app's own: the readme (`readme.yml`), the real icon, the other pages, the
-   release setup, and what the app does. That is the first session on the app, which follows [new-app.md](new-app.md). Nothing
+   - **a `readme.yml`** with the name and **placeholder text** (`TODO: ...`) for the tagline and the description, so that
+     the README, its screenshots and the sync's report apply from the first PR. It is the app's to write: replace the text.
+
+   What it does **not** make is what is the app's own: the real icon, the other pages, the release setup, and what the app does. That is the first session on the app, which follows [new-app.md](new-app.md). Nothing
    the app already has is overwritten.
 
    The push starts the **main build** of the new repo ([`build_main.yml`](../callers/build_main.yml)): it is the first check that

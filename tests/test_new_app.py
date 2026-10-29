@@ -483,6 +483,7 @@ class RenderedApp(unittest.TestCase):
         self.assertTrue((self.dir / "app/src/debug/kotlin/com/lukeneedham/lyrictutor/screenshot/SettingsPage.kt").is_file())
         self.assertTrue((self.dir / "app/src/debug/kotlin/com/lukeneedham/lyrictutor/screenshot/order.txt").is_file())
         self.assertTrue((self.dir / "app/src/test/kotlin/com/lukeneedham/lyrictutor/SettingsViewModelTest.kt").is_file())
+        self.assertTrue((self.dir / "readme.yml").is_file())
 
     def test_every_source_declares_the_package_of_its_folder(self):
         for path in self.sources:
@@ -650,6 +651,35 @@ class RenderedApp(unittest.TestCase):
         self.assertIn("<adaptive-icon", icon)
         self.assertTrue((self.dir / "app/src/main/res/drawable/ic_launcher_foreground.xml").is_file())
         self.assertIn('name="ic_launcher_background"', self.text("app/src/main/res/values/colors.xml"))
+
+    def test_the_readme_generator_can_read_the_project_and_accepts_the_readme_yml(self):
+        import generate_readme
+
+        data = generate_readme.load(self.dir)
+        self.assertEqual("LyricTutor", data["name"])
+        facts = generate_readme.facts(self.dir)
+        self.assertEqual((23, 36, "All rights reserved"), (facts.min_sdk, facts.compile_sdk, facts.license))
+        # The one thing missing is what CI makes on the first PR: the images of the screenshots
+        missing = generate_readme.problems(data, self.dir)
+        self.assertEqual(1, len(missing))
+        self.assertIn("no screenshots in docs/screenshots/", missing[0])
+        with tempfile.TemporaryDirectory() as tmp:
+            app = Path(tmp)
+            n.scaffold(app, "LyricTutor", COMMON, keystore=fake_keystore)
+            (app / "docs" / "screenshots").mkdir(parents=True)
+            (app / "docs" / "screenshots" / "01-SettingsPage.png").write_bytes(b"png")
+            self.assertEqual([], generate_readme.problems(generate_readme.load(app), app))
+            # So the sync's report on the app has nothing to say once the first PR has run
+            self.assertEqual("", sync_apps.readme_note(app))
+
+    def test_a_name_that_yaml_would_read_as_something_else_is_still_a_name(self):
+        import generate_readme
+
+        for name in ("No", "On", "Null", "True", "Yes"):
+            with tempfile.TemporaryDirectory() as tmp:
+                app = Path(tmp)
+                n.scaffold(app, name, COMMON, keystore=fake_keystore)
+                self.assertEqual(name, generate_readme.load(app)["name"])
 
     def test_the_viewmodel_test_and_the_koin_module_agree_on_the_constructor(self):
         self.assertIn("SettingsViewModel(isDebugEnabled = DebugKit.enabled)", self.text("app/src/main/kotlin/com/lukeneedham/lyrictutor/di/AppModule.kt"))
