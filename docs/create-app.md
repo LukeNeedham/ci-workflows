@@ -106,10 +106,11 @@ and a name that is taken (a repo, or an entry of `apps.json`), unless *resume* i
 | `GENERATED_COMMIT_TOKEN` | Handed on to the new app | Already there for the sync |
 | `NEW_APP_TOKEN` | *Optional.* Creating the repo from the workflow | Only for running the workflow by hand without making the repo first. Left out, the workflow needs the repo to exist. A token that can create repos is better kept off this repo: AppHub does not need it |
 
-**In AppHub** (on the phone, Keystore-encrypted), the **New app** page uses two tokens:
+**In AppHub** (on the phone, Keystore-encrypted), both set up on the **Settings** page, the **New app** page uses two tokens:
 
 - **The token of Settings**, with the Actions permission (read and write) for this repo: it starts the workflow and reads its run.
-- **A repo creation token**, entered on the New app page: it only creates the repo (and renames its branch to `main`). A
+- **A create new app token**, entered **on AppHub's Settings page** (once: it is kept encrypted on the phone like the GitHub token, and
+  used for every new app; when it is missing the New app page says to set it up first and has a button to Settings): it only creates the repo (and renames its branch to `main`). A
   **fine-grained** token for all repositories of `LukeNeedham` with **Repository creation** (write), or **Administration**
   (write) if the token page does not offer it; or a **classic** token with the scope `repo`. Prefer the fine-grained one with
   *Repository creation*: *Administration* also lets a token change settings and delete repos.
