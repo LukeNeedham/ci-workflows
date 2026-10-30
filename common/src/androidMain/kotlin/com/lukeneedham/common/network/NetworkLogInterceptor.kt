@@ -9,7 +9,7 @@ import okio.Buffer
  * Records every call of the OkHttp client it is added to into [DebugKit.network]:
  * `OkHttpClient.Builder().addInterceptor(NetworkLogInterceptor())`.
  *
- * Add it as an application interceptor. It does nothing unless debugging is enabled. Streaming
+ * Add it as an application interceptor; `logNetwork()` does that for Ktor and OkHttp clients. It does nothing unless debugging is enabled. Streaming
  * bodies (one-shot, duplex or event streams) and binary bodies are not read; they show as a note.
  */
 class NetworkLogInterceptor : Interceptor {

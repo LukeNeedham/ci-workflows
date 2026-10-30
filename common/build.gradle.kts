@@ -38,6 +38,8 @@ kotlin {
         }
         androidMain.dependencies {
             api(libs.okhttp)
+            // Only for the logNetwork() sugar; the app brings its own Ktor.
+            compileOnly(libs.ktor.client.okhttp)
         }
         commonTest.dependencies {
             implementation(kotlin("test"))
