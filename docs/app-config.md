@@ -43,7 +43,19 @@ app-icon check, no comment) when:
   `app-icon.png`, the README of the screenshot package): that is CI's own commit, which cannot change the APK.
   `GENERATED_PATHS` in `scripts/app_config.py` is the list. This looks at the push (`github.event.before` to `after`),
   not at the whole PR, so a PR that also changes code skips only these commits. If the push cannot be listed (a
-  force-push, say), the run builds.
+  force-push, say), the run builds. **It is skipped only if the commit before the push was built**
+  ([`scripts/was_built.py`](../scripts/was_built.py) reads the sticky comment of the PR, which names the commit of the latest build and
+  whether it was cancelled): two pushes within seconds (yours, then CI's) can leave the first without a run, and it must not then be
+  skipped for being "under" a generated commit. If the comment cannot be read, the run builds.
+
+### Generated files are made for the commit that was built
+
+The jobs that commit generated files (app-icon, screenshots, readme) start from the head of the PR as it is when they start, but their files
+are made from the commit the run was started for. If a newer push has put code on the branch since, committing them would put files made
+from old code on top of new code, and, being only generated files, that commit is not built. So
+[`scripts/commit_generated.py`](../scripts/commit_generated.py) commits only while the branch is at the commit of the run, or has gained
+nothing but generated files since (another job's commit); otherwise it leaves them out and says so, and the newer push's own run
+generates them. A force-pushed branch is treated the same way.
 
 ### The token of the generated commits
 

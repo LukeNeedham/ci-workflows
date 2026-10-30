@@ -10,10 +10,11 @@ It also sets `generate` and `cleanup` to false for a pull request run that has n
   - the PR targets a branch other than BRANCH, or
   - every file the PR changes is outside the Android sources (see is_skipped_file: docs, the Claude skill, Markdown
     files outside a src/ folder), so no APK can differ, or
-  - the push that started the run changed only generated files (GENERATED_PATHS): the commit that CI made itself.
+  - the push that started the run changed only generated files (GENERATED_PATHS): the commit that CI made itself, and the
+    code under it was built (--before-built, from was_built.py: if it was not, or that is not known, the push is built).
 
     python3 scripts/app_config.py --repo LukeNeedham/AppHub --event pull_request --action synchronize \\
-        --base main --files changed_files.txt --push-files pushed_files.txt
+        --base main --files changed_files.txt --push-files pushed_files.txt --before-built true
 """
 
 import argparse
@@ -75,16 +76,17 @@ def only_generated_files(files):
     )
 
 
-def skip_reason(event, action, base, files, push_files=()):
+def skip_reason(event, action, base, files, push_files=(), before_built=True):
     """Why this run has nothing to do, or None when it has. [push_files] are the files of the push that started a
-    `synchronize` run, [files] those of the whole PR."""
+    `synchronize` run, [files] those of the whole PR. [before_built]: the commit before that push was built, which a push of only
+    generated files needs to be skipped: CI's commit builds nothing new, but the code under it must have been built by someone."""
     if event != "pull_request":
         return None
     if base and base != BRANCH:
         return f"the PR targets {base}, and only PRs into {BRANCH} are built"
     if action != "closed" and only_skipped_files(files):
         return "the PR changes no Android source file (only docs, Markdown or the Claude skill), so the APK cannot differ"
-    if action == "synchronize" and only_generated_files(push_files):
+    if action == "synchronize" and before_built and only_generated_files(push_files):
         return "the push changes only files that CI generates, which cannot change the APK"
     return None
 
@@ -96,10 +98,13 @@ def read_files(path):
     return [line.strip() for line in Path(path).read_text().splitlines() if line.strip()]
 
 
-def run(repo, event, action, base, files, push_files=()):
+def run(repo, event, action, base, files, push_files=(), before_built=True):
     """The outputs for the workflow, and the lines to tell the user in the log."""
-    reason = skip_reason(event, action, base, files, push_files)
+    reason = skip_reason(event, action, base, files, push_files, before_built)
     log = [f"::notice::Nothing to do: {reason}."] if reason else []
+    if reason is None and action == "synchronize" and not before_built and only_generated_files(push_files):
+        log.append("::notice::The push changes only files that CI generates, but the commit before it was not built (or that is not "
+                   "known), so it is built now.")
     closed = event == "pull_request" and action == "closed"
     # What the jobs of android_pr.yml do: everything but a closed PR builds and generates; a closed PR cleans up.
     # A run that has nothing to do has both false.
@@ -118,9 +123,12 @@ def main():
     parser.add_argument("--base", default="", help="the branch a pull request targets")
     parser.add_argument("--files", default="", help="file listing the files the pull request changes, one per line")
     parser.add_argument("--push-files", default="", help="file listing the files the push of a synchronize changes, one per line")
+    parser.add_argument("--before-built", default="unknown", choices=["true", "false", "unknown"],
+                        help="whether the commit before the push was built (was_built.py); only true lets a push of generated files be skipped")
     args = parser.parse_args()
 
-    outputs, log = run(args.repo, args.event, args.action, args.base, read_files(args.files), read_files(args.push_files))
+    outputs, log = run(args.repo, args.event, args.action, args.base, read_files(args.files), read_files(args.push_files),
+                        args.before_built == "true")
     print("\n".join(log))
     for key, value in outputs.items():
         print(f"{key}={value}")

@@ -42,7 +42,8 @@ jobs:
   # The push is made with the owner's token (GENERATED_COMMIT_TOKEN), so that the checks run on the new commit; a push with the
   # workflow token leaves them waiting for approval. That run has nothing to do (app_config.py skips a push that
   # changes only generated files), so there is no loop and no second build (the APK does not contain app-icon.png).
-  # The three jobs that commit (this, screenshots and readme) each cancel their own older run for the PR: a run that
+  # The three jobs that commit (this, screenshots and readme) each cancel their own older run for the PR, and commit_generated.py
+  # commits only while the branch is still at the commit of the run (or has gained only generated files): a run that
   # a newer push has replaced must not commit files made from the old code on top of the new.
   app-icon:
     needs: config
