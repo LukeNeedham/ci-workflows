@@ -48,7 +48,7 @@ builds, the others build. Only PRs into `main` are built; the shared workflow sk
 There are none: every app is built the same way ([app-config.md](app-config.md)). The debug APK has to be at
 `app/build/outputs/apk/debug/app-debug.apk` (module `:app`), and PRs are built when they go to `main`.
 
-A PR that changes only the Claude skill (`.claude/skills/`) does not build; see
+A PR that changes no Android source file (only `docs/`, `.claude/`, or Markdown outside a `src/` folder) does not build; see
 [app-config.md](app-config.md#runs-that-do-nothing).
 
 ### Other jobs in the same file
@@ -158,7 +158,7 @@ On the PR you opened:
 | The run fails immediately with no jobs | The caller file is invalid, or a permission it requests is not allowed. Check the *Actions* run page for the message; confirm `permissions:` is as above and that the repo may use this repo's workflows (private repos need *Access* enabled here) |
 | No comment appears on the PR | The caller is missing `pull-requests: write`, or the PR comes from a fork (forks get a read-only token) |
 | The build step cannot find the APK | The project does not follow the standard: the debug APK has to be at `app/build/outputs/apk/debug/app-debug.apk`, so the module must be `:app` ([app-config.md](app-config.md)) |
-| The run is skipped | The PR changes only `.claude/skills/`, or does not target `main` ([app-config.md](app-config.md#runs-that-do-nothing)) |
+| The run is skipped | The PR changes no Android source file (docs, Markdown, the skill), or does not target `main` ([app-config.md](app-config.md#runs-that-do-nothing)) |
 | Releases are not deleted when the PR closes | `closed` is missing from the caller's `types` list |
 | The PR waits forever for a check | Branch protection still requires the old check name (see migration step 4) |
 | Old PR builds are still listed | They predate the cleanup: run *Delete Pre-releases* |

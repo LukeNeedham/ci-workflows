@@ -3,7 +3,7 @@ name: Android PR
 # Reusable workflow: the whole PR flow in one call. Builds and comments on the PR while it is open,
 # and cleans up its build releases when it is closed. It simply picks android_pr_build.yml or
 # android_pr_cleanup.yml from the event, so a project needs one caller job instead of two. Nothing runs for a
-# PR that targets a branch other than main, or that changes only the Claude skill (see config).
+# PR that targets a branch other than main, or that changes no Android source file (only docs, Markdown or the Claude skill; see config).
 #
 # Caller: callers/trigger_on_pull_request.yml. It has no settings: every app is built the same way.
 
