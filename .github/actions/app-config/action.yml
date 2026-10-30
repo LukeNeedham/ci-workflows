@@ -6,7 +6,7 @@ description: >
 
 outputs:
   generate:
-    description: 'true when the run builds and generates files: a pull request that is not closed, or a manual run, unless it has nothing to do (the PR targets a branch other than main, or changes only the Claude skill)'
+    description: 'true when the run builds and generates files: a pull request that is not closed, or a manual run, unless it has nothing to do (the PR targets a branch other than main, or changes no Android source file: only docs, Markdown or the Claude skill)'
     value: ${{ steps.config.outputs.generate }}
   cleanup:
     description: 'true when the run cleans up the build releases of a pull request that was closed'

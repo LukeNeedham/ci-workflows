@@ -73,7 +73,7 @@ moved here.
 
 **Settings.** The caller has none: every app is built the same way ([docs/app-config.md](docs/app-config.md)), and
 the `config` job provides the values to the build. The same job skips the whole run for a PR that does not go to
-`main`, and for a PR that changes only `.claude/skills/`.
+`main`, and for a PR that changes no Android source file (only `docs/`, `.claude/` or Markdown outside a `src/` folder).
 
 The `app-icon` job renders `app-icon.png` (a 512x512 circle on a transparent background) from the app's
 adaptive launcher icon on every PR and commits it to the PR branch when it differs

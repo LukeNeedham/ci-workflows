@@ -35,9 +35,10 @@ app-icon check, no comment) when:
 
 - the PR targets a branch other than `main`. GitHub only lets the caller file filter triggers, so the callers start
   for every PR and the check happens here;
-- **every file the PR changes is under `.claude/skills/`**, so the APK cannot differ. A single other file builds as
-  usual. A renamed file counts at its old path too. `SKIPPED_PATHS` in `scripts/app_config.py` is the list; to skip
-  more (say `CLAUDE.md`), add to it;
+- **no file the PR changes is an Android source file**: every file is under `docs/` or `.claude/` (the skill), or is a
+  Markdown file outside a `src/` folder (Markdown under `src/` can be packaged as an asset or raw resource). The APK
+  cannot differ. A single other file builds as usual. A renamed file counts at its old path too. `SKIPPED_PATHS` and
+  `is_skipped_file` in `scripts/app_config.py` are the rule; to skip more, extend them;
 - **the push that started the run changed only files that CI generates** (`docs/screenshots/`, `README.md`,
   `app-icon.png`, the README of the screenshot package): that is CI's own commit, which cannot change the APK.
   `GENERATED_PATHS` in `scripts/app_config.py` is the list. This looks at the push (`github.event.before` to `after`),
