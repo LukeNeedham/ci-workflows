@@ -4,7 +4,7 @@
 network log to link up.
 
 - [The stack](#the-stack)
-- [DTOs: `XDTO`](#dtos-xdto)
+- [DTOs: `XDto`](#dtos-xdto)
 - [Defensive modeling](#defensive-modeling)
 - [Map to a domain model](#map-to-a-domain-model)
 - [The debug kit network log](#the-debug-kit-network-log)
@@ -22,12 +22,12 @@ Do not add a second HTTP client or engine. The Ktor client is created once, decl
 networking layer (`singleOf` / a `single { }`), and injected into the remote data sources, which are injected into the
 repositories ([new-app.md](new-app.md#6-app-architecture)). Nothing outside the networking layer touches `HttpClient`.
 
-## DTOs: `XDTO`
+## DTOs: `XDto`
 
 **Every model that comes from the network is a DTO** (data transfer object): a `@Serializable` class that mirrors the
-JSON of the API and nothing else. Its name is the name of the thing with the suffix **`DTO`**, in capitals: `UserDTO`,
-`ArticleDTO`, `LoginResponseDTO`. Never `UserResponse`, `UserModel`, `UserDto` or a bare `User`. Request bodies we send
-follow the same rule (`LoginRequestDTO`).
+JSON of the API and nothing else. Its name is the name of the thing with the suffix **`Dto`**, capital D and lower-case `to`: `UserDto`,
+`ArticleDto`, `LoginResponseDto`. Never `UserResponse`, `UserModel`, `UserDTO` or a bare `User`. Request bodies we send
+follow the same rule (`LoginRequestDto`).
 
 DTOs live in the networking layer (a `network` or `remote` package of their own), one per file. They hold no logic.
 
@@ -38,18 +38,18 @@ a DTO assumes nothing: **every property is optional, and has a default.**
 
 ```kotlin
 @Serializable
-data class UserDTO(
+data class UserDto(
     val id: String? = null,
     val name: String? = null,
     val age: Int? = null,
     val avatarUrl: String? = null,
-    val roles: List<RoleDTO>? = null,
+    val roles: List<RoleDto>? = null,
     val status: String? = null,
 )
 ```
 
 - **Every property is nullable and defaults to `null`**, whatever the API docs say. Never a non-null property with no
-  default: a missing field would throw `MissingFieldException`. Lists and maps are nullable too (`List<XDTO>?`).
+  default: a missing field would throw `MissingFieldException`. Lists and maps are nullable too (`List<XDto>?`).
 - **Enums arrive as a `String?`**, not as an enum: an unknown value would throw. The mapper turns it into the domain enum
   with a fallback (`Unknown`).
 - **The `Json` is lenient**: `ignoreUnknownKeys = true`, `isLenient = true`, `coerceInputValues = true`
@@ -84,7 +84,7 @@ and the like.
 data class User(val id: String, val name: String, val role: Role)
 
 // UserMapper.kt, in the networking layer
-internal fun UserDTO.toDomain(): User? {
+internal fun UserDto.toDomain(): User? {
     val id = id ?: return null          // unusable without an id: drop it
     return User(
         id = id,
@@ -93,13 +93,13 @@ internal fun UserDTO.toDomain(): User? {
     )
 }
 
-internal fun List<UserDTO>?.toDomain(): List<User> = orEmpty().mapNotNull { it.toDomain() }
+internal fun List<UserDto>?.toDomain(): List<User> = orEmpty().mapNotNull { it.toDomain() }
 ```
 
 - The mapper is where the optional fields are dealt with: a **default** for what can be missing, a **fallback** for an
   unknown value, and **dropping the item** (returning `null`) for what is unusable without a field (no id). It never
   throws.
-- The mapper is a plain function `XDTO.toDomain()`, unit-tested on the JVM with a DTO that has fields missing
+- The mapper is a plain function `XDto.toDomain()`, unit-tested on the JVM with a DTO that has fields missing
   ([app-conventions.md](app-conventions.md)).
 - Never put a DTO in a `UiState`, a `Route`, a Navigation 3 key or a `ViewModel`, and never `@Serializable`-annotate a
   domain model just to reuse it as a DTO.
@@ -123,8 +123,8 @@ client, every one gets it.
 ## Done checklist
 
 - [ ] Ktor client with the OkHttp engine, created once and injected; no other HTTP client
-- [ ] Every network model is `@Serializable` and named `XDTO`, every property nullable with a `null` default, enums as `String?`
+- [ ] Every network model is `@Serializable` and named `XDto`, every property nullable with a `null` default, enums as `String?`
 - [ ] The `Json` is lenient (`ignoreUnknownKeys`, `isLenient`, `coerceInputValues`, `explicitNulls = false`)
-- [ ] A mapper `XDTO.toDomain()` for each DTO, never throwing; no DTO outside the networking layer
+- [ ] A mapper `XDto.toDomain()` for each DTO, never throwing; no DTO outside the networking layer
 - [ ] Failed calls are caught and logged with `Logger.e`, not allowed to crash
 - [ ] `NetworkLogInterceptor()` added to the engine of every client

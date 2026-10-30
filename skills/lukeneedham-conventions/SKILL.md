@@ -123,9 +123,9 @@ below are enough.
 
 ## Libraries and code patterns (details: `docs/app-conventions.md`)
 - **Networking (only apps that make network calls; `docs/networking.md`)**: Ktor client with the OkHttp engine. Every model from the
-  network is a `@Serializable` **`XDTO`** (`UserDTO`, never `UserDto`/`UserResponse`) with **every property nullable and defaulting
+  network is a `@Serializable` **`XDto`** (`UserDto`, never `UserDTO`/`UserResponse`) with **every property nullable and defaulting
   to `null`** (enums as `String?`) and a lenient `Json` (`ignoreUnknownKeys`, `isLenient`, `coerceInputValues`, `explicitNulls = false`), so
-  no API response can crash the app. A mapper `XDTO.toDomain()` (never throwing; defaults, fallbacks, drops unusable items) turns each
+  no API response can crash the app. A mapper `XDto.toDomain()` (never throwing; defaults, fallbacks, drops unusable items) turns each
   into a domain model; **a DTO never leaves the networking layer** (never in a ViewModel, `UiState` or `Route`). Failed calls are
   caught and logged, not crashed on. **Every client must have `NetworkLogInterceptor()` added to its engine** (the library's network
   log). An app with no networking: none of this applies.
