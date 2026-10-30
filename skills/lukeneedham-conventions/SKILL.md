@@ -120,10 +120,12 @@ below are enough.
   in `Application.onCreate`, `koinViewModel()` in composables. Constructor injection; classes never call Koin.
   **All Koin modules live in one Kotlin `object` named `KoinModules`** (`<app package>.di`, `val modules: List<Module>`;
   `App` calls `modules(KoinModules.modules)`); it may delegate to other objects specific to a feature or use case.
-  **Koin modules only wire**: one-line bindings (`singleOf`, `viewModelOf`, `single<Api> { Impl(get()) }`). Any
-  configuration (builders and DSLs like `HttpClient(OkHttp) { ... }` or `Room.databaseBuilder(...)`, timeouts, cache
-  sizes, file names, keys, many arguments or literals) lives in a dedicated class or Kotlin `object` that the module
-  just calls (`single { HttpClientFactory.create() }`). Qualifiers are constants.
+  **Koin modules only wire**: one-line bindings (`singleOf`, `viewModelOf`, `single<Api> { Impl(get()) }`) whose only
+  arguments are `get()`, `androidContext()`, runtime parameters and named constants. Any configuration (builders and DSLs
+  like `HttpClient(OkHttp) { ... }` or `Room.databaseBuilder(...)`, timeouts, cache sizes, file names, keys, an inline
+  `File` or `CoroutineScope(...)`, a value read from a global, chained factory calls) lives in a dedicated class or Kotlin
+  `object` that the module just calls (`single { HttpClientFactory.create() }`); a `File` or scope other bindings need is
+  bound under a qualifier constant. Name a feature object's module `bindings`, not `module`.
 - **Coil 3 for image loading** (`io.coil-kt.coil3:coil-compose`, not Coil 2.x, Glide or Picasso): `AsyncImage`
   for files, URIs and URLs. Add `coil-network-okhttp` only if the app loads images over the network.
 - Unit tests for ViewModels and repositories (JUnit, `kotlinx-coroutines-test`).

@@ -187,18 +187,21 @@ Defaults for a normal app. If the user asks for something else, do that instead.
   **All the app's Koin modules live in one Kotlin `object` named `KoinModules`** (file `KoinModules.kt`, package
   `<app package>.di`), which exposes `val modules: List<Module>`; `App` starts Koin with `modules(KoinModules.modules)` and
   nothing else declares a `module { }` outside it. `KoinModules` may delegate to other Kotlin objects specific to a feature or use
-  case (`object NetworkModule { val module = module { ... } }`), and a platform module of a Kotlin Multiplatform app is
+  case (`object NetworkModule { val bindings = module { ... } }`), and a platform module of a Kotlin Multiplatform app is
   one of those. Declare the private module `val`s above `modules`, because object properties initialise in order.
   **Koin modules only wire; they do not configure.** A module's body is a list of one-line bindings
-  (`singleOf(::X)`, `single<Api> { KtorApi(get()) }`, `viewModelOf(::XViewModel)`). Anything beyond that
-  (building an object with a builder or a DSL such as `HttpClient(OkHttp) { ... }`,
-  `Room.databaseBuilder(...).addMigrations(...)`, `OkHttpClient.Builder()...`, timeouts, cache sizes, file names, keys,
-  dispatchers, or a constructor call with more than a couple of arguments or literal values) goes into a
-  dedicated class or Kotlin `object` (`HttpClientFactory`, `DatabaseFactory`, `Dispatchers` wrappers, ...) that the
-  module just calls: `single { HttpClientFactory.create() }`. A binding is one line that calls `get()` /
-  `androidContext()` and at most a factory, with no lambdas, branches, literals, comments explaining settings or
-  `named` qualifiers invented inline (qualifiers are constants). The factories are plain code, so they stay
-  unit-testable and findable without opening a DI file.
+  (`singleOf(::X)`, `single<Api> { KtorApi(get()) }`, `viewModelOf(::XViewModel)`). The only arguments of a binding are
+  `get()` (with a qualifier if needed), `androidContext()`, the runtime parameters of a `viewModel { (id: String) -> ... }`
+  and named constants. Everything else is configuration, and goes into a dedicated class or Kotlin `object` that the
+  module just calls: a builder or a DSL (`HttpClient(OkHttp) { ... }`, `Room.databaseBuilder(...).addMigrations(...)`,
+  `OkHttpClient.Builder()...`), timeouts, cache sizes, file names, keys, a `File` or a `CoroutineScope(...)` built inline, a
+  value read from a global (`DebugKit.enabled`), or two factory calls chained. `single { HttpClientFactory.create() }`, not the
+  builder inside the lambda. A `File`, a scope or the like that other bindings need is bound under a qualifier constant,
+  `single(named(APK_DIRECTORY)) { AppDirectories.apks(androidContext()) }`, and read back with `get(named(APK_DIRECTORY))`.
+  No other lambdas, branches, literals or comments explaining settings in a module: the comment goes on the factory. The
+  factories are plain code, so they stay unit-testable and findable without opening a DI file. Name the module of a
+  feature object `bindings` (`object NetworkModule { val bindings = module { ... } }`), not `module`, which would shadow the
+  `module { }` function.
 - **Image loading: Coil 3.** Use [Coil](https://coil-kt.github.io/coil/) **version 3** (group
   `io.coil-kt.coil3`, not the older `io.coil-kt:coil-compose` 2.x) for every image that is not a bundled
   drawable: files, content URIs, and URLs. Add `coil-compose`, plus `coil-network-okhttp` only if the app
