@@ -114,6 +114,68 @@ class CommitGeneratedTest(unittest.TestCase):
         self.assertEqual(0, c.run(args(), self.pr, cwd=self.app))
         self.assertEqual("3", counter.read_text().strip())
 
+    def with_built_commit(self):
+        """The event of a run that was started for the commit the branch is at now."""
+        built = git(self.app, "rev-parse", "HEAD")
+        event = Path(self.tmp.name) / "event.json"
+        event.write_text(json.dumps({"pull_request": {"head": {"repo": {"full_name": "o/app"}, "sha": built}}}))
+        return {**self.pr, "GITHUB_EVENT_PATH": str(event)}
+
+    def push_from_another_clone(self, filename, text):
+        other = Path(self.tmp.name) / "other"
+        git(self.tmp.name, "clone", "-q", "-b", "feature", str(self.remote), str(other))
+        git(other, "config", "user.name", "o")
+        git(other, "config", "user.email", "o@o")
+        (other / filename).parent.mkdir(parents=True, exist_ok=True)
+        (other / filename).write_text(text)
+        git(other, "add", "-A")
+        git(other, "commit", "-qm", "other")
+        git(other, "push", "-q", "origin", "feature")
+
+    def test_a_branch_still_at_the_built_commit_is_committed_to(self):
+        env = self.with_built_commit()
+        (self.app / "docs" / "screenshots" / "Home.png").write_text("two")
+        self.assertEqual(0, c.run(args(), env, cwd=self.app))
+        self.assertEqual(2, self.commits())
+
+    def test_files_made_from_old_code_are_not_committed_on_top_of_a_newer_push_of_code(self):
+        env = self.with_built_commit()
+        self.push_from_another_clone("app/src/Main.kt", "new code")
+        (self.app / "docs" / "screenshots" / "Home.png").write_text("rendered from the old code")
+        self.assertEqual(0, c.run(args(), env, cwd=self.app))
+        # Only the push of code is on the branch: the screenshots of the old code were left out
+        self.assertEqual(2, self.commits())
+        self.assertEqual("other", git(self.remote, "log", "-1", "--format=%s", "feature"))
+
+    def test_a_commit_of_generated_files_by_another_job_is_built_on(self):
+        env = self.with_built_commit()
+        self.push_from_another_clone("README.md", "from the other job")
+        (self.app / "docs" / "screenshots" / "Home.png").write_text("two")
+        self.assertEqual(0, c.run(args(), env, cwd=self.app))
+        self.assertEqual(3, self.commits())
+
+    def test_a_push_of_code_that_comes_between_the_attempts_is_not_built_on_either(self):
+        env = self.with_built_commit()
+        (self.app / "docs" / "screenshots" / "Home.png").write_text("two")
+        self.push_from_another_clone("app/src/Main.kt", "new code")
+        # The first push is refused because the branch moved: the retry looks at what moved it
+        self.assertEqual(0, c.run(args(), env, cwd=self.app))
+        self.assertEqual(2, self.commits())
+        self.assertEqual("other", git(self.remote, "log", "-1", "--format=%s", "feature"))
+
+    def test_a_force_pushed_branch_is_not_committed_to(self):
+        env = self.with_built_commit()
+        # The branch is replaced by a history that does not contain the commit this run was started for
+        rewrite = Path(self.tmp.name) / "rewrite"
+        git(self.tmp.name, "init", "-q", "-b", "feature", str(rewrite))
+        git(rewrite, "config", "user.name", "o")
+        git(rewrite, "config", "user.email", "o@o")
+        git(rewrite, "commit", "--allow-empty", "-qm", "unrelated")
+        git(rewrite, "push", "-q", "--force", str(self.remote), "feature")
+        (self.app / "docs" / "screenshots" / "Home.png").write_text("two")
+        self.assertEqual(0, c.run(args(), env, cwd=self.app))
+        self.assertEqual("unrelated", git(self.remote, "log", "-1", "--format=%s", "feature"))
+        self.assertEqual(1, self.commits())
 
 if __name__ == "__main__":
     unittest.main()
