@@ -330,7 +330,7 @@ Route.Crashes -> CrashesPage(onBack = ::onBack)
 ```
 
 **The network page** is optional: an app that makes HTTP calls adds a fourth route, passes `onOpenNetwork` to
-`DebugPage` (the button is hidden without it), and calls `logNetwork()` on its HTTP client:
+`DebugPage` (the button is hidden without it), and adds `NetworkLogInterceptor()` to its OkHttp client (also the engine of a Ktor client):
 
 ```kotlin
 // Route.kt
@@ -339,15 +339,15 @@ Route.Crashes -> CrashesPage(onBack = ::onBack)
 // Router.kt: add onOpenNetwork = { navigateTo(Route.Network) } to DebugPage, and
 Route.Network -> NetworkPage(onBack = ::onBack)
 
-// where the Ktor client is built (OkHttp engine)
-val client = HttpClient(OkHttp) { logNetwork() }
+// where the client is built: Ktor on the OkHttp engine
+val client = HttpClient(OkHttp) {
+    engine { addInterceptor(NetworkLogInterceptor()) }
+}
 
 // or a plain OkHttp client
-val okHttp = OkHttpClient.Builder().logNetwork().build()
+val okHttp = OkHttpClient.Builder().addInterceptor(NetworkLogInterceptor()).build()
 ```
 
-Both are one-liners over `NetworkLogInterceptor` (`import com.lukeneedham.common.network.logNetwork`). The Ktor one needs
-`ktor-client-okhttp`, which the app already has; the library does not bring Ktor.
 
 It lists every call with its request and response (headers, bodies, status, duration), in memory only and only in
 debug builds. Clients on another engine call `DebugKit.network.record(NetworkEntry(...))` from a plugin of their own.
