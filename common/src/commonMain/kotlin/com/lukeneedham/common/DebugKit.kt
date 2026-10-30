@@ -74,7 +74,7 @@ object DebugKit {
     fun clearCrashes() = crashes.clear()
 
     /** The network calls made since the app started, recorded only while [enabled]. See [NetworkLog]. */
-    val network: NetworkLog by lazy { NetworkLog(enabled = { enabled }) }
+    val networkLog: NetworkLog by lazy { NetworkLog(enabled = { enabled }) }
 
     /** Debug-only settings, such as the animation speed. */
     val settings: DebugSettings by lazy { DebugSettings(fileStore) }

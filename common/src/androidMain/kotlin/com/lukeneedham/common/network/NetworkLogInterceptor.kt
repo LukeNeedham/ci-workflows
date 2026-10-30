@@ -6,7 +6,7 @@ import okhttp3.Response
 import okio.Buffer
 
 /**
- * Records every call of the OkHttp client it is added to into [DebugKit.network]:
+ * Records every call of the OkHttp client it is added to into [DebugKit.networkLog]:
  * `OkHttpClient.Builder().addInterceptor(NetworkLogInterceptor())`.
  *
  * Add it as an application interceptor. For a Ktor client on the OkHttp engine, add it in `engine { addInterceptor(NetworkLogInterceptor()) }`. It does nothing unless debugging is enabled. Streaming
@@ -14,7 +14,7 @@ import okio.Buffer
  */
 class NetworkLogInterceptor : Interceptor {
     override fun intercept(chain: Interceptor.Chain): Response {
-        val log = DebugKit.network
+        val log = DebugKit.networkLog
         val request = chain.request()
         if (!log.isRecording) return chain.proceed(request)
 

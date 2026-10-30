@@ -350,7 +350,7 @@ val okHttp = OkHttpClient.Builder().addInterceptor(NetworkLogInterceptor()).buil
 
 
 It lists every call with its request and response (headers, bodies, status, duration), in memory only and only in
-debug builds. Clients on another engine call `DebugKit.network.record(NetworkEntry(...))` from a plugin of their own.
+debug builds. Clients on another engine call `DebugKit.networkLog.record(NetworkEntry(...))` from a plugin of their own.
 
 On a Kotlin Multiplatform app, also register the three routes in the back stack's serialization config
 ([app-shell.md](app-shell.md#exceptions)).

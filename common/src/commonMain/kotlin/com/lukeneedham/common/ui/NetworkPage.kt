@@ -35,18 +35,18 @@ import com.lukeneedham.common.network.prettyIfJson
  */
 @Composable
 fun NetworkPage(onBack: () -> Unit, modifier: Modifier = Modifier) {
-    var entries by remember { mutableStateOf(DebugKit.network.entries()) }
+    var entries by remember { mutableStateOf(DebugKit.networkLog.entries()) }
 
     DebugScaffold(
         title = "Network",
         onBack = onBack,
         modifier = modifier,
         actions = {
-            DebugTextButton(text = "Refresh", onClick = { entries = DebugKit.network.entries() })
+            DebugTextButton(text = "Refresh", onClick = { entries = DebugKit.networkLog.entries() })
             DebugTextButton(
                 text = "Clear",
                 onClick = {
-                    DebugKit.network.clear()
+                    DebugKit.networkLog.clear()
                     entries = emptyList()
                 },
             )
