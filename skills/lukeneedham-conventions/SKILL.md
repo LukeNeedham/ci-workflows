@@ -120,6 +120,7 @@ below are enough.
   in `Application.onCreate`, `koinViewModel()` in composables. Constructor injection; classes never call Koin.
   **All Koin modules live in one Kotlin `object` named `KoinModules`** (`<app package>.di`, `val modules: List<Module>`;
   `App` calls `modules(KoinModules.modules)`); it may delegate to other objects specific to a feature or use case.
+  `KoinModules.kt` contains only that object: qualifier names go in `object KoinQualifier`, and every other object in a file of its own.
   **Koin modules only wire**: one-line bindings (`singleOf`, `viewModelOf`, `single<Api> { Impl(get()) }`) whose only
   arguments are `get()`, `androidContext()`, runtime parameters and named constants. Any configuration (builders and DSLs
   like `HttpClient(OkHttp) { ... }` or `Room.databaseBuilder(...)`, timeouts, cache sizes, file names, keys, an inline
