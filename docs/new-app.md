@@ -184,6 +184,11 @@ Defaults for a normal app. If the user asks for something else, do that instead.
   `koinViewModel()` (`koin-androidx-compose`). Classes take their dependencies as constructor
   parameters and never call Koin themselves, so they stay unit-testable. Check the current Koin version
   and the BOM (`koin-bom`) before adding it.
+  **All the app's Koin modules live in one Kotlin `object` named `KoinModules`** (file `KoinModules.kt`, package
+  `<app package>.di`), which exposes `val modules: List<Module>`; `App` starts Koin with `modules(KoinModules.modules)` and
+  nothing else declares a `module { }` outside it. `KoinModules` may delegate to other Kotlin objects specific to a feature or use
+  case (`object NetworkModule { val module = module { ... } }`), and a platform module of a Kotlin Multiplatform app is
+  one of those. Declare the private module `val`s above `modules`, because object properties initialise in order.
   **Koin modules only wire; they do not configure.** A module's body is a list of one-line bindings
   (`singleOf(::X)`, `single<Api> { KtorApi(get()) }`, `viewModelOf(::XViewModel)`). Anything beyond that
   (building an object with a builder or a DSL such as `HttpClient(OkHttp) { ... }`,
@@ -237,6 +242,7 @@ sections you skipped and why. Such an app has no `screenshot` package (no Compos
 - [ ] Handwritten `readme.yml` ([readme.md](readme.md)); CI generates `README.md` from it
 - [ ] The app shell as in [app-shell.md](app-shell.md) (`MainActivity` calling only `Root`, `AppNavigation`, an exhaustive `Router`); Compose, Navigation 3, MVVM, Koin for DI, Coil 3 for images, or a stated reason for each departure
 - [ ] Koin for DI, no `AndroidViewModel` anywhere (ViewModels extend `ViewModel` and get dependencies as constructor parameters)
+- [ ] All Koin modules are in the `object KoinModules` (it may delegate to feature objects); `App` starts Koin with `KoinModules.modules`
 - [ ] Koin modules only wire: configuration (builders, timeouts, file names, many arguments) is in a dedicated class or `object` the module calls
 - [ ] [app-conventions.md](app-conventions.md) followed: strings in `strings.xml`, own `AppTheme` (no `MaterialTheme`), a preview per composable, 48dp touch targets
 - [ ] Shared library added, `DebugKit.init` called first, `Logger` used (debug pages optional); if the app makes network calls, it follows [networking.md](networking.md) (`XDto` models mapped to domain models, `NetworkLogInterceptor()` on its client)

@@ -118,6 +118,8 @@ below are enough.
 - **Never `AndroidViewModel`** (banned in every app): ViewModels extend `ViewModel` and take their dependencies (never an `Application` or `Context`) as constructor parameters, provided by Koin.
 - **Koin for dependency injection, in every app without exception**: `module { }` with `singleOf` / `viewModelOf` / `factoryOf`, `startKoin`
   in `Application.onCreate`, `koinViewModel()` in composables. Constructor injection; classes never call Koin.
+  **All Koin modules live in one Kotlin `object` named `KoinModules`** (`<app package>.di`, `val modules: List<Module>`;
+  `App` calls `modules(KoinModules.modules)`); it may delegate to other objects specific to a feature or use case.
   **Koin modules only wire**: one-line bindings (`singleOf`, `viewModelOf`, `single<Api> { Impl(get()) }`). Any
   configuration (builders and DSLs like `HttpClient(OkHttp) { ... }` or `Room.databaseBuilder(...)`, timeouts, cache
   sizes, file names, keys, many arguments or literals) lives in a dedicated class or Kotlin `object` that the module
