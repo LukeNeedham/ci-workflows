@@ -123,7 +123,7 @@ below are enough.
 
 ## Libraries and code patterns (details: `docs/app-conventions.md`)
 - Libraries: `kotlinx.serialization`, Room (structured data), DataStore (settings, never `SharedPreferences`),
-  Ktor client with the OkHttp engine (networking), `kotlinx-datetime`, Media3 (audio/video).
+  Ktor client with the OkHttp engine (networking; **every app that makes network calls must add `NetworkLogInterceptor()` to the engine** so the library's network log records its calls), `kotlinx-datetime`, Media3 (audio/video).
 - **All text in `strings.xml`**, none hard-coded (including content descriptions).
 - **Own `AppTheme`**, a hand-made composition local holding colours and typefaces. Never read `MaterialTheme`
   in the app; always `AppTheme.current`. No fixed text-style scale: set font size and line height inline in

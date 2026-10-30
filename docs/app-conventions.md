@@ -21,7 +21,7 @@ else, do that instead. Check the current stable version of every library before 
 | Serialization | `kotlinx.serialization` (also what Navigation 3 keys use) |
 | Structured data | Room |
 | Settings and small key-value data | DataStore (not `SharedPreferences`) |
-| Networking | Ktor client with the OkHttp engine (`ktor-client-okhttp`), only for apps that make network calls |
+| Networking | Ktor client with the OkHttp engine (`ktor-client-okhttp`), only for apps that make network calls. **Every app that makes network calls links the client to the library's network log**: `engine { addInterceptor(NetworkLogInterceptor()) }` ([using-the-library.md](using-the-library.md#wiring-the-pages-into-your-navigation)) |
 | Date and time | `kotlinx-datetime` |
 | Audio and video | Media3 (ExoPlayer) |
 

@@ -195,6 +195,11 @@ Defaults for a normal app. If the user asks for something else, do that instead.
 logs and crashes pages. Follow **[using-the-library.md](using-the-library.md)** to add it, and use
 `Logger` rather than `Log` or `println`.
 
+**An app that makes network calls must link its HTTP client to the library's network log**: add
+`NetworkLogInterceptor()` to the OkHttp engine of the Ktor client (`HttpClient(OkHttp) { engine { addInterceptor(NetworkLogInterceptor()) } }`),
+so every call is recorded (debug builds only, in memory). This is not optional, even for an app that shows no debug pages;
+an app that shows them also adds the `NetworkPage` ([using-the-library.md](using-the-library.md#wiring-the-pages-into-your-navigation)).
+
 The debug pages are optional. An app that shows them puts the library's `DebugButton` on a settings page (never a
 floating button on the main page); see [A settings page](using-the-library.md#a-settings-page).
 
@@ -215,5 +220,5 @@ sections you skipped and why. Such an app has no `screenshot` package (no Compos
 - [ ] Handwritten `readme.yml` ([readme.md](readme.md)); CI generates `README.md` from it
 - [ ] The app shell as in [app-shell.md](app-shell.md) (`MainActivity` calling only `Root`, `AppNavigation`, an exhaustive `Router`); Compose, Navigation 3, MVVM, Koin for DI, Coil 3 for images, or a stated reason for each departure
 - [ ] [app-conventions.md](app-conventions.md) followed: strings in `strings.xml`, own `AppTheme` (no `MaterialTheme`), a preview per composable, 48dp touch targets
-- [ ] Shared library added, `DebugKit.init` called first, `Logger` used (debug pages optional)
+- [ ] Shared library added, `DebugKit.init` called first, `Logger` used (debug pages optional); if the app makes network calls, its HTTP client has `NetworkLogInterceptor()`
 - [ ] PR opened, CI green, AppHub link pasted to the user

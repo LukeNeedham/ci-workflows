@@ -15,7 +15,7 @@ get an option to differ from it.
 | JDK | 17, Temurin |
 | Timezone of the timestamps | `Europe/Amsterdam` |
 | PR comment id | `<repo name, lower case>-app-link` |
-| Library | The shared library ([library.md](library.md)), with `DebugKit.init` called first thing and `Logger` used for logging. The debug pages are optional |
+| Library | The shared library ([library.md](library.md)), with `DebugKit.init` called first thing and `Logger` used for logging. The debug pages are optional. An app that makes network calls adds `NetworkLogInterceptor()` to its HTTP client |
 | Workflow files | All callers of [`callers/`](../callers) in `.github/workflows/` ([setup.md](setup.md) documents each) |
 
 The values are in `scripts/app_config.py` and only there. Changing one changes it for every app, so change the apps
