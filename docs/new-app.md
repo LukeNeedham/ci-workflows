@@ -190,8 +190,10 @@ Defaults for a normal app. If the user asks for something else, do that instead.
   case (`object NetworkModule { val bindings = module { ... } }`), and a platform module of a Kotlin Multiplatform app is
   one of those. Declare the private module `val`s above `modules`, because object properties initialise in order.
   **`KoinModules.kt` holds the `object KoinModules` and nothing else**: no other top-level declaration (no `const val`, no
-  helper, no second class). The qualifier names live in an `object KoinQualifier` in a file of its own, and every feature object,
-  factory or config object is in its own file too.
+  helper, no second class). The qualifier names, when a binding needs one, are `const val`s of the `object KoinQualifier` in
+  `KoinQualifier.kt` (same package), used as `named(KoinQualifier.REPO_CREATION_TOKEN)`: always this name, never a string
+  literal in a module, and related names may be grouped in nested objects (`KoinQualifier.Dispatcher.io`). Every feature object,
+  factory or config object is in its own file too. The fixed names are in [app-shell.md](app-shell.md#the-names).
   **Koin modules only wire; they do not configure.** A module's body is a list of one-line bindings
   (`singleOf(::X)`, `single<Api> { KtorApi(get()) }`, `viewModelOf(::XViewModel)`). The only arguments of a binding are
   `get()` (with a qualifier if needed), `androidContext()`, the runtime parameters of a `viewModel { (id: String) -> ... }`
@@ -248,7 +250,7 @@ sections you skipped and why. Such an app has no `screenshot` package (no Compos
 - [ ] Handwritten `readme.yml` ([readme.md](readme.md)); CI generates `README.md` from it
 - [ ] The app shell as in [app-shell.md](app-shell.md) (`MainActivity` calling only `Root`, `AppNavigation`, an exhaustive `Router`); Compose, Navigation 3, MVVM, Koin for DI, Coil 3 for images, or a stated reason for each departure
 - [ ] Koin for DI, no `AndroidViewModel` anywhere (ViewModels extend `ViewModel` and get dependencies as constructor parameters)
-- [ ] `KoinModules.kt` contains only `object KoinModules` (qualifiers in `KoinQualifier`, every other object in its own file)
+- [ ] `KoinModules.kt` contains only `object KoinModules`; qualifier names (if any) are in `object KoinQualifier` (`KoinQualifier.kt`), never string literals; every other object is in its own file
 - [ ] All Koin modules are in the `object KoinModules` (it may delegate to feature objects); `App` starts Koin with `KoinModules.modules`
 - [ ] Koin modules only wire: configuration (builders, timeouts, file names, many arguments) is in a dedicated class or `object` the module calls
 - [ ] [app-conventions.md](app-conventions.md) followed: strings in `strings.xml`, own `AppTheme` (no `MaterialTheme`), a preview per composable, 48dp touch targets
