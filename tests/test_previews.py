@@ -81,7 +81,7 @@ class Comment(unittest.TestCase):
         self.assertEqual(changed.count("#### H"), 1)
         self.assertNotIn("|", body)
         # before and after of one preview are side by side, at the same size
-        self.assertRegex(changed, r'<img [^>]*width="300"[^>]*> <img [^>]*width="300"')
+        self.assertRegex(changed, r'<img [^>]*width="150"[^>]*> <img [^>]*width="150"')
 
     def test_warns_when_main_moved(self):
         m = manifest("a" * 40, {})
