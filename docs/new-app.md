@@ -169,6 +169,8 @@ Defaults for a normal app. If the user asks for something else, do that instead.
   sends user actions as plain function calls up to the ViewModel. State goes down, events go up.
   Composables hold no business logic.
 - **Coroutines and Flow** for async work; `viewModelScope` for work tied to a screen.
+- **Networking** (only for apps that make network calls): Ktor + OkHttp, every network model a defensive `XDTO` mapped to a
+  domain model at the edge, and the debug kit network log linked up: all in **[networking.md](networking.md)**.
 - **Layers.** UI (composables + ViewModels) → domain/data (repositories). Keep Android types out of
   the lower layer so it can be unit-tested on the JVM.
 - **Dependency injection: Koin.** Use [Koin](https://insert-koin.io) for DI in every app. Declare
@@ -196,9 +198,9 @@ logs and crashes pages. Follow **[using-the-library.md](using-the-library.md)** 
 `Logger` rather than `Log` or `println`.
 
 **An app that makes network calls must link its HTTP client to the library's network log**: add
-`NetworkLogInterceptor()` to the OkHttp engine of the Ktor client (`HttpClient(OkHttp) { engine { addInterceptor(NetworkLogInterceptor()) } }`),
-so every call is recorded (debug builds only, in memory). This is not optional, even for an app that shows no debug pages;
-an app that shows them also adds the `NetworkPage` ([using-the-library.md](using-the-library.md#wiring-the-pages-into-your-navigation)).
+`NetworkLogInterceptor()` to the OkHttp engine of the Ktor client, so every call is recorded (debug builds only, in memory).
+This is not optional, even for an app that shows no debug pages; an app that shows them also adds the `NetworkPage`
+([networking.md](networking.md#the-debug-kit-network-log)).
 
 The debug pages are optional. An app that shows them puts the library's `DebugButton` on a settings page (never a
 floating button on the main page); see [A settings page](using-the-library.md#a-settings-page).
@@ -220,5 +222,5 @@ sections you skipped and why. Such an app has no `screenshot` package (no Compos
 - [ ] Handwritten `readme.yml` ([readme.md](readme.md)); CI generates `README.md` from it
 - [ ] The app shell as in [app-shell.md](app-shell.md) (`MainActivity` calling only `Root`, `AppNavigation`, an exhaustive `Router`); Compose, Navigation 3, MVVM, Koin for DI, Coil 3 for images, or a stated reason for each departure
 - [ ] [app-conventions.md](app-conventions.md) followed: strings in `strings.xml`, own `AppTheme` (no `MaterialTheme`), a preview per composable, 48dp touch targets
-- [ ] Shared library added, `DebugKit.init` called first, `Logger` used (debug pages optional); if the app makes network calls, its HTTP client has `NetworkLogInterceptor()`
+- [ ] Shared library added, `DebugKit.init` called first, `Logger` used (debug pages optional); if the app makes network calls, it follows [networking.md](networking.md) (`XDTO` models mapped to domain models, `NetworkLogInterceptor()` on its client)
 - [ ] PR opened, CI green, AppHub link pasted to the user

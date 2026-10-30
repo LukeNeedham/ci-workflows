@@ -11,7 +11,7 @@ there. The same goes for the callers in `.github/workflows/`.
 
 The long guides are in that repo's `docs/`: `new-app.md` (read first when starting an app), `setup.md`,
 `app-config.md`, `app-icon.md`, `readme.md` (the README layout and `readme.yml`), `pages.md` (`XPage` and
-`XPageContent`), `app-shell.md` (`MainActivity`, `Root`, navigation), `screenshots.md` (the README screenshots), `app-conventions.md`, `library.md`,
+`XPageContent`), `app-shell.md` (`MainActivity`, `Root`, navigation), `networking.md` (Ktor/OkHttp, DTOs, the network log), `screenshots.md` (the README screenshots), `app-conventions.md`, `library.md`,
 `using-the-library.md`, `consuming-apps.md` and `create-app.md` (how a new app repo is created). If you can reach GitHub, read the relevant page; otherwise the rules
 below are enough.
 
@@ -122,8 +122,15 @@ below are enough.
 - Unit tests for ViewModels and repositories (JUnit, `kotlinx-coroutines-test`).
 
 ## Libraries and code patterns (details: `docs/app-conventions.md`)
+- **Networking (only apps that make network calls; `docs/networking.md`)**: Ktor client with the OkHttp engine. Every model from the
+  network is a `@Serializable` **`XDTO`** (`UserDTO`, never `UserDto`/`UserResponse`) with **every property nullable and defaulting
+  to `null`** (enums as `String?`) and a lenient `Json` (`ignoreUnknownKeys`, `isLenient`, `coerceInputValues`, `explicitNulls = false`), so
+  no API response can crash the app. A mapper `XDTO.toDomain()` (never throwing; defaults, fallbacks, drops unusable items) turns each
+  into a domain model; **a DTO never leaves the networking layer** (never in a ViewModel, `UiState` or `Route`). Failed calls are
+  caught and logged, not crashed on. **Every client must have `NetworkLogInterceptor()` added to its engine** (the library's network
+  log). An app with no networking: none of this applies.
 - Libraries: `kotlinx.serialization`, Room (structured data), DataStore (settings, never `SharedPreferences`),
-  Ktor client with the OkHttp engine (networking; **every app that makes network calls must add `NetworkLogInterceptor()` to the engine** so the library's network log records its calls), `kotlinx-datetime`, Media3 (audio/video).
+  Ktor client with the OkHttp engine (networking, see above), `kotlinx-datetime`, Media3 (audio/video).
 - **All text in `strings.xml`**, none hard-coded (including content descriptions).
 - **Own `AppTheme`**, a hand-made composition local holding colours and typefaces. Never read `MaterialTheme`
   in the app; always `AppTheme.current`. No fixed text-style scale: set font size and line height inline in
