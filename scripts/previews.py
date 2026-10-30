@@ -32,6 +32,8 @@ MANIFEST = "previews-manifest.json"
 MARKER = "<!-- previews-diff -->"
 # More than this many changed previews are listed by name only, so the comment stays readable
 MAX_SHOWN = 20
+# Two images plus a space must fit in one row on a phone (GitHub Mobile is about 320px wide), so they stay side by side
+IMAGE_WIDTH = 150
 
 
 # ---------------------------------------------------------------------------------------------------
@@ -68,7 +70,7 @@ def asset_url(repo, tag, name):
 
 
 def image(repo, tag, name):
-    return f'<img src="{asset_url(repo, tag, name)}" width="300" alt="{short_name(name)}">'
+    return f'<img src="{asset_url(repo, tag, name)}" width="{IMAGE_WIDTH}" alt="{short_name(name)}">'
 
 
 def comment_body(repo, pr_tag, head, base, main_sha_now=None):
