@@ -52,10 +52,15 @@ def diff(base, head):
     return added, changed, removed
 
 
+def composable_of(name):
+    """`com.app.ui.HomePageContentKt.PreviewEmpty` -> `HomePageContent`: the file of the previews, so the composable."""
+    cls, _, _ = name.rpartition(".")
+    return cls.rpartition(".")[2].removesuffix("Kt")
+
+
 def short_name(name):
-    """`com.app.ui.HomePageContentKt.PreviewEmpty` -> `HomePageContent` `PreviewEmpty`: the file and the function."""
-    cls, _, function = name.rpartition(".")
-    return f"{cls.rpartition('.')[2].removesuffix('Kt')} · {function}"
+    """`com.app.ui.HomePageContentKt.PreviewEmpty` -> `HomePageContent · PreviewEmpty`: the file and the function."""
+    return f"{composable_of(name)} · {name.rpartition('.')[2]}"
 
 
 def asset_url(repo, tag, name):
@@ -63,12 +68,12 @@ def asset_url(repo, tag, name):
 
 
 def image(repo, tag, name):
-    return f'<img src="{asset_url(repo, tag, name)}" width="180" alt="{short_name(name)}">'
+    return f'<img src="{asset_url(repo, tag, name)}" width="300" alt="{short_name(name)}">'
 
 
 def comment_body(repo, pr_tag, head, base, main_sha_now=None):
     """The PR comment. [head] and [base] are manifests; [base] is None while main has no images yet."""
-    lines = [MARKER, "### 🖼️ Preview changes", ""]
+    lines = [MARKER, "## 🖼️ Preview changes", ""]
     if base is None:
         lines.append("Main's previews are not rendered yet, so there is nothing to compare with. They are rendered "
                      "when the next push to main has been built.")
@@ -87,15 +92,28 @@ def comment_body(repo, pr_tag, head, base, main_sha_now=None):
         lines.append("No preview changed ✅")
         return "\n".join(lines) + "\n"
     lines.append(f"**{total} changed:** {len(added)} new, {len(changed)} modified, {len(removed)} removed.")
-    lines.append("")
-    rows = [(n, "new") for n in added] + [(n, "modified") for n in changed] + [(n, "removed") for n in removed]
-    lines += ["| Preview | Before (main) | After (this PR) |", "|---|---|---|"]
-    for name, kind in rows[:MAX_SHOWN]:
-        before = image(repo, MAIN_TAG, name) if kind != "new" else "—"
-        after = image(repo, pr_tag, name) if kind != "removed" else "—"
-        lines.append(f"| `{short_name(name)}` ({kind}) | {before} | {after} |")
-    if len(rows) > MAX_SHOWN:
-        lines += ["", "Not shown: " + ", ".join(f"`{short_name(n)}`" for n, _ in rows[MAX_SHOWN:])]
+    shown = MAX_SHOWN
+    hidden = []
+    for title, names, before, after in (("New", added, False, True), ("Removed", removed, True, False),
+                                        ("Changed", changed, True, True)):
+        if not names:
+            continue
+        lines += ["", f"### {title}"]
+        by_composable = {}
+        for name in names:
+            if shown > 0:
+                by_composable.setdefault(composable_of(name), []).append(name)
+                shown -= 1
+            else:
+                hidden.append(name)
+        for composable, group in by_composable.items():
+            lines += ["", f"#### {composable}"]
+            for name in group:
+                images = ([image(repo, MAIN_TAG, name)] if before else []) + ([image(repo, pr_tag, name)] if after else [])
+                caption = name.rpartition(".")[2] + (" (main → this PR)" if before and after else "")
+                lines += ["", f"**{caption}**", "", " ".join(images)]
+    if hidden:
+        lines += ["", "Not shown: " + ", ".join(f"`{short_name(n)}`" for n in hidden)]
     lines += ["", f"All of this PR's previews are assets of its [build release]"
                   f"(https://github.com/{repo}/releases/tag/{pr_tag})."]
     return "\n".join(lines) + "\n"

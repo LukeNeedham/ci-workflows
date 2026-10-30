@@ -15,8 +15,9 @@ changed, with the image from `main` next to the image from the PR.
   assets of the pre-release `previews-main` (and `previews-manifest.json`). It also builds the APK, which does not stop the previews.
 - **A PR.** The build job of [`android_pr_build.yml`](../.github/workflows/android_pr_build.yml) renders them again after the
   APK (nothing is built twice), uploads **all** of them to the PR build's own pre-release, and posts the comment: the previews
-  that are new, modified or removed against `previews-main`, as a table of before (main) and after (PR). More than 20
-  changes are listed by name. Unchanged previews are not shown.
+  that are new, modified or removed against `previews-main`, under the headings New, Removed and Changed, a subheading per composable, and its previews side by side at the same size
+  (before (main) and after (PR) for the changed ones). More than 20
+  previews are listed by name. Unchanged previews are not shown.
 - **Main moves while a PR is open.** After publishing, the main workflow redoes the comment of every open PR against the new
   images of main (from the manifest of the PR's latest build release), so the comment never compares with an old main. Until
   that has run, the comment says `main` has moved on.
