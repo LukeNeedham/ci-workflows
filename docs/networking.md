@@ -19,7 +19,7 @@ network log to link up.
 | JSON | `kotlinx.serialization` ([app-conventions.md](app-conventions.md#libraries)) |
 
 Do not add a second HTTP client or engine. The Ktor client is created once, declared in the Koin module of the
-networking layer (`singleOf` / a `single { }`), and injected into the remote data sources, which are injected into the
+networking layer (`single { HttpClientFactory.create() }`: the configuration lives in the factory, not in the module, see [new-app.md](new-app.md#6-app-architecture)), and injected into the remote data sources, which are injected into the
 repositories ([new-app.md](new-app.md#6-app-architecture)). Nothing outside the networking layer touches `HttpClient`.
 
 ## DTOs: `XDto`

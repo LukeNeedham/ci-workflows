@@ -179,6 +179,16 @@ Defaults for a normal app. If the user asks for something else, do that instead.
   `koinViewModel()` (`koin-androidx-compose`). Classes take their dependencies as constructor
   parameters and never call Koin themselves, so they stay unit-testable. Check the current Koin version
   and the BOM (`koin-bom`) before adding it.
+  **Koin modules only wire; they do not configure.** A module's body is a list of one-line bindings
+  (`singleOf(::X)`, `single<Api> { KtorApi(get()) }`, `viewModelOf(::XViewModel)`). Anything beyond that
+  (building an object with a builder or a DSL such as `HttpClient(OkHttp) { ... }`,
+  `Room.databaseBuilder(...).addMigrations(...)`, `OkHttpClient.Builder()...`, timeouts, cache sizes, file names, keys,
+  dispatchers, or a constructor call with more than a couple of arguments or literal values) goes into a
+  dedicated class or Kotlin `object` (`HttpClientFactory`, `DatabaseFactory`, `Dispatchers` wrappers, ...) that the
+  module just calls: `single { HttpClientFactory.create() }`. A binding is one line that calls `get()` /
+  `androidContext()` and at most a factory, with no lambdas, branches, literals, comments explaining settings or
+  `named` qualifiers invented inline (qualifiers are constants). The factories are plain code, so they stay
+  unit-testable and findable without opening a DI file.
 - **Image loading: Coil 3.** Use [Coil](https://coil-kt.github.io/coil/) **version 3** (group
   `io.coil-kt.coil3`, not the older `io.coil-kt:coil-compose` 2.x) for every image that is not a bundled
   drawable: files, content URIs, and URLs. Add `coil-compose`, plus `coil-network-okhttp` only if the app
@@ -221,6 +231,7 @@ sections you skipped and why. Such an app has no `screenshot` package (no Compos
 - [ ] Every page is an `XPage` + `XPageContent`, named and split as in [pages.md](pages.md); a `screenshot` package with the screenshots worth showing (any number per page, none for some pages, at least one in all), and its `order.txt` ([screenshots.md](screenshots.md)), or, for an app that cannot render previews, `screenshots: manual` and at least one hand-committed screenshot in `docs/screenshots/`
 - [ ] Handwritten `readme.yml` ([readme.md](readme.md)); CI generates `README.md` from it
 - [ ] The app shell as in [app-shell.md](app-shell.md) (`MainActivity` calling only `Root`, `AppNavigation`, an exhaustive `Router`); Compose, Navigation 3, MVVM, Koin for DI, Coil 3 for images, or a stated reason for each departure
+- [ ] Koin modules only wire: configuration (builders, timeouts, file names, many arguments) is in a dedicated class or `object` the module calls
 - [ ] [app-conventions.md](app-conventions.md) followed: strings in `strings.xml`, own `AppTheme` (no `MaterialTheme`), a preview per composable, 48dp touch targets
 - [ ] Shared library added, `DebugKit.init` called first, `Logger` used (debug pages optional); if the app makes network calls, it follows [networking.md](networking.md) (`XDto` models mapped to domain models, `NetworkLogInterceptor()` on its client)
 - [ ] PR opened, CI green, AppHub link pasted to the user
