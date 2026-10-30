@@ -73,6 +73,16 @@ class Comment(unittest.TestCase):
         self.assertNotIn("previews-main/c.F.R.png", body)
         self.assertNotIn("br-1-1/c.F.Q.png", body)
 
+    def test_groups_by_kind_and_composable(self):
+        body = self.body(manifest("a" * 40, {"c.HKt.A": "1", "c.HKt.B": "1", "c.GKt.R": "1"}),
+                         manifest("b" * 40, {"c.HKt.A": "2", "c.HKt.B": "2", "c.GKt.N": "1"}))
+        self.assertEqual([l for l in body.splitlines() if l.startswith("### ")], ["### New", "### Removed", "### Changed"])
+        changed = body[body.index("### Changed"):]
+        self.assertEqual(changed.count("#### H"), 1)
+        self.assertNotIn("|", body)
+        # before and after of one preview are side by side, at the same size
+        self.assertRegex(changed, r'<img [^>]*width="300"[^>]*> <img [^>]*width="300"')
+
     def test_warns_when_main_moved(self):
         m = manifest("a" * 40, {})
         self.assertIn("has moved on", self.body(m, m, now="c" * 40))
