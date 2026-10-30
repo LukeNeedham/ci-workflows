@@ -40,7 +40,7 @@ Compose, Gradle upgrades it to match, so test the app's screens after adding the
 That gives every app the logger and the crash handler. **The debug pages are optional**; an app that wants them also does:
 
 5. **Wrap the UI in `ProvideDebugSettings`**, and place a `DebugButton` on a settings page ([Wrap the UI](#wrap-the-ui-in-providedebugsettings), [A settings page](#a-settings-page)).
-6. **Add the three pages** (`DebugPage`, `LogsPage`, `CrashesPage`) to your navigation.
+6. **Add the pages** (`DebugPage`, `LogsPage`, `CrashesPage`, and `NetworkPage` if the app makes network calls) to your navigation.
 
 ## A new app
 
@@ -328,6 +328,29 @@ Route.Debug -> DebugPage(
 Route.Logs -> LogsPage(onBack = ::onBack)
 Route.Crashes -> CrashesPage(onBack = ::onBack)
 ```
+
+**The network page** is optional: an app that makes HTTP calls adds a fourth route, passes `onOpenNetwork` to
+`DebugPage` (the button is hidden without it), and adds `NetworkLogInterceptor()` to its OkHttp client (also the engine of a Ktor client):
+
+```kotlin
+// Route.kt
+@Serializable data object Network : Route
+
+// Router.kt: add onOpenNetwork = { navigateTo(Route.Network) } to DebugPage, and
+Route.Network -> NetworkPage(onBack = ::onBack)
+
+// where the client is built: Ktor on the OkHttp engine
+val client = HttpClient(OkHttp) {
+    engine { addInterceptor(NetworkLogInterceptor()) }
+}
+
+// or a plain OkHttp client
+val okHttp = OkHttpClient.Builder().addInterceptor(NetworkLogInterceptor()).build()
+```
+
+
+It lists every call with its request and response (headers, bodies, status, duration), in memory only and only in
+debug builds. Clients on another engine call `DebugKit.networkLog.record(NetworkEntry(...))` from a plugin of their own.
 
 On a Kotlin Multiplatform app, also register the three routes in the back stack's serialization config
 ([app-shell.md](app-shell.md#exceptions)).
