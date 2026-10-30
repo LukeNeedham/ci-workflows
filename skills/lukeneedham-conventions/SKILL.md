@@ -115,7 +115,8 @@ below are enough.
 - MVVM with unidirectional data flow: a `ViewModel` exposes one immutable `UiState` `StateFlow`; composables
   use `collectAsStateWithLifecycle()` and send events up as function calls; no logic in composables.
 - Coroutines + Flow; `viewModelScope` for screen work. UI -> domain/data layers; no Android types in the lower layer.
-- **Koin for dependency injection**: `module { }` with `singleOf` / `viewModelOf` / `factoryOf`, `startKoin`
+- **Never `AndroidViewModel`** (banned in every app): ViewModels extend `ViewModel` and take their dependencies (never an `Application` or `Context`) as constructor parameters, provided by Koin.
+- **Koin for dependency injection, in every app without exception**: `module { }` with `singleOf` / `viewModelOf` / `factoryOf`, `startKoin`
   in `Application.onCreate`, `koinViewModel()` in composables. Constructor injection; classes never call Koin.
   **Koin modules only wire**: one-line bindings (`singleOf`, `viewModelOf`, `single<Api> { Impl(get()) }`). Any
   configuration (builders and DSLs like `HttpClient(OkHttp) { ... }` or `Room.databaseBuilder(...)`, timeouts, cache
