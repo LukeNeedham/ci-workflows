@@ -191,7 +191,7 @@ Defaults for a normal app. If the user asks for something else, do that instead.
   one of those. Declare the private module `val`s above `modules`, because object properties initialise in order.
   **`KoinModules.kt` holds the `object KoinModules` and nothing else**: no other top-level declaration (no `const val`, no
   helper, no second class). The qualifier names, when a binding needs one, are `const val`s of the `object KoinQualifier` in
-  `KoinQualifier.kt` (same package), used as `named(KoinQualifier.REPO_CREATION_TOKEN)`: always this name, never a string
+  `KoinQualifier.kt` (also in the `<app package>.di` package, next to `KoinModules.kt`), used as `named(KoinQualifier.REPO_CREATION_TOKEN)`: always this name, never a string
   literal in a module, and related names may be grouped in nested objects (`KoinQualifier.Dispatcher.io`). Every feature object,
   factory or config object is in its own file too. The fixed names are in [app-shell.md](app-shell.md#the-names).
   **Koin modules only wire; they do not configure.** A module's body is a list of one-line bindings
