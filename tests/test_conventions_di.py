@@ -234,6 +234,13 @@ class TopLevelFunctionTest(unittest.TestCase):
         self.assertEqual([], self.found("@Composable\nfun Card() {}\n"))
         self.assertEqual([], self.found("@Preview\n@Composable\nprivate fun Preview() {}\n"))
 
+    def test_expect_actual_external_and_main_pass(self):
+        self.assertEqual([], self.found("expect fun readAppInfo(): String\n"))
+        self.assertEqual([], self.found("actual fun readAppInfo(): String = \"\"\n"))
+        self.assertEqual([], self.found("private external fun listenForErrors()\n"))
+        self.assertEqual([], self.found("fun main() {}\n"))
+        self.assertEqual(1, len(self.found("fun mainMenu() {}\n")))
+
     def test_members_properties_and_tests_are_not_top_level_functions(self):
         self.assertEqual([], self.found("object DayIndex {\n    fun resolve(days: List<Int>): Int = 0\n}\n"))
         self.assertEqual([], self.found("class Repo {\n    fun load() {}\n}\n"))

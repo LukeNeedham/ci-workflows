@@ -39,13 +39,13 @@ property name.
 ## No top-level functions
 
 **A function is a member of a class or an `object`. The only functions at the top level of a file are extension functions and
-composable functions** (previews are composables). Logic that is not a method of anything, a helper, a mapper, a parser, goes in
+composable functions** (previews are composables), **and the ones that the platform or the language needs there: the `expect` and
+`actual` functions of a Kotlin Multiplatform app, an `external` function (a bridge to JavaScript or native code), and `main`.** Logic that is not a method of anything, a helper, a mapper, a parser, goes in
 an `object` named for what it does (`object DayIndex { fun resolveCurrent(...) }`, `object RecapThumbnails`), or in the class it
 serves, or becomes an extension function of the type it works on (`fun List<Day>.currentIndex()`). A `private` helper at the top
 of a file is a top-level function too: make it a `private` member of the object or class that uses it, or a `private` extension.
 
-It is checked by CI (`TOP-1`, [lint.md](lint.md)), in the code of the app and not in its tests. The rare exception, a function that
-the platform or the language has to see at the top level, takes a `// lint:ignore TOP-1: reason`. Top-level properties and
+It is checked by CI (`TOP-1`, [lint.md](lint.md)), in the code of the app and not in its tests. Any other exception takes a `// lint:ignore TOP-1: reason`. Top-level properties and
 constants are not covered by this rule.
 
 ## Libraries

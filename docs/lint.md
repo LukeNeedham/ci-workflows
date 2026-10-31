@@ -39,7 +39,7 @@ looked at, and neither is an `override`, whose name the supertype fixed. For the
 
 | Id | Rule |
 |---|---|
-| `TOP-1` | The only functions at the top level of a file are extension functions (`fun List<Day>.currentIndex()`, a function-type receiver too) and `@Composable` functions, previews included; any other, `private` ones too, is a member of a class or an `object` ([app-conventions.md](app-conventions.md#no-top-level-functions)). The tests are not checked. Properties and constants are not covered |
+| `TOP-1` | The only functions at the top level of a file are extension functions (`fun List<Day>.currentIndex()`, a function-type receiver too) and `@Composable` functions, previews included, and the ones the platform needs there: `expect` / `actual` / `external` functions and `main`; any other, `private` ones too, is a member of a class or an `object` ([app-conventions.md](app-conventions.md#no-top-level-functions)). The tests are not checked. Properties and constants are not covered |
 
 ### Pages and files
 
