@@ -1,0 +1,17 @@
+name: Conventions
+description: >
+  Checks the Kotlin code of the app against the architecture and naming rules of the docs (Koin modules only wire,
+  KoinModules and KoinQualifier hold only their object, no AndroidViewModel, acronyms are ordinary words in camel case)
+  and fails with an annotation on every line that breaks one. Used by the `conventions` job of android_pr.yml; the rules
+  are in docs/conventions-check.md and the logic is scripts/check_conventions.py.
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/checkout@v4
+
+    - uses: LukeNeedham/ci-workflows/.github/actions/ci-scripts@main
+
+    - name: Check the conventions
+      shell: bash
+      run: python3 "$CI_SCRIPTS/check_conventions.py" .

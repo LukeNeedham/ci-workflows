@@ -131,6 +131,9 @@ below are enough.
 - **Naming: an acronym is an ordinary word in camel case** (`docs/app-conventions.md#naming`): `IosSdkManager`, not `iOSSDKManager`;
   `HttpClient`, `parseJson`, `UserDto`, `UiState`, `userId`, never `HTTPClient`, `parseJSON`, `UserDTO`, `UIState`, `userID`. Only a name a library
   or platform API fixes (an override, `Dispatchers.IO`) keeps its spelling.
+- **CI checks these rules.** The `conventions` job of every PR fails on a Koin module that configures, a `KoinModules.kt` or `KoinQualifier.kt` with more than its
+  object, an `AndroidViewModel`, a string qualifier, or an acronym in capitals in a name (`docs/conventions-check.md`). Run it with
+  `python3 scripts/check_conventions.py <app>` from `LukeNeedham/ci-workflows`.
 - **Coil 3 for image loading** (`io.coil-kt.coil3:coil-compose`, not Coil 2.x, Glide or Picasso): `AsyncImage`
   for files, URIs and URLs. Add `coil-network-okhttp` only if the app loads images over the network.
 - Unit tests for ViewModels and repositories (JUnit, `kotlinx-coroutines-test`).

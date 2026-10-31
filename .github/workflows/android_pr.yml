@@ -89,6 +89,18 @@ jobs:
           echo "::error::Some previews could not be rendered: see the 'Render the previews' step of the build job"
           exit 1
 
+  # The architecture and naming rules of the docs, checked in the Kotlin code (docs/conventions-check.md): Koin modules only
+  # wire, KoinModules.kt and KoinQualifier.kt hold only their object, no AndroidViewModel, acronyms are ordinary words in camel
+  # case. It reads the code and builds nothing, so it runs alongside the build and fails the PR with an annotation on each line.
+  conventions:
+    needs: config
+    if: needs.config.outputs.generate == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: LukeNeedham/ci-workflows/.github/actions/conventions@main
+
   # The README.md of every app is rendered from its readme.yml, in the layout of docs/readme.md, so the format
   # cannot drift. Render on every PR and commit the result to the PR branch when it differs. An app without a
   # readme.yml yet only gets a warning. It runs after the screenshots, which it shows: both commit to the PR
@@ -130,7 +142,7 @@ jobs:
   # (GENERATED_COMMIT_TOKEN): a merge made with the workflow token starts no workflow, so build_main.yml would not run on
   # the merged commit. Without the secret it only says so. automerge.py checks the PR again before it merges.
   automerge:
-    needs: [config, build, previews, screenshots, readme]
+    needs: [config, build, previews, conventions, screenshots, readme]
     if: >-
       ${{ !cancelled()
       && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')

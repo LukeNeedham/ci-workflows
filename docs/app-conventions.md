@@ -4,6 +4,8 @@ The libraries and code patterns every app uses, beyond the architecture basics i
 [new-app.md](new-app.md#5-app-architecture). Defaults for a normal app: if the user asks for something
 else, do that instead. Check the current stable version of every library before adding it.
 
+The architecture and naming rules here and in [new-app.md](new-app.md) are checked by CI on every PR: see [conventions-check.md](conventions-check.md).
+
 - [Naming](#naming)
 - [Libraries](#libraries)
 - [Strings](#strings)
