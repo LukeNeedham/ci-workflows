@@ -143,6 +143,8 @@ below are enough.
 - **Naming: an acronym is an ordinary word in camel case** (`docs/app-conventions.md#naming`): `IosSdkManager`, not `iOSSDKManager`;
   `HttpClient`, `parseJson`, `UserDto`, `UiState`, `userId`, never `HTTPClient`, `parseJSON`, `UserDTO`, `UIState`, `userID`. Only a name a library
   or platform API fixes (an override, `Dispatchers.IO`) keeps its spelling.
+- **No top-level functions** (`docs/app-conventions.md#no-top-level-functions`, `TOP-1`): a function is a member of a class or an `object`; only extension
+  functions and composables (previews included) are top-level. A helper goes in an `object` named for what it does, or becomes an extension; a `private` one at the top of a file is still top-level.
 - **CI checks these rules.** The `conventions` job of every PR (one check, `docs/lint.md`) fails on a Koin module that configures (`DI-4`), a `KoinModules.kt` or
   `KoinQualifier.kt` with more than its object (`DI-2`), an `AndroidViewModel` (`VM-8`), a string qualifier (`DI-5`), or an acronym in
   capitals in a name (`NAME-1`), as well as the page, ViewModel and preview rules below. Run it with

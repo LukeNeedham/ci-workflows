@@ -98,7 +98,7 @@ def lint_app(extra=None, remove=(), outside=None):
             target = Path(tmp) / path
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_text(textwrap.dedent(text).lstrip("\n"))
-        return [v for v in lc.lint(tmp) if not v.rule.startswith("DI-")]  # the Koin rules have tests of their own
+        return [v for v in lc.lint(tmp) if not v.rule.startswith("DI-") and v.rule != "TOP-1"]  # the Koin and top-level function rules have tests of their own
 
 
 def rules(violations):
@@ -660,7 +660,7 @@ class CommandTest(unittest.TestCase):
 
     def test_every_rule_is_documented_and_every_documented_rule_exists(self):
         docs = (Path(__file__).resolve().parent.parent / "docs" / "lint.md").read_text()
-        documented = set(__import__("re").findall(r"`((?:DI|NAME|PAGE|VM|UI|SHEET|PRV|CMP|SHOT|IGNORE)-\d+)`", docs))
+        documented = set(__import__("re").findall(r"`((?:DI|NAME|TOP|PAGE|VM|UI|SHEET|PRV|CMP|SHOT|IGNORE)-\d+)`", docs))
         self.assertEqual(documented, set(lc.all_rules()))
 
 

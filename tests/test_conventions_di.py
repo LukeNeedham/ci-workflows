@@ -35,12 +35,12 @@ def app(files):
 
 def rules(files):
     with app(files) as folder:
-        return sorted({v.rule for v in lint(folder)})
+        return sorted({v.rule for v in lint(folder) if v.rule != "TOP-1"})
 
 
 def messages(files):
     with app(files) as folder:
-        return [f"{v.path}:{v.line} {v.rule} {v.message}" for v in lint(folder)]
+        return [f"{v.path}:{v.line} {v.rule} {v.message}" for v in lint(folder) if v.rule != "TOP-1"]
 
 
 GOOD = {
@@ -213,3 +213,32 @@ class CheckTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TopLevelFunctionTest(unittest.TestCase):
+    def found(self, text, name="app/src/main/java/com/example/app/Util.kt"):
+        files = {**GOOD, name: "package com.example.app\n\n" + text}
+        with app(files) as folder:
+            return [v for v in lint(folder) if v.rule == "TOP-1"]
+
+    def test_a_plain_or_private_top_level_function_fails(self):
+        self.assertEqual(1, len(self.found("fun resolveIndex(days: List<Int>): Int = 0\n")))
+        self.assertEqual(1, len(self.found("private fun helper() {}\n")))
+        self.assertEqual(1, len(self.found("inline fun <reified T> make(): T = TODO()\n")))
+
+    def test_extensions_and_composables_pass(self):
+        self.assertEqual([], self.found("fun List<Int>.currentIndex(): Int = 0\n"))
+        self.assertEqual([], self.found("fun <T : Comparable<T>> List<T>.second(): T = this[1]\n"))
+        self.assertEqual([], self.found("private fun String?.orDash(): String = this ?: \"-\"\n"))
+        self.assertEqual([], self.found("fun (() -> Unit).twice() { this(); this() }\n"))
+        self.assertEqual([], self.found("@Composable\nfun Card() {}\n"))
+        self.assertEqual([], self.found("@Preview\n@Composable\nprivate fun Preview() {}\n"))
+
+    def test_members_properties_and_tests_are_not_top_level_functions(self):
+        self.assertEqual([], self.found("object DayIndex {\n    fun resolve(days: List<Int>): Int = 0\n}\n"))
+        self.assertEqual([], self.found("class Repo {\n    fun load() {}\n}\n"))
+        self.assertEqual([], self.found("const val LIMIT = 3\nval names = listOf(\"a\")\n"))
+        self.assertEqual([], self.found("fun helper() {}\n", "app/src/test/java/com/example/app/UtilTest.kt"))
+
+    def test_lint_ignore_with_a_reason_silences_it(self):
+        self.assertEqual([], self.found("// lint:ignore TOP-1: the platform looks this up by name\nfun entryPoint() {}\n"))

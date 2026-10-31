@@ -114,8 +114,8 @@ class Context:
 
 def checks():
     """The modules with rules, each with a `RULES` dict (id -> what it demands) and a `check(ctx)` that adds violations."""
-    from . import di, naming, pages, previews, screenshots, sheets, viewmodels
-    return [di, naming, pages, sheets, viewmodels, previews, screenshots]
+    from . import di, naming, pages, previews, screenshots, sheets, toplevel, viewmodels
+    return [di, naming, toplevel, pages, sheets, viewmodels, previews, screenshots]
 
 
 def all_rules():

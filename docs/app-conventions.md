@@ -7,6 +7,7 @@ else, do that instead. Check the current stable version of every library before 
 The architecture and naming rules here and in [new-app.md](new-app.md) are checked by CI on every PR: see [lint.md](lint.md).
 
 - [Naming](#naming)
+- [No top-level functions](#no-top-level-functions)
 - [Libraries](#libraries)
 - [Strings](#strings)
 - [Theme](#theme)
@@ -34,6 +35,18 @@ Packages stay all lower case (`com.example.app.sdk`), and constants stay `UPPER_
 arise. The one exception is a name we do not choose: an override or a call of a library or platform API keeps the name it
 has (`getURL()`, `Dispatchers.IO`), and a name a serialization format fixes is kept in `@SerialName`, not in our own
 property name.
+
+## No top-level functions
+
+**A function is a member of a class or an `object`. The only functions at the top level of a file are extension functions and
+composable functions** (previews are composables). Logic that is not a method of anything, a helper, a mapper, a parser, goes in
+an `object` named for what it does (`object DayIndex { fun resolveCurrent(...) }`, `object RecapThumbnails`), or in the class it
+serves, or becomes an extension function of the type it works on (`fun List<Day>.currentIndex()`). A `private` helper at the top
+of a file is a top-level function too: make it a `private` member of the object or class that uses it, or a `private` extension.
+
+It is checked by CI (`TOP-1`, [lint.md](lint.md)), in the code of the app and not in its tests. The rare exception, a function that
+the platform or the language has to see at the top level, takes a `// lint:ignore TOP-1: reason`. Top-level properties and
+constants are not covered by this rule.
 
 ## Libraries
 

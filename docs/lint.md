@@ -35,6 +35,12 @@ passes. `UPPER_SNAKE_CASE` constants pass. The names the code only uses (`JSONAr
 looked at, and neither is an `override`, whose name the supertype fixed. For the rare name that has to stay, put
 `@Suppress("AcronymNaming")` on its line or the one above (or a `lint:ignore NAME-1` with its reason).
 
+### Top-level functions
+
+| Id | Rule |
+|---|---|
+| `TOP-1` | The only functions at the top level of a file are extension functions (`fun List<Day>.currentIndex()`, a function-type receiver too) and `@Composable` functions, previews included; any other, `private` ones too, is a member of a class or an `object` ([app-conventions.md](app-conventions.md#no-top-level-functions)). The tests are not checked. Properties and constants are not covered |
+
 ### Pages and files
 
 | Id | Rule |
@@ -156,7 +162,7 @@ the declaration (or its first annotation) down to the line the violation is repo
 | `scan.py` | The Kotlin scanner (comments, strings, top-level declarations); not a parser |
 | `core.py`, `violation.py` | The files of the app, a `Violation`, the `lint:ignore` comments, the annotations and summary, and the run through every module |
 | `roles.py` | Which declaration is a page, a content, a ViewModel, a state or a sheet |
-| `di.py`, `naming.py` | `DI-*`, `NAME-1` |
+| `di.py`, `naming.py`, `toplevel.py` | `DI-*`; `NAME-1`; `TOP-1` |
 | `pages.py`, `viewmodels.py`, `sheets.py`, `previews.py` | `PAGE-*`; `VM-*` and `UI-*`; `SHEET-*`; `PRV-*` and `CMP-1` |
 | `screenshots.py` | `SHOT-*`, and the screenshot package helpers |
 
@@ -174,7 +180,7 @@ python3 -m unittest discover -s tests                # the tests, with a failing
 1. Put the rule in the docs it comes from first, then add the id and its one line to `RULES` of the module of its group
    (`scripts/conventions/`), and the check in that module's `check(ctx)`. A new group is a new module, added to `checks()` in `core.py`.
    Build on the shared `ctx` (its files, `ctx.add`, the page and sheet roles) and the scanner rather than a scan of your own.
-2. Add a failing and a passing case, in `tests/test_conventions_di.py` (`DI-*`, `NAME-1`, `VM-8`), `tests/test_conventions_pages.py`
+2. Add a failing and a passing case, in `tests/test_conventions_di.py` (`DI-*`, `NAME-1`, `VM-8`, `TOP-1`), `tests/test_conventions_pages.py`
    (the rest) or `tests/test_conventions_screenshots.py`.
 3. Add the row above (a test fails if the ids here and in the `RULES` differ), and the line in the skill ([skill.md](skill.md)).
 
