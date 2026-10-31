@@ -40,10 +40,18 @@ property name.
 
 **A function is a member of a class or an `object`. The only functions at the top level of a file are extension functions and
 composable functions** (previews are composables), **and the ones that the platform or the language needs there: the `expect` and
-`actual` functions of a Kotlin Multiplatform app, an `external` function (a bridge to JavaScript or native code), and `main`.** Logic that is not a method of anything, a helper, a mapper, a parser, goes in
-an `object` named for what it does (`object DayIndex { fun resolveCurrent(...) }`, `object RecapThumbnails`), or in the class it
-serves, or becomes an extension function of the type it works on (`fun List<Day>.currentIndex()`). A `private` helper at the top
-of a file is a top-level function too: make it a `private` member of the object or class that uses it, or a `private` extension.
+`actual` functions of a Kotlin Multiplatform app, an `external` function (a bridge to JavaScript or native code), and `main`.** 
+
+**Logic that is not a method of anything**, a helper, a mapper, a parser, **goes where it belongs**: in the class that owns the data
+(a repository, a ViewModel, a state holder), or in an `object` named for what it does (`object CalendarDayIndex { fun resolveCurrent(...) }`,
+`object RequiredPermissionIcon`) when no class owns it. A `private` helper at the top of a file is a top-level function too: make it a
+`private` member of the class or object that uses it, or a `private object` in the file.
+
+**An extension function is for something generic**: it adds to a standard or library type something that any app could use
+(`fun Int.toDp()`, `fun String?.orDash()`, `fun <T> List<T>.second()`), and it sits in a file of its own with the others like it. It is
+not a way to avoid an `object`: a function about the days of this diary, the permissions of this app or the routes of this
+navigation is app logic and is not an extension of `List<Day>`, `RequiredPermission` or `NavBackStack`. The check cannot tell the two
+apart, so this part is for the author and the review to hold to.
 
 It is checked by CI (`TOP-1`, [lint.md](lint.md)), in the code of the app and not in its tests. Any other exception takes a `// lint:ignore TOP-1: reason`. Top-level properties and
 constants are not covered by this rule.

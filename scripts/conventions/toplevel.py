@@ -32,8 +32,8 @@ def check_top_level_functions(ctx):
         for d in f.decls:
             if d.kind != "fun" or d.is_composable or is_extension(d) or is_platform_function(d):
                 continue
-            ctx.at(f, d, "TOP-1", f"`{d.name}` is a top-level function: put it in an `object` or the class it serves, or make it an "
-                                  f"extension function of the type it works on (only extensions, composables, expect/actual/external functions and main are top-level)")
+            ctx.at(f, d, "TOP-1", f"`{d.name}` is a top-level function: put it in the class that owns it or an `object` named for what it does (an extension "
+                                  f"function only for something generic; only extensions, composables, expect/actual/external functions and main are top-level)")
 
 
 def check(ctx):
