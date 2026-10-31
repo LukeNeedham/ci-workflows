@@ -168,17 +168,45 @@ Defaults for a normal app. If the user asks for something else, do that instead.
   `UiState` as a `StateFlow`; the composable collects it with `collectAsStateWithLifecycle()` and
   sends user actions as plain function calls up to the ViewModel. State goes down, events go up.
   Composables hold no business logic.
+- **Never `AndroidViewModel`.** It is banned in every app: a ViewModel extends `ViewModel`, never `AndroidViewModel`, and
+  never takes an `Application` (or any `Context`) to build its own dependencies. It takes what it needs as constructor
+  parameters (repositories, data sources, a small wrapper around the `Context` thing it needs) from Koin
+  (`viewModelOf(::XViewModel)`, `koinViewModel()`). Nothing calls `viewModel()` with a factory by hand or an
+  `appViewModel { }` helper either.
 - **Coroutines and Flow** for async work; `viewModelScope` for work tied to a screen.
 - **Networking** (only for apps that make network calls): Ktor + OkHttp, every network model a defensive `XDto` mapped to a
   domain model at the edge, and the debug kit network log linked up: all in **[networking.md](networking.md)**.
 - **Layers.** UI (composables + ViewModels) → domain/data (repositories). Keep Android types out of
   the lower layer so it can be unit-tested on the JVM.
-- **Dependency injection: Koin.** Use [Koin](https://insert-koin.io) for DI in every app. Declare
+- **Dependency injection: Koin, in every app without exception.** Use [Koin](https://insert-koin.io) for DI in every app, however small (one screen, one ViewModel, a service or keyboard app: still Koin). Declare
   modules with `module { }` (`singleOf`, `viewModelOf`, `factoryOf`), start it in `Application.onCreate`
   with `startKoin { androidContext(this@App); modules(...) }`, and get ViewModels in composables with
   `koinViewModel()` (`koin-androidx-compose`). Classes take their dependencies as constructor
   parameters and never call Koin themselves, so they stay unit-testable. Check the current Koin version
   and the BOM (`koin-bom`) before adding it.
+  **All the app's Koin modules live in one Kotlin `object` named `KoinModules`** (file `KoinModules.kt`, package
+  `<app package>.di`), which exposes `val modules: List<Module>`; `App` starts Koin with `modules(KoinModules.modules)` and
+  nothing else declares a `module { }` outside it. `KoinModules` may delegate to other Kotlin objects specific to a feature or use
+  case (`object NetworkModule { val bindings = module { ... } }`), and a platform module of a Kotlin Multiplatform app is
+  one of those. Declare the private module `val`s above `modules`, because object properties initialise in order.
+  **`KoinModules.kt` holds the `object KoinModules` and nothing else**: no other top-level declaration (no `const val`, no
+  helper, no second class). The qualifier names, when a binding needs one, are `const val`s of the `object KoinQualifier` in
+  `KoinQualifier.kt` (also in the `<app package>.di` package, next to `KoinModules.kt`), used as `named(KoinQualifier.REPO_CREATION_TOKEN)`: always this name, never a string
+  literal in a module, and related names may be grouped in nested objects (`KoinQualifier.Dispatcher.io`). Every feature object,
+  factory or config object is in its own file too. The fixed names are in [app-shell.md](app-shell.md#the-names).
+  **Koin modules only wire; they do not configure.** A module's body is a list of one-line bindings
+  (`singleOf(::X)`, `single<Api> { KtorApi(get()) }`, `viewModelOf(::XViewModel)`). The only arguments of a binding are
+  `get()` (with a qualifier if needed), `androidContext()`, the runtime parameters of a `viewModel { (id: String) -> ... }`
+  and named constants. Everything else is configuration, and goes into a dedicated class or Kotlin `object` that the
+  module just calls: a builder or a DSL (`HttpClient(OkHttp) { ... }`, `Room.databaseBuilder(...).addMigrations(...)`,
+  `OkHttpClient.Builder()...`), timeouts, cache sizes, file names, keys, a `File` or a `CoroutineScope(...)` built inline, a
+  value read from a global (`DebugKit.enabled`), or two factory calls chained. `single { HttpClientFactory.create() }`, not the
+  builder inside the lambda. A `File`, a scope or the like that other bindings need is bound under a qualifier constant,
+  `single(named(APK_DIRECTORY)) { AppDirectories.apks(androidContext()) }`, and read back with `get(named(APK_DIRECTORY))`.
+  No other lambdas, branches, literals or comments explaining settings in a module: the comment goes on the factory. The
+  factories are plain code, so they stay unit-testable and findable without opening a DI file. Name the module of a
+  feature object `bindings` (`object NetworkModule { val bindings = module { ... } }`), not `module`, which would shadow the
+  `module { }` function.
 - **Image loading: Coil 3.** Use [Coil](https://coil-kt.github.io/coil/) **version 3** (group
   `io.coil-kt.coil3`, not the older `io.coil-kt:coil-compose` 2.x) for every image that is not a bundled
   drawable: files, content URIs, and URLs. Add `coil-compose`, plus `coil-network-okhttp` only if the app
@@ -221,6 +249,11 @@ sections you skipped and why. Such an app has no `screenshot` package (no Compos
 - [ ] Every page is an `XPage` + `XPageContent`, named and split as in [pages.md](pages.md); a `screenshot` package with the screenshots worth showing (any number per page, none for some pages, at least one in all), and its `order.txt` ([screenshots.md](screenshots.md)), or, for an app that cannot render previews, `screenshots: manual` and at least one hand-committed screenshot in `docs/screenshots/`
 - [ ] Handwritten `readme.yml` ([readme.md](readme.md)); CI generates `README.md` from it
 - [ ] The app shell as in [app-shell.md](app-shell.md) (`MainActivity` calling only `Root`, `AppNavigation`, an exhaustive `Router`); Compose, Navigation 3, MVVM, Koin for DI, Coil 3 for images, or a stated reason for each departure
+- [ ] Koin for DI, no `AndroidViewModel` anywhere (ViewModels extend `ViewModel` and get dependencies as constructor parameters)
+- [ ] The `conventions` job of the PR passes ([conventions-check.md](conventions-check.md)): it checks the rules of this list that are about the code (Koin, `AndroidViewModel`, names)
+- [ ] `KoinModules.kt` contains only `object KoinModules`; qualifier names (if any) are in `object KoinQualifier` (`KoinQualifier.kt`), never string literals; every other object is in its own file
+- [ ] All Koin modules are in the `object KoinModules` (it may delegate to feature objects); `App` starts Koin with `KoinModules.modules`
+- [ ] Koin modules only wire: configuration (builders, timeouts, file names, many arguments) is in a dedicated class or `object` the module calls
 - [ ] [app-conventions.md](app-conventions.md) followed: strings in `strings.xml`, own `AppTheme` (no `MaterialTheme`), a preview per composable, 48dp touch targets
 - [ ] Shared library added, `DebugKit.init` called first, `Logger` used (debug pages optional); if the app makes network calls, it follows [networking.md](networking.md) (`XDto` models mapped to domain models, `NetworkLogInterceptor()` on its client)
 - [ ] PR opened, CI green, AppHub link pasted to the user

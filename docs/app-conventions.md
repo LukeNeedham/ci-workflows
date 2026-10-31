@@ -4,6 +4,9 @@ The libraries and code patterns every app uses, beyond the architecture basics i
 [new-app.md](new-app.md#5-app-architecture). Defaults for a normal app: if the user asks for something
 else, do that instead. Check the current stable version of every library before adding it.
 
+The architecture and naming rules here and in [new-app.md](new-app.md) are checked by CI on every PR: see [conventions-check.md](conventions-check.md).
+
+- [Naming](#naming)
 - [Libraries](#libraries)
 - [Strings](#strings)
 - [Theme](#theme)
@@ -11,6 +14,26 @@ else, do that instead. Check the current stable version of every library before 
 - [One-off events](#one-off-events)
 - [Touch targets](#touch-targets)
 - [Release builds](#release-builds)
+
+## Naming
+
+**An acronym or initialism is an ordinary word in a camel case or Pascal case name: only its first letter is a capital.**
+`IosSdkManager`, not `iOSSDKManager`. This holds for every class, interface, object, function, property, parameter, file and
+enum entry we write, whatever the acronym and however short:
+
+| Not | But |
+|---|---|
+| `iOSSDKManager` | `IosSdkManager` |
+| `HTTPClient`, `parseJSON` | `HttpClient`, `parseJson` |
+| `UserDTO` | `UserDto` ([networking.md](networking.md#dtos-xdto)) |
+| `UIState`, `userID` | `UiState`, `userId` |
+| `URLBuilder`, `apiURL` | `UrlBuilder`, `apiUrl` |
+| `HTMLParser`, `XMLNode` | `HtmlParser`, `XmlNode` |
+
+Packages stay all lower case (`com.example.app.sdk`), and constants stay `UPPER_SNAKE_CASE` (`API_URL`), where the question does not
+arise. The one exception is a name we do not choose: an override or a call of a library or platform API keeps the name it
+has (`getURL()`, `Dispatchers.IO`), and a name a serialization format fixes is kept in `@SerialName`, not in our own
+property name.
 
 ## Libraries
 

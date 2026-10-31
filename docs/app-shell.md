@@ -12,7 +12,9 @@ reads like any other:
 
 | Name | What it is |
 |---|---|
-| `App` | The `Application` class: starts Koin and the library. |
+| `App` | The `Application` class: starts the library, then Koin with `modules(KoinModules.modules)`. |
+| `KoinModules` | The one `object` that holds all the app's Koin modules and exposes `val modules: List<Module>`, in `di/KoinModules.kt` (package `<app package>.di`), which contains nothing else ([new-app.md](new-app.md#6-app-architecture)). Never `KoinModule`, `AppModule`, `DiModule` or a top-level `val appModule`. |
+| `KoinQualifier` | The one `object` that holds the names that tell apart Koin bindings of the same type, as `const val`s (`named(KoinQualifier.REPO_CREATION_TOKEN)`), in `di/KoinQualifier.kt` (package `<app package>.di`, the same as `KoinModules`). Only an app that needs a qualifier has it, and no qualifier is ever a string literal in a module. It groups related names in nested objects (`KoinQualifier.Dispatcher.io`). Never `KoinQualifiers`, `Qualifiers` or constants beside `KoinModules`. |
 | `MainActivity` | **The one activity that hosts the app's UI, always with this name**: never `HomeActivity`, `SettingsActivity` or `AppActivity`, no second activity for a screen, and no fragments. It only calls `setContent { Root() }`, and hands `Root` only what the activity alone can provide (a deep link from the intent, a permission or share callback), as parameters. The one exception is an [overlay activity](#exceptions). |
 | `Root` | The one composable `MainActivity` calls: `AppTheme`, `ProvideDebugSettings` and the other app-wide providers, then `AppNavigation()`. Never `App`, `AppRoot`, `MainScreen` or `MainContent`. |
 | `AppNavigation` | Owns the `backStack` and the `NavDisplay`, with `routeEntryProvider`. It is the only composable that calls `NavDisplay`, and `Root` the only one that calls it. |
