@@ -128,6 +128,9 @@ below are enough.
   `File` or `CoroutineScope(...)`, a value read from a global, chained factory calls) lives in a dedicated class or Kotlin
   `object` that the module just calls (`single { HttpClientFactory.create() }`); a `File` or scope other bindings need is
   bound under a qualifier constant. Name a feature object's module `bindings`, not `module`.
+- **Naming: an acronym is an ordinary word in camel case** (`docs/app-conventions.md#naming`): `IosSdkManager`, not `iOSSDKManager`;
+  `HttpClient`, `parseJson`, `UserDto`, `UiState`, `userId`, never `HTTPClient`, `parseJSON`, `UserDTO`, `UIState`, `userID`. Only a name a library
+  or platform API fixes (an override, `Dispatchers.IO`) keeps its spelling.
 - **Coil 3 for image loading** (`io.coil-kt.coil3:coil-compose`, not Coil 2.x, Glide or Picasso): `AsyncImage`
   for files, URIs and URLs. Add `coil-network-okhttp` only if the app loads images over the network.
 - Unit tests for ViewModels and repositories (JUnit, `kotlinx-coroutines-test`).
