@@ -1,9 +1,8 @@
-import sys
 import unittest
 from pathlib import Path
 
 import _paths  # noqa: F401
-import check_screenshot_package as c
+import conventions.screenshots as c
 
 GOOD = '''package com.lukeneedham.demo.screenshot
 

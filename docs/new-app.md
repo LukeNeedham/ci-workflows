@@ -251,7 +251,7 @@ sections you skipped and why. Such an app has no `screenshot` package (no Compos
 - [ ] Handwritten `readme.yml` ([readme.md](readme.md)); CI generates `README.md` from it
 - [ ] The app shell as in [app-shell.md](app-shell.md) (`MainActivity` calling only `Root`, `AppNavigation`, an exhaustive `Router`); Compose, Navigation 3, MVVM, Koin for DI, Coil 3 for images, or a stated reason for each departure
 - [ ] Koin for DI, no `AndroidViewModel` anywhere (ViewModels extend `ViewModel` and get dependencies as constructor parameters)
-- [ ] The `conventions` job of the PR passes ([conventions-check.md](conventions-check.md)): it checks the rules of this list that are about the code (Koin, `AndroidViewModel`, names)
+- [ ] The `conventions` job of the PR passes ([lint.md](lint.md)): it checks the rules of this list that are about the code (Koin, `AndroidViewModel`, names, pages, ViewModels, previews)
 - [ ] `KoinModules.kt` contains only `object KoinModules`; qualifier names (if any) are in `object KoinQualifier` (`KoinQualifier.kt`), never string literals; every other object is in its own file
 - [ ] All Koin modules are in the `object KoinModules` (it may delegate to feature objects); `App` starts Koin with `KoinModules.modules`
 - [ ] Koin modules only wire: configuration (builders, timeouts, file names, many arguments) is in a dedicated class or `object` the module calls

@@ -73,7 +73,7 @@ private fun HomePageScreenshot() {
 
   So a file holds **nothing at the top level but private `@Preview` composables** without parameters, with the data and
   any helper inside the body. A top-level `val`, `object` or helper function, or a non-private declaration, would be a way
-  to share, and **fails the `screenshots` job** (`scripts/screenshots/check_screenshot_package.py`).
+  to share, and **fails the `screenshots` job** (`scripts/conventions/screenshots.py`).
 - Mock data uses no network, Koin, ViewModel or clock. CI renders every screenshot in **inspection mode**
   (`LocalInspectionMode provides true`, as Android Studio does for a preview), so a page that skips Koin or video in a
   preview does the same in its screenshot: a screenshot does not wrap itself for that. Images from a URL (Coil) cannot

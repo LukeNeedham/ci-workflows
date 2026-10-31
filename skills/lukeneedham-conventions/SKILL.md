@@ -84,7 +84,7 @@ below are enough.
   (`XPage.kt`, `XPageContent.kt` with the previews, `XViewModel.kt`, `XUiState.kt`). Never `XScreen`, `XContent` or `XView`. **The route is always
   `Route.X`**, a member of the one `sealed interface Route : NavKey` in `Route.kt` (`Route.Home` is `HomePage`:
   `Route.Home -> HomePage(...)` in `Router`; never `HomeNavKey`, `HomeKey` or `HomeRoute`).
-- **CI fails a PR that breaks these rules** (the `conventions` job, `docs/lint.md`; each error names its rule id on the line):
+- **The same job checks the page rules** (each error names its rule id on the line):
   files and names (`PAGE-1`..`4`), `XPage` calls `XPageContent` once and draws nothing, `XPageContent` is stateless
   (`PAGE-5`, `6`), a ViewModel is requested only in its own `XPage` as `XViewModel`, by one page, never activity/nav-graph
   scoped, never a Koin `single`, never holding another ViewModel, no `SharedFlow` (`VM-1`..`7`), an immutable `UiState` with
@@ -143,8 +143,9 @@ below are enough.
 - **Naming: an acronym is an ordinary word in camel case** (`docs/app-conventions.md#naming`): `IosSdkManager`, not `iOSSDKManager`;
   `HttpClient`, `parseJson`, `UserDto`, `UiState`, `userId`, never `HTTPClient`, `parseJSON`, `UserDTO`, `UIState`, `userID`. Only a name a library
   or platform API fixes (an override, `Dispatchers.IO`) keeps its spelling.
-- **CI checks these rules.** The `conventions` job of every PR fails on a Koin module that configures, a `KoinModules.kt` or `KoinQualifier.kt` with more than its
-  object, an `AndroidViewModel`, a string qualifier, or an acronym in capitals in a name (`docs/conventions-check.md`). Run it with
+- **CI checks these rules.** The `conventions` job of every PR (one check, `docs/lint.md`) fails on a Koin module that configures (`DI-4`), a `KoinModules.kt` or
+  `KoinQualifier.kt` with more than its object (`DI-2`), an `AndroidViewModel` (`VM-8`), a string qualifier (`DI-5`), or an acronym in
+  capitals in a name (`NAME-1`), as well as the page, ViewModel and preview rules below. Run it with
   `python3 scripts/check_conventions.py <app>` from `LukeNeedham/ci-workflows`.
 - **Coil 3 for image loading** (`io.coil-kt.coil3:coil-compose`, not Coil 2.x, Glide or Picasso): `AsyncImage`
   for files, URIs and URLs. Add `coil-network-okhttp` only if the app loads images over the network.

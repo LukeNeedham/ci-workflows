@@ -1,16 +1,39 @@
 # The convention checks
 
-**CI fails a pull request in any app that breaks the page, ViewModel, UiState or preview rules.** The check is the
-`conventions` job of [`android_pr.yml`](../.github/workflows/android_pr.yml), which runs
-[`scripts/lint_conventions.py`](../scripts/lint_conventions.py) on the app's sources. It reads the Kotlin files with no
+**CI fails a pull request in any app that breaks the architecture, naming, page, ViewModel, UiState, sheet, preview or
+screenshot rules.** It is one check, the `conventions` job of [`android_pr.yml`](../.github/workflows/android_pr.yml), which
+runs [`scripts/check_conventions.py`](../scripts/check_conventions.py) on the app's sources. It reads the Kotlin files with no
 Gradle build and no JDK, so it takes seconds, runs alongside the build and needs nothing in the app: every app gets it
-from this repo, like the rest of its CI. The rules are the ones of [pages.md](pages.md), [app-conventions.md](app-conventions.md)
-and [screenshots.md](screenshots.md); this page is the list of what is checked, by id.
+from this repo, like the rest of its CI. The rules are the ones of [new-app.md](new-app.md), [app-shell.md](app-shell.md),
+[pages.md](pages.md), [app-conventions.md](app-conventions.md) and [screenshots.md](screenshots.md); this page is the list of what
+is checked, by id.
 
 Each violation is an error annotation on the line (`::error file=…,line=…,title=VM-2::…`) and a row in the run summary,
 and any violation fails the job. There is no warning mode.
 
 ## The rules
+
+### Koin and naming
+
+The architecture rules of [new-app.md](new-app.md#6-app-architecture) and [app-shell.md](app-shell.md#the-names). They are checked
+in the tests too, except `DI-2`..`DI-6`, since a test may build a Koin module of its own.
+
+| Id | Rule |
+|---|---|
+| `DI-1` | The app uses Koin, and has a `KoinModules.kt` |
+| `DI-2` | `KoinModules.kt` and `KoinQualifier.kt` hold only their `object` (no `const val`, helper or second class), in a package ending `.di`; an `object KoinModules` / `KoinQualifier` is in a file of that name; the names `KoinModule` and `KoinQualifiers` are wrong |
+| `DI-3` | A `module { }` is declared in an object of a file in a `di` folder (`KoinModules`, or a feature object it uses), never at the top level |
+| `DI-4` | A binding only wires. Not allowed in it: a string or a number, a block inside the binding (a builder or a DSL such as `HttpClient(OkHttp) { ... }`), an operator (`+`, `*`), `if` / `when` / `val`, chained calls (`Builder().cache(...).build()`, `androidContext().cacheDir`). Allowed: `get()` (with `named(KoinQualifier.X)`), `androidContext()`, the runtime parameters of a `viewModel { (id: String) -> ... }` and names; `get<T>().member()` is the one chain that is |
+| `DI-5` | A qualifier is a constant of `KoinQualifier`: `named("...")` is not (the object itself may build its names) |
+| `DI-6` | A `modules(...)` call outside `di/` uses `KoinModules` |
+| `NAME-1` | A name that a file declares (class, object, interface, typealias, function, property, parameter), or a file name, has no acronym in capitals: `IosSdkManager` for `iOSSDKManager`, `userId` for `userID` ([app-conventions.md](app-conventions.md#naming)) |
+
+The acronym rule in detail: a run of capitals that ends a name, or comes before a digit, is an acronym (`userID`, `newPP`,
+`UTF8Decoder`). A run of three or more before a lower case letter is an acronym followed by a word (`HTTPClient`: `HTTP` and
+`Client`). A run of **two** before a lower case letter is a one-letter word and a word (`parsesAUri`, `selectedXOffset`), and
+passes. `UPPER_SNAKE_CASE` constants pass. The names the code only uses (`JSONArray`, `IOException`, `Dispatchers.IO`) are not
+looked at, and neither is an `override`, whose name the supertype fixed. For the rare name that has to stay, put
+`@Suppress("AcronymNaming")` on its line or the one above (or a `lint:ignore NAME-1` with its reason).
 
 ### Pages and files
 
@@ -34,6 +57,7 @@ and any violation fails the job. There is no warning mode.
 | `VM-5` | A ViewModel holds no other ViewModel: none in its constructor, properties or body (`get<OtherViewModel>()`). A base class in its supertypes is not holding |
 | `VM-6` | A concrete ViewModel (a class with a ViewModel supertype that is not `abstract` or `sealed`) is named `XViewModel` and has an `XPage` in its package |
 | `VM-7` | A ViewModel declares no `SharedFlow` or `MutableSharedFlow`: a one-off event goes through a `Channel` exposed with `receiveAsFlow()` ([app-conventions.md](app-conventions.md#one-off-events)) |
+| `VM-8` | No `AndroidViewModel`, in the tests too: a ViewModel extends `ViewModel` and takes what it needs as constructor parameters, never an `Application` or `Context` |
 
 **Only an `XPage` requests a ViewModel**, so `Root` (the root composable, which is not a page) does not. A state-driven `Root`
 holds a `RootCoordinator` instead: a plain class, registered with `single { }` and obtained with `koinInject()`
@@ -81,8 +105,8 @@ Its preview is `PRV-1`, its file name and the one public composable per file `CM
 
 ### Screenshots
 
-[`scripts/screenshots/check_screenshot_package.py`](../scripts/screenshots/check_screenshot_package.py) holds the rules of
-the `screenshot` package. The job runs it too, so the failure is on the first push and not at render time:
+[`scripts/conventions/screenshots.py`](../scripts/conventions/screenshots.py) holds the rules of the `screenshot` package, and the
+helpers that the render and README scripts read the package with. The failure is on the first push and not at render time:
 
 | Id | Rule |
 |---|---|
@@ -91,9 +115,10 @@ the `screenshot` package. The job runs it too, so the failure is on the first pu
 
 ## What is checked, and where
 
-All the Kotlin files under `src/<source set>/` of the app, in every module, except the test source sets (a name that
-contains `test`) and anything under `build/`. The `screenshot` package is exempt from the page rules (`PAGE-*`, `CMP-1`),
-since its files carry the names of the pages they show.
+All the Kotlin files of the app, except anything under `build/`. The page, ViewModel, sheet and preview rules read the files under
+`src/<source set>/` of every module except the test source sets (a name that ends in `test`); the `DI-*` rules read every file but
+the tests, and `NAME-1` and `VM-8` read the tests too. The `screenshot` package is exempt from the page rules (`PAGE-*`,
+`CMP-1`), since its files carry the names of the pages they show.
 
 A page is found by its name: a `@Composable` function that ends in `Page` is an `XPage`, one that ends in `PageContent`
 is an `XPageContent`, a class that ends in `ViewModel` is a ViewModel, and a type that ends in `UiState` is a state. Pages
@@ -121,19 +146,37 @@ The reason is required: a `lint:ignore` with none, or for an id that is not in t
 (`IGNORE-1`) and silences nothing. The comment silences that one rule for the violation it sits above or beside: from the line above
 the declaration (or its first annotation) down to the line the violation is reported on. It never silences a file. Use it for a real exception, not for a violation you have not got round to.
 
+## How it is built
+
+[`scripts/check_conventions.py`](../scripts/check_conventions.py) is the one entry point. The rules are in
+[`scripts/conventions/`](../scripts/conventions/), one module for each group of ids on a shared base:
+
+| Module | |
+|---|---|
+| `scan.py` | The Kotlin scanner (comments, strings, top-level declarations); not a parser |
+| `core.py`, `violation.py` | The files of the app, a `Violation`, the `lint:ignore` comments, the annotations and summary, and the run through every module |
+| `roles.py` | Which declaration is a page, a content, a ViewModel, a state or a sheet |
+| `di.py`, `naming.py` | `DI-*`, `NAME-1` |
+| `pages.py`, `viewmodels.py`, `sheets.py`, `previews.py` | `PAGE-*`; `VM-*` and `UI-*`; `SHEET-*`; `PRV-*` and `CMP-1` |
+| `screenshots.py` | `SHOT-*`, and the screenshot package helpers |
+
+Every rule module has a `RULES` dict (id and one line) and a `check(ctx)` that adds violations to the shared context.
+
 ## Running it
 
 ```
-python3 scripts/lint_conventions.py path/to/app      # prints the violations, exits 1 if there are any
+python3 scripts/check_conventions.py path/to/app     # prints the violations, exits 1 if there are any
 python3 -m unittest discover -s tests                # the tests, with a failing and a passing case for every rule
 ```
 
 ## Adding or changing a rule
 
-1. Add the id and its one line to `RULES` in `scripts/lint_conventions.py`, and the check in the `Lint` class.
-2. Add a failing and a passing case to `tests/test_lint_conventions.py`.
-3. Add the row above (a test fails if the ids here and in `RULES` differ), and the line in the skill
-   ([skill.md](skill.md)).
+1. Put the rule in the docs it comes from first, then add the id and its one line to `RULES` of the module of its group
+   (`scripts/conventions/`), and the check in that module's `check(ctx)`. A new group is a new module, added to `checks()` in `core.py`.
+   Build on the shared `ctx` (its files, `ctx.add`, the page and sheet roles) and the scanner rather than a scan of your own.
+2. Add a failing and a passing case, in `tests/test_conventions_di.py` (`DI-*`, `NAME-1`, `VM-8`), `tests/test_conventions_pages.py`
+   (the rest) or `tests/test_conventions_screenshots.py`.
+3. Add the row above (a test fails if the ids here and in the `RULES` differ), and the line in the skill ([skill.md](skill.md)).
 
 A change to the script reaches every app's CI when it merges ([sync.md](sync.md#what-starts-a-sync)): a new rule fails
 the PRs of the apps that break it, so check what it does to them first (clone an app, run the script).

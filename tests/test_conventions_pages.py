@@ -7,8 +7,8 @@ from contextlib import redirect_stdout
 from pathlib import Path
 
 import _paths  # noqa: F401
-import kotlin_scan as k
-import lint_conventions as lc
+import conventions.core as lc
+import conventions.scan as k
 
 UI = "app/src/main/kotlin/com/x/ui/"
 
@@ -81,15 +81,6 @@ CLEAN = {
             AppTheme { HomeCard("a") }
         }
     ''',
-    "AppModule.kt": '''
-        package com.x.ui
-
-        val appModule = module {
-            viewModelOf(::HomeViewModel)
-            viewModel(named("other")) { HomeViewModel(get()) }
-            singleOf(::HomeRepository)
-        }
-    ''',
 }
 
 
@@ -107,7 +98,7 @@ def lint_app(extra=None, remove=(), outside=None):
             target = Path(tmp) / path
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_text(textwrap.dedent(text).lstrip("\n"))
-        return lc.lint(tmp)
+        return [v for v in lc.lint(tmp) if not v.rule.startswith("DI-")]  # the Koin rules have tests of their own
 
 
 def rules(violations):
@@ -609,6 +600,29 @@ class IgnoreTest(unittest.TestCase):
         self.assertIn("UI-2", rules(lint_app({"HomeUiState.kt": text})))
 
 
+# The Koin setup of a conforming app: every app has one, and the Koin rules (test_conventions_di.py) are checked on the whole app
+KOIN = {
+    "app/src/main/kotlin/com/x/di/KoinModules.kt": """
+        package com.x.di
+
+        object KoinModules {
+            private val data = module {
+                viewModelOf(::HomeViewModel)
+                singleOf(::HomeRepository)
+            }
+            val modules: List<Module> = listOf(data)
+        }
+    """,
+    "app/src/main/kotlin/com/x/App.kt": """
+        package com.x
+
+        import org.koin.core.context.startKoin
+
+        class App { fun start() { startKoin { modules(KoinModules.modules) } } }
+    """,
+}
+
+
 class CommandTest(unittest.TestCase):
     def run_main(self, files):
         with tempfile.TemporaryDirectory() as tmp:
@@ -626,7 +640,7 @@ class CommandTest(unittest.TestCase):
             return code, out.getvalue(), summary.read_text()
 
     def test_a_clean_app_exits_zero(self):
-        code, out, summary = self.run_main({UI + n: t for n, t in CLEAN.items()})
+        code, out, summary = self.run_main({**{UI + n: t for n, t in CLEAN.items()}, **KOIN})
         self.assertEqual(code, 0)
         self.assertIn("no violations", out)
         self.assertIn("No violations", summary)
@@ -639,14 +653,15 @@ class CommandTest(unittest.TestCase):
         self.assertIn("::error file=app/src/main/kotlin/com/x/ui/HomeUiState.kt,line=3,title=UI-2::", out)
         self.assertIn("| `UI-2` |", summary)
 
-    def test_an_app_without_kotlin_passes(self):
+    def test_an_app_without_kotlin_has_no_koin(self):
         code, out, _ = self.run_main({"README.md": "# x\n"})
-        self.assertEqual(code, 0)
+        self.assertEqual(code, 1)
+        self.assertIn("title=DI-1::", out)
 
     def test_every_rule_is_documented_and_every_documented_rule_exists(self):
         docs = (Path(__file__).resolve().parent.parent / "docs" / "lint.md").read_text()
-        documented = set(__import__("re").findall(r"`((?:PAGE|VM|UI|SHEET|PRV|CMP|SHOT|IGNORE)-\d+)`", docs))
-        self.assertEqual(documented, set(lc.RULES))
+        documented = set(__import__("re").findall(r"`((?:DI|NAME|PAGE|VM|UI|SHEET|PRV|CMP|SHOT|IGNORE)-\d+)`", docs))
+        self.assertEqual(documented, set(lc.all_rules()))
 
 
 SHEET = """

@@ -1,9 +1,9 @@
 name: Conventions
 description: >
-  Checks the Kotlin code of the app against the architecture and naming rules of the docs (Koin modules only wire,
-  KoinModules and KoinQualifier hold only their object, no AndroidViewModel, acronyms are ordinary words in camel case)
-  and fails with an annotation on every line that breaks one. Used by the `conventions` job of android_pr.yml; the rules
-  are in docs/conventions-check.md and the logic is scripts/check_conventions.py.
+  Checks the Kotlin code of the app against the conventions of the docs (Koin modules only wire, no AndroidViewModel,
+  acronyms are ordinary words, the page, ViewModel, sheet, preview and screenshot rules) and fails with an annotation on
+  every line that breaks one. Used by the `conventions` job of android_pr.yml; the rules are in docs/lint.md and the logic
+  is scripts/check_conventions.py (scripts/conventions/).
 
 runs:
   using: composite

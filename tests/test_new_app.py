@@ -705,7 +705,7 @@ class RenderedApp(unittest.TestCase):
             self.assertRegex(values, rf"val {field}: ")
 
     def test_the_screenshot_package_passes_the_checks_of_ci(self):
-        import check_screenshot_package as check
+        import conventions.screenshots as check
 
         self.assertEqual([], check.setup_problems(self.dir))
         screenshot = self.dir / "app/src/androidDebug/kotlin/com/lukeneedham/lyrictutor/screenshot/SettingsPage.kt"

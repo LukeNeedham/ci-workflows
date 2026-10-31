@@ -18,7 +18,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / "screenshots"))
-from check_screenshot_package import manual_screenshots, package_folders
+from conventions.screenshots import manual_screenshots, package_folders
 
 
 def skip_reason(app_dir):

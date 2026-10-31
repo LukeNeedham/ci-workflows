@@ -1,22 +1,24 @@
 #!/usr/bin/env python3
-"""Checks the Kotlin files of an app's screenshot package against the rules of docs/screenshots.md.
-
-    python3 check_screenshot_package.py File.kt ...
+"""SHOT-1..2 and the screenshot package of an app: where it is, what it may hold and its order.txt (docs/screenshots.md).
+The render, README and sync scripts read the package through the helpers here too.
 
 Every screenshot owns its data, and nothing is shared: not between pages, not between the screenshots of one page,
 not with the general previews or the app. So a file of the package holds nothing at the top level but private
 `@Preview` composables without parameters, each with its mock data inside its own body. Anything else (a top-level
-`val`, an object, a helper function, a public or `internal` declaration) is a way to share, and fails the check.
-Prints what is wrong and exits 1 if anything is.
+`val`, an object, a helper function, a public or `internal` declaration) is a way to share, and is a violation.
 
 The package also has an `order.txt` next to its Kotlin files: the screenshots in the order the README shows them, one name
 per line (the composable name without the trailing `Screenshot`; blank lines are ignored). **No comments**: the file says
-all it needs to, so a line with a `#` fails the check. Every screenshot is listed once, and nothing else. CI numbers the images by their position: `01-HomePage.png`, `02-…`.
+all it needs to, so a line with a `#` is a violation. Every screenshot is listed once, and nothing else. CI numbers the images by their position: `01-HomePage.png`, `02-…`.
 """
 
 import re
-import sys
 from pathlib import Path
+
+RULES = {
+    "SHOT-1": "A file of the screenshot package holds only private @Preview composables with their own data",
+    "SHOT-2": "The screenshot package has an order.txt that lists every screenshot once",
+}
 
 ORDER_FILE = "order.txt"
 SUFFIX = "Screenshot"
@@ -127,16 +129,13 @@ def problems(text):
     return found
 
 
-def main():
-    failed = False
-    for path in sys.argv[1:]:
-        with open(path) as f:
-            for number, line in problems(f.read()):
-                failed = True
-                print(f"{path}:{number}: `{line}` is shared or not a screenshot. A file of the screenshot package holds "
-                      f"only private @Preview composables with their own data inside (docs/screenshots.md).")
-    sys.exit(1 if failed else 0)
-
-
-if __name__ == "__main__":
-    main()
+def check(ctx):
+    for f in ctx.files:
+        if f.is_screenshot:
+            for line, text in problems(f.raw):
+                ctx.add(f, line, "SHOT-1", f"`{text}` is shared or not a screenshot: a file of the screenshot package holds "
+                                           f"only private @Preview composables with their own data inside")
+    package = [f for f in ctx.files if f.is_screenshot]
+    if package and (ctx.app_dir / "readme.yml").is_file():
+        for problem in order_problems(ctx.app_dir):
+            ctx.add(package[0], 1, "SHOT-2", problem)

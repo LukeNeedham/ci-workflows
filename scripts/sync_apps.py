@@ -37,7 +37,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import generate_readme
 import yaml
 from automerge import TITLE_TAG
-from check_screenshot_package import setup_problems
+from conventions.screenshots import setup_problems
 
 TOOLS = Path(__file__).resolve().parent.parent
 SKILL = "lukeneedham-conventions"

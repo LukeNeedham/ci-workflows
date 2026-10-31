@@ -137,7 +137,7 @@ command line.
 
 | Script | Used by |
 |---|---|
-| `lint_conventions.py` (with `kotlin_scan.py`) | the `conventions` job of `android_pr.yml` ([lint.md](lint.md)) |
+| `check_conventions.py` (with `conventions/`) | the `conventions` job of `android_pr.yml` ([lint.md](lint.md)) |
 | `pr_releases.py` | the PR build (stale comment, metadata, superseded) and the cleanup |
 | `release.py` | `android_release.yml` |
 | `library_release.py` | `library_release.yml` |

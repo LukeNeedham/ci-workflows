@@ -57,7 +57,7 @@ Every page of every app is an `XPage` (gets the ViewModel and the navigation, no
 app. The activity, `Root` and the navigation around them are in **[docs/app-shell.md](docs/app-shell.md)**, for new apps
 and for migrating existing ones. The README screenshots are rendered from them by CI: [docs/screenshots.md](docs/screenshots.md). A PR comment shows the previews it changed: [docs/previews.md](docs/previews.md).
 
-The architecture and naming rules (Koin modules only wire, no `AndroidViewModel`, acronyms are ordinary words in camel case) are checked by the `conventions` job of every PR: [docs/conventions-check.md](docs/conventions-check.md).
+The architecture and naming rules (Koin modules only wire, no `AndroidViewModel`, acronyms are ordinary words in camel case) and the page, ViewModel, sheet, preview and screenshot rules are all checked by the one `conventions` job of every PR: [docs/lint.md](docs/lint.md).
 
 ## Setting up a project
 

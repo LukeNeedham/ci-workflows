@@ -90,9 +90,9 @@ jobs:
           echo "::error::Some previews could not be rendered: see the 'Render the previews' step of the build job"
           exit 1
 
-  # The architecture and naming rules of the docs, checked in the Kotlin code (docs/conventions-check.md): Koin modules only
-  # wire, KoinModules.kt and KoinQualifier.kt hold only their object, no AndroidViewModel, acronyms are ordinary words in camel
-  # case. It reads the code and builds nothing, so it runs alongside the build and fails the PR with an annotation on each line.
+  # The architecture and naming rules of the docs, checked in the Kotlin code (docs/lint.md): the Koin and naming rules, the
+  # page, ViewModel, UiState, sheet and preview rules and the screenshot package. It reads the code and builds nothing, so it
+  # runs alongside the build and fails the PR with an annotation (file, line, rule id) on each violation.
   conventions:
     needs: config
     if: needs.config.outputs.generate == 'true'
@@ -119,21 +119,6 @@ jobs:
       - uses: LukeNeedham/ci-workflows/.github/actions/readme@main
         with:
           token: ${{ secrets.GENERATED_COMMIT_TOKEN }}
-
-  # The page, ViewModel, UiState and preview rules (docs/lint.md), checked from the source by scripts/lint_conventions.py:
-  # no Gradle and no JDK, so it takes seconds and runs alongside the build. Any violation fails the job. It has nothing
-  # to commit, so it needs no token and only reads the repo.
-  conventions:
-    needs: config
-    if: needs.config.outputs.generate == 'true'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - uses: LukeNeedham/ci-workflows/.github/actions/ci-scripts@main
-      - uses: actions/checkout@v4
-      - name: Check the conventions
-        run: python3 "$CI_SCRIPTS/lint_conventions.py" .
 
   build:
     needs: config

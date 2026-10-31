@@ -1,4 +1,4 @@
-"""A small Kotlin scanner for lint_conventions.py: just enough of the language to find the top-level declarations of a file.
+"""A small Kotlin scanner for the conventions check (check_conventions.py): just enough of the language to find the top-level declarations of a file.
 
 It is not a parser. [blank] turns comments and the inside of strings into spaces (keeping every offset and line), and
 [parse] reads the declarations at the top level of a file, with their modifiers, annotations and text, from what is
