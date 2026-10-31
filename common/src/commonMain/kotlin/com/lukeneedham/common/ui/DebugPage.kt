@@ -20,10 +20,10 @@ import com.lukeneedham.common.debug.AnimationSpeed
 import com.lukeneedham.common.readAppInfo
 
 /**
- * The library's debug page: the app's package and current version, the debug settings, and links to the logs and crashes pages. It shows only
+ * The library's debug page: the app's package and current version, the debug settings, and links to the logs, crashes and network pages. It shows only
  * the library's own things and has no slot for anything else.
  *
- * It does not navigate itself: the app wires [onOpenLogs] and [onOpenCrashes] to its own navigation.
+ * It does not navigate itself: the app wires [onOpenLogs] and [onOpenCrashes], and [onOpenNetwork] if the app has the network page (the button is hidden when it is null) to its own navigation.
  *
  * An app with debug tools of its own makes its own debug page for them, and gives that page a button
  * that opens this one. An app with none can open this page directly.
@@ -34,6 +34,7 @@ fun DebugPage(
     onOpenLogs: () -> Unit,
     onOpenCrashes: () -> Unit,
     modifier: Modifier = Modifier,
+    onOpenNetwork: (() -> Unit)? = null,
 ) {
     val settings = DebugKit.settings
     val appInfo = remember { readAppInfo() }
@@ -67,6 +68,9 @@ fun DebugPage(
             DebugDivider()
             DebugOutlinedButton(text = "Logs", onClick = onOpenLogs, modifier = Modifier.fillMaxWidth())
             DebugOutlinedButton(text = "Crashes", onClick = onOpenCrashes, modifier = Modifier.fillMaxWidth())
+            onOpenNetwork?.let {
+                DebugOutlinedButton(text = "Network", onClick = it, modifier = Modifier.fillMaxWidth())
+            }
         }
     }
 }

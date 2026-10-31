@@ -8,11 +8,13 @@ script and writes the settings to $GITHUB_OUTPUT. See docs/app-config.md.
 
 It also sets `generate` and `cleanup` to false for a pull request run that has nothing to do:
   - the PR targets a branch other than BRANCH, or
-  - every file the PR changes is under SKIPPED_PATHS (the Claude skill), so no APK can differ, or
-  - the push that started the run changed only generated files (GENERATED_PATHS): the commit that CI made itself.
+  - every file the PR changes is outside the Android sources (see is_skipped_file: docs, the Claude skill, Markdown
+    files outside a src/ folder), so no APK can differ, or
+  - the push that started the run changed only generated files (GENERATED_PATHS): the commit that CI made itself, and the
+    code under it was built (--before-built, from was_built.py: if it was not, or that is not known, the push is built).
 
     python3 scripts/app_config.py --repo LukeNeedham/AppHub --event pull_request --action synchronize \\
-        --base main --files changed_files.txt --push-files pushed_files.txt
+        --base main --files changed_files.txt --push-files pushed_files.txt --before-built true
 """
 
 import argparse
@@ -23,8 +25,9 @@ from pathlib import Path
 # The one branch every app uses: PRs into it are built, PRs into anything else are not
 BRANCH = "main"
 
-# A PR that changes only files under these prefixes does not build an APK
-SKIPPED_PATHS = [".claude/skills/"]
+# A PR that changes only files under these prefixes, or Markdown files outside a src/ folder, does not build an APK.
+# Markdown under src/ can be packaged into the app (assets, raw resources), so it counts as a source.
+SKIPPED_PATHS = [".claude/", "docs/"]
 
 # The files that CI generates and commits to the PR branch (scripts/commit_generated.py). A push that changes only
 # these is CI's own commit: no APK can differ, so the run has nothing to do. The README of the screenshot package is in
@@ -54,9 +57,14 @@ def settings(repo):
     }
 
 
+def is_skipped_file(f):
+    """Whether the file [f] cannot change the APK: under SKIPPED_PATHS, or Markdown outside any src/ folder."""
+    return any(f.startswith(p) for p in SKIPPED_PATHS) or (f.endswith(".md") and "src" not in f.split("/")[:-1])
+
+
 def only_skipped_files(files):
-    """Whether [files] is not empty and all of it is under SKIPPED_PATHS."""
-    return bool(files) and all(any(f.startswith(p) for p in SKIPPED_PATHS) for f in files)
+    """Whether [files] is not empty and none of it is an Android source file."""
+    return bool(files) and all(is_skipped_file(f) for f in files)
 
 
 def only_generated_files(files):
@@ -68,16 +76,17 @@ def only_generated_files(files):
     )
 
 
-def skip_reason(event, action, base, files, push_files=()):
+def skip_reason(event, action, base, files, push_files=(), before_built=True):
     """Why this run has nothing to do, or None when it has. [push_files] are the files of the push that started a
-    `synchronize` run, [files] those of the whole PR."""
+    `synchronize` run, [files] those of the whole PR. [before_built]: the commit before that push was built, which a push of only
+    generated files needs to be skipped: CI's commit builds nothing new, but the code under it must have been built by someone."""
     if event != "pull_request":
         return None
     if base and base != BRANCH:
         return f"the PR targets {base}, and only PRs into {BRANCH} are built"
     if action != "closed" and only_skipped_files(files):
-        return "the PR changes only " + " and ".join(SKIPPED_PATHS) + ", which cannot change the APK"
-    if action == "synchronize" and only_generated_files(push_files):
+        return "the PR changes no Android source file (only docs, Markdown or the Claude skill), so the APK cannot differ"
+    if action == "synchronize" and before_built and only_generated_files(push_files):
         return "the push changes only files that CI generates, which cannot change the APK"
     return None
 
@@ -89,10 +98,13 @@ def read_files(path):
     return [line.strip() for line in Path(path).read_text().splitlines() if line.strip()]
 
 
-def run(repo, event, action, base, files, push_files=()):
+def run(repo, event, action, base, files, push_files=(), before_built=True):
     """The outputs for the workflow, and the lines to tell the user in the log."""
-    reason = skip_reason(event, action, base, files, push_files)
+    reason = skip_reason(event, action, base, files, push_files, before_built)
     log = [f"::notice::Nothing to do: {reason}."] if reason else []
+    if reason is None and action == "synchronize" and not before_built and only_generated_files(push_files):
+        log.append("::notice::The push changes only files that CI generates, but the commit before it was not built (or that is not "
+                   "known), so it is built now.")
     closed = event == "pull_request" and action == "closed"
     # What the jobs of android_pr.yml do: everything but a closed PR builds and generates; a closed PR cleans up.
     # A run that has nothing to do has both false.
@@ -111,9 +123,12 @@ def main():
     parser.add_argument("--base", default="", help="the branch a pull request targets")
     parser.add_argument("--files", default="", help="file listing the files the pull request changes, one per line")
     parser.add_argument("--push-files", default="", help="file listing the files the push of a synchronize changes, one per line")
+    parser.add_argument("--before-built", default="unknown", choices=["true", "false", "unknown"],
+                        help="whether the commit before the push was built (was_built.py); only true lets a push of generated files be skipped")
     args = parser.parse_args()
 
-    outputs, log = run(args.repo, args.event, args.action, args.base, read_files(args.files), read_files(args.push_files))
+    outputs, log = run(args.repo, args.event, args.action, args.base, read_files(args.files), read_files(args.push_files),
+                        args.before_built == "true")
     print("\n".join(log))
     for key, value in outputs.items():
         print(f"{key}={value}")

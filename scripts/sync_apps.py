@@ -116,7 +116,7 @@ def claude_block():
         f"  `XViewModel`, one per page: a ViewModel is never shared between pages; its route is always `Route.X`, a member\n"
         f"  of the one `sealed interface Route`; each of `XPage`, `XPageContent`, `XViewModel` and `XUiState` is in its own\n"
         f"  file; never `XScreen`). The README screenshots are private\n"
-        f"  `@Preview`s in the package `screenshot` (in `src/debug`), each owning its mock data (a page can have several,\n"
+        f"  `@Preview`s in the package `screenshot` (in `src/debug`, or `src/androidDebug` in a Kotlin Multiplatform app), each owning its mock data (a page can have several,\n"
         f"  or none; nothing is shared); CI renders them into `docs/screenshots/`, never by hand. The skill has the details.\n"
         f"- **Every public or `internal` composable has a preview: when you add a composable, write its preview with it, and\n"
         f"  when you change one, update its preview** (the camera, a video and the like are mocked in it; a `private` helper needs none).\n"

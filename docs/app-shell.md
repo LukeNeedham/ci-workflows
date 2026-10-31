@@ -12,7 +12,9 @@ reads like any other:
 
 | Name | What it is |
 |---|---|
-| `App` | The `Application` class: starts Koin and the library. |
+| `App` | The `Application` class: starts the library, then Koin with `modules(KoinModules.modules)`. |
+| `KoinModules` | The one `object` that holds all the app's Koin modules and exposes `val modules: List<Module>`, in `di/KoinModules.kt` (package `<app package>.di`), which contains nothing else ([new-app.md](new-app.md#6-app-architecture)). Never `KoinModule`, `AppModule`, `DiModule` or a top-level `val appModule`. |
+| `KoinQualifier` | The one `object` that holds the names that tell apart Koin bindings of the same type, as `const val`s (`named(KoinQualifier.REPO_CREATION_TOKEN)`), in `di/KoinQualifier.kt` (package `<app package>.di`, the same as `KoinModules`). Only an app that needs a qualifier has it, and no qualifier is ever a string literal in a module. It groups related names in nested objects (`KoinQualifier.Dispatcher.io`). Never `KoinQualifiers`, `Qualifiers` or constants beside `KoinModules`. |
 | `MainActivity` | **The one activity that hosts the app's UI, always with this name**: never `HomeActivity`, `SettingsActivity` or `AppActivity`, no second activity for a screen, and no fragments. It only calls `setContent { Root() }`, and hands `Root` only what the activity alone can provide (a deep link from the intent, a permission or share callback), as parameters. The one exception is an [overlay activity](#exceptions). |
 | `Root` | The root composable of the app and the one composable `MainActivity` calls: `AppTheme`, `ProvideDebugSettings` and the other app-wide providers, then `AppNavigation()`. It may also be state driven (see [`RootCoordinator`](#a-state-driven-root)). Never `App`, `AppRoot`, `MainScreen` or `MainContent`. |
 | `RootCoordinator` | Only in an app whose `Root` is state driven: a plain class (not a ViewModel) that decides what the app shows and holds the state for it. |
@@ -163,7 +165,10 @@ fun Router(backStack: NavBackStack<NavKey>, route: Route) {
   4. **The browser address and history** are not synced by the library. An app that syncs them (FlagTutor on the web)
      keeps its own sync, driven by the back stack, and passes `onBack = {}` to `AppNavigation` so that the browser's back
      button, which the sync handles, does not also pop the stack; or it uses the `navigation3-browser` library.
-  5. The `Application`, `MainActivity` and manifest rules apply to the Android target only.
+  5. The `Application`, `MainActivity` and manifest rules apply to the Android target only: they are in `androidMain`, and the
+     rest of the shell in `commonMain`. The source folders are `src/commonMain`, `src/androidMain`, `src/androidDebug` and
+     `src/commonTest` where this page says `src/main`, `src/debug` and `src/test`. An app made by the [New App workflow](create-app.md)
+     is Kotlin Multiplatform with the Android target only, with the code of `commonMain` free of anything Android-only.
 
 ## Migrating an existing app
 

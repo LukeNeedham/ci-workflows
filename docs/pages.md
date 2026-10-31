@@ -16,6 +16,12 @@ not `Root`. `Root` is the root composable of the app, not a page (it is not a de
 `RootPageContent` and no `Route.Root`; when it is state driven it holds a `RootCoordinator` instead, a plain class and not a
 ViewModel ([app-shell.md](app-shell.md#a-state-driven-root)). The checks of [lint.md](lint.md) enforce this.
 
+**The content of a bottom sheet is always its own composable, in its own file, with its own preview.** A sheet `XSheet` is only
+the container (the scrim, the surface and its drag handle, the animation, the insets), which is hard to preview. What it shows is
+`XSheetContent`, in `XSheetContent.kt`: stateless like a `PageContent` (state down, events up), it knows nothing of the sheet around it,
+and it has at least one `private` `Preview` in its file, wrapped in `AppTheme`. `XSheet` only puts `XSheetContent` in the sheet: nothing
+else is drawn inside it.
+
 ## The two composables
 
 | | `XPage` | `XPageContent` |

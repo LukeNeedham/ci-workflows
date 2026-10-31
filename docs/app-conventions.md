@@ -4,6 +4,9 @@ The libraries and code patterns every app uses, beyond the architecture basics i
 [new-app.md](new-app.md#5-app-architecture). Defaults for a normal app: if the user asks for something
 else, do that instead. Check the current stable version of every library before adding it.
 
+The architecture and naming rules here and in [new-app.md](new-app.md) are checked by CI on every PR: see [conventions-check.md](conventions-check.md).
+
+- [Naming](#naming)
 - [Libraries](#libraries)
 - [Strings](#strings)
 - [Theme](#theme)
@@ -11,6 +14,26 @@ else, do that instead. Check the current stable version of every library before 
 - [One-off events](#one-off-events)
 - [Touch targets](#touch-targets)
 - [Release builds](#release-builds)
+
+## Naming
+
+**An acronym or initialism is an ordinary word in a camel case or Pascal case name: only its first letter is a capital.**
+`IosSdkManager`, not `iOSSDKManager`. This holds for every class, interface, object, function, property, parameter, file and
+enum entry we write, whatever the acronym and however short:
+
+| Not | But |
+|---|---|
+| `iOSSDKManager` | `IosSdkManager` |
+| `HTTPClient`, `parseJSON` | `HttpClient`, `parseJson` |
+| `UserDTO` | `UserDto` ([networking.md](networking.md#dtos-xdto)) |
+| `UIState`, `userID` | `UiState`, `userId` |
+| `URLBuilder`, `apiURL` | `UrlBuilder`, `apiUrl` |
+| `HTMLParser`, `XMLNode` | `HtmlParser`, `XmlNode` |
+
+Packages stay all lower case (`com.example.app.sdk`), and constants stay `UPPER_SNAKE_CASE` (`API_URL`), where the question does not
+arise. The one exception is a name we do not choose: an override or a call of a library or platform API keeps the name it
+has (`getURL()`, `Dispatchers.IO`), and a name a serialization format fixes is kept in `@SerialName`, not in our own
+property name.
 
 ## Libraries
 
@@ -21,7 +44,7 @@ else, do that instead. Check the current stable version of every library before 
 | Serialization | `kotlinx.serialization` (also what Navigation 3 keys use) |
 | Structured data | Room |
 | Settings and small key-value data | DataStore (not `SharedPreferences`) |
-| Networking | Ktor client with the OkHttp engine (`ktor-client-okhttp`), only for apps that make network calls |
+| Networking | Ktor client with the OkHttp engine (`ktor-client-okhttp`), only for apps that make network calls. Models, mapping and the debug kit network log are in **[networking.md](networking.md)** |
 | Date and time | `kotlinx-datetime` |
 | Audio and video | Media3 (ExoPlayer) |
 
@@ -78,6 +101,8 @@ job of every PR, [lint.md](lint.md)): a PR that breaks one fails.
   nothing about the composable because the file does. The previews of the `screenshot` package are the exception: they
   are named `XScreenshot`, since their names are unique across the package and become the images and the lines of
   `order.txt` ([screenshots.md](screenshots.md)).
+- **The content of a bottom sheet is its own composable, in its own file, with its own preview**: `XSheetContent` in
+  `XSheetContent.kt`, stateless and independent of the sheet (`XSheet`, which only draws the sheet around it), see [pages.md](pages.md).
 - **Every public or `internal` composable has a preview, however small**, and **a new composable is written together with
   its preview** (a changed one gets its preview updated). A `private` helper needs none. Previews wrap the content in
   `AppTheme` and use fake `UiState` / sample data, so they need no ViewModel, Koin or network, and what needs the camera,

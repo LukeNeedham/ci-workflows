@@ -3,7 +3,7 @@ name: Android PR
 # Reusable workflow: the whole PR flow in one call. Builds and comments on the PR while it is open,
 # and cleans up its build releases when it is closed. It simply picks android_pr_build.yml or
 # android_pr_cleanup.yml from the event, so a project needs one caller job instead of two. Nothing runs for a
-# PR that targets a branch other than main, or that changes only the Claude skill (see config).
+# PR that targets a branch other than main, or that changes no Android source file (only docs, Markdown or the Claude skill; see config).
 #
 # Caller: callers/trigger_on_pull_request.yml. It has no settings: every app is built the same way.
 
@@ -42,7 +42,8 @@ jobs:
   # The push is made with the owner's token (GENERATED_COMMIT_TOKEN), so that the checks run on the new commit; a push with the
   # workflow token leaves them waiting for approval. That run has nothing to do (app_config.py skips a push that
   # changes only generated files), so there is no loop and no second build (the APK does not contain app-icon.png).
-  # The three jobs that commit (this, screenshots and readme) each cancel their own older run for the PR: a run that
+  # The three jobs that commit (this, screenshots and readme) each cancel their own older run for the PR, and commit_generated.py
+  # commits only while the branch is still at the commit of the run (or has gained only generated files): a run that
   # a newer push has replaced must not commit files made from the old code on top of the new.
   app-icon:
     needs: config
@@ -77,6 +78,29 @@ jobs:
         with:
           state: ${{ needs.build.outputs.screenshots }}
           token: ${{ secrets.GENERATED_COMMIT_TOKEN }}
+
+  # Every @Preview of the app must render (docs/previews.md): the build job renders them after the APK, and this job fails
+  # the PR when some did not, so such a PR cannot be merged. It only reports; the build job's log has the previews that failed.
+  previews:
+    needs: [config, build]
+    if: ${{ !cancelled() && needs.config.outputs.generate == 'true' && needs.build.outputs.previews == 'failed' }}
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo "::error::Some previews could not be rendered: see the 'Render the previews' step of the build job"
+          exit 1
+
+  # The architecture and naming rules of the docs, checked in the Kotlin code (docs/conventions-check.md): Koin modules only
+  # wire, KoinModules.kt and KoinQualifier.kt hold only their object, no AndroidViewModel, acronyms are ordinary words in camel
+  # case. It reads the code and builds nothing, so it runs alongside the build and fails the PR with an annotation on each line.
+  conventions:
+    needs: config
+    if: needs.config.outputs.generate == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: LukeNeedham/ci-workflows/.github/actions/conventions@main
 
   # The README.md of every app is rendered from its readme.yml, in the layout of docs/readme.md, so the format
   # cannot drift. Render on every PR and commit the result to the PR branch when it differs. An app without a
@@ -134,7 +158,7 @@ jobs:
   # (GENERATED_COMMIT_TOKEN): a merge made with the workflow token starts no workflow, so build_main.yml would not run on
   # the merged commit. Without the secret it only says so. automerge.py checks the PR again before it merges.
   automerge:
-    needs: [config, build, screenshots, readme]
+    needs: [config, build, previews, conventions, screenshots, readme]
     if: >-
       ${{ !cancelled()
       && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
