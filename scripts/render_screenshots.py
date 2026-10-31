@@ -20,8 +20,7 @@ import sys
 from pathlib import Path
 
 SCREENSHOTS = Path(__file__).resolve().parent / "screenshots"
-sys.path.insert(0, str(SCREENSHOTS))
-from check_screenshot_package import (ORDER_FILE, manual_screenshots, order_problems, package_dir, package_files,
+from conventions.screenshots import (ORDER_FILE, manual_screenshots, order_problems, package_dir, package_files,
                                       package_folders, problems, read_order)
 
 

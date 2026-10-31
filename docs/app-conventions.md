@@ -4,6 +4,10 @@ The libraries and code patterns every app uses, beyond the architecture basics i
 [new-app.md](new-app.md#5-app-architecture). Defaults for a normal app: if the user asks for something
 else, do that instead. Check the current stable version of every library before adding it.
 
+The architecture and naming rules here and in [new-app.md](new-app.md) are checked by CI on every PR: see [lint.md](lint.md).
+
+- [Naming](#naming)
+- [No top-level functions](#no-top-level-functions)
 - [Libraries](#libraries)
 - [Strings](#strings)
 - [Theme](#theme)
@@ -11,6 +15,46 @@ else, do that instead. Check the current stable version of every library before 
 - [One-off events](#one-off-events)
 - [Touch targets](#touch-targets)
 - [Release builds](#release-builds)
+
+## Naming
+
+**An acronym or initialism is an ordinary word in a camel case or Pascal case name: only its first letter is a capital.**
+`IosSdkManager`, not `iOSSDKManager`. This holds for every class, interface, object, function, property, parameter, file and
+enum entry we write, whatever the acronym and however short:
+
+| Not | But |
+|---|---|
+| `iOSSDKManager` | `IosSdkManager` |
+| `HTTPClient`, `parseJSON` | `HttpClient`, `parseJson` |
+| `UserDTO` | `UserDto` ([networking.md](networking.md#dtos-xdto)) |
+| `UIState`, `userID` | `UiState`, `userId` |
+| `URLBuilder`, `apiURL` | `UrlBuilder`, `apiUrl` |
+| `HTMLParser`, `XMLNode` | `HtmlParser`, `XmlNode` |
+
+Packages stay all lower case (`com.example.app.sdk`), and constants stay `UPPER_SNAKE_CASE` (`API_URL`), where the question does not
+arise. The one exception is a name we do not choose: an override or a call of a library or platform API keeps the name it
+has (`getURL()`, `Dispatchers.IO`), and a name a serialization format fixes is kept in `@SerialName`, not in our own
+property name.
+
+## No top-level functions
+
+**A function is a member of a class or an `object`. The only functions at the top level of a file are extension functions and
+composable functions** (previews are composables), **and the ones that the platform or the language needs there: the `expect` and
+`actual` functions of a Kotlin Multiplatform app, an `external` function (a bridge to JavaScript or native code), and `main`.** 
+
+**Logic that is not a method of anything**, a helper, a mapper, a parser, **goes where it belongs**: in the class that owns the data
+(a repository, a ViewModel, a state holder), or in an `object` named for what it does (`object CalendarDayIndex { fun resolveCurrent(...) }`,
+`object RequiredPermissionIcon`) when no class owns it. A `private` helper at the top of a file is a top-level function too: make it a
+`private` member of the class or object that uses it, or a `private object` in the file.
+
+**An extension function is for something generic**: it adds to a standard or library type something that any app could use
+(`fun Int.toDp()`, `fun String?.orDash()`, `fun <T> List<T>.second()`), and it sits in a file of its own with the others like it. It is
+not a way to avoid an `object`: a function about the days of this diary, the permissions of this app or the routes of this
+navigation is app logic and is not an extension of `List<Day>`, `RequiredPermission` or `NavBackStack`. The check cannot tell the two
+apart, so this part is for the author and the review to hold to.
+
+It is checked by CI (`TOP-1`, [lint.md](lint.md)), in the code of the app and not in its tests. Any other exception takes a `// lint:ignore TOP-1: reason`. Top-level properties and
+constants are not covered by this rule.
 
 ## Libraries
 
@@ -21,7 +65,7 @@ else, do that instead. Check the current stable version of every library before 
 | Serialization | `kotlinx.serialization` (also what Navigation 3 keys use) |
 | Structured data | Room |
 | Settings and small key-value data | DataStore (not `SharedPreferences`) |
-| Networking | Ktor client with the OkHttp engine (`ktor-client-okhttp`), only for apps that make network calls |
+| Networking | Ktor client with the OkHttp engine (`ktor-client-okhttp`), only for apps that make network calls. Models, mapping and the debug kit network log are in **[networking.md](networking.md)** |
 | Date and time | `kotlinx-datetime` |
 | Audio and video | Media3 (ExoPlayer) |
 
@@ -67,16 +111,26 @@ object AppTheme {
 
 <a id="previews"></a>
 
-- **One composable per file**, named after it, with its `@Preview` in the same file. Skip this for
-  trivial composables (a few lines, used by one parent only): keep those next to their parent.
+**The rules of this section, of [pages.md](pages.md) and of the ViewModels and states are checked by CI** (the `conventions`
+job of every PR, [lint.md](lint.md)): a PR that breaks one fails.
+
+- **One composable per file**, named after it, with its `@Preview` in the same file. A helper that only one composable
+  uses is `private` and sits next to it.
 - **A preview is a `private` function in the file of its composable, named `Preview`.** A file with several previews
   (other data: empty, loading, error) keeps `Preview` for the main one and adds a differentiator to the others:
   `PreviewEmpty`, `PreviewLoading`. It is `private` so that the same name in every file never clashes, and the name says
   nothing about the composable because the file does. The previews of the `screenshot` package are the exception: they
   are named `XScreenshot`, since their names are unique across the package and become the images and the lines of
   `order.txt` ([screenshots.md](screenshots.md)).
-- **Every composable has a preview, except trivial ones.** Previews wrap the content in `AppTheme` and
-  use fake `UiState` / sample data, so they need no ViewModel, Koin or network.
+- **The content of a bottom sheet is its own composable, in its own file, with its own preview**: `XSheetContent` in
+  `XSheetContent.kt`, stateless and independent of the sheet (`XSheet`, which only draws the sheet around it), see [pages.md](pages.md).
+- **Every public or `internal` composable has a preview, however small**, and **a new composable is written together with
+  its preview** (a changed one gets its preview updated). A `private` helper needs none. Previews wrap the content in
+  `AppTheme` and use fake `UiState` / sample data, so they need no ViewModel, Koin or network, and what needs the camera,
+  a video or the like is **mocked** (a placeholder, as the app's video player already does in inspection mode): a preview that
+  cannot render fails in CI's renders as it would in an IDE. Only a composable that returns a value, or that draws nothing
+  (an effect), has none, with a `lint:ignore PRV-7` and its reason; `Root`, `AppNavigation`, `Router` and `AppTheme` of the app
+  shell are exempt by name.
 - **Every page is an `XPage` and an `XPageContent`**, defined in [pages.md](pages.md): `XPage` holds its own `XViewModel` (one per page, **never shared between pages**) and
   delegates all UI to the stateless, `internal` `XPageContent` (state down, events up), which always has at least one `private` general preview in its file
   (`private fun Preview()`), in the file `XPageContent.kt`; `XPage`, `XViewModel` and `XUiState` each have their own file too. Any README screenshots are separate (a page can have several, or none): a file per page that has some in the

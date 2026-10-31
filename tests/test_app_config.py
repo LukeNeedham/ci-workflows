@@ -16,8 +16,8 @@ TOOLS = Path(__file__).resolve().parent.parent
 SKILL_FILE = ".claude/skills/lukeneedham-conventions/SKILL.md"
 
 
-def run(repo="LukeNeedham/Demo", event="pull_request", action="synchronize", base="main", files=(), push_files=()):
-    return c.run(repo, event, action, base, list(files), list(push_files))[0]
+def run(repo="LukeNeedham/Demo", event="pull_request", action="synchronize", base="main", files=(), push_files=(), before_built=True):
+    return c.run(repo, event, action, base, list(files), list(push_files), before_built)[0]
 
 
 class Settings(unittest.TestCase):
@@ -67,6 +67,15 @@ class Skipping(unittest.TestCase):
     def test_a_pr_that_changes_only_the_skill_is_skipped(self):
         self.assertEqual("true", self.skip(files=[SKILL_FILE, ".claude/skills/other/notes.md"]))
 
+    def test_a_pr_that_changes_only_docs_and_markdown_is_skipped(self):
+        self.assertEqual("true", self.skip(files=["docs/setup.md", "README.md", "CLAUDE.md", "app/NOTES.md", "docs/a.png"]))
+
+    def test_markdown_in_a_src_folder_builds(self):
+        self.assertEqual("false", self.skip(files=["README.md", "app/src/main/assets/help.md"]))
+
+    def test_a_non_markdown_file_outside_docs_builds(self):
+        self.assertEqual("false", self.skip(files=["README.md", "gradle/libs.versions.toml"]))
+
     def test_one_other_file_in_the_pr_builds_it(self):
         self.assertEqual("false", self.skip(files=[SKILL_FILE, "app/src/Main.kt"]))
 
@@ -74,22 +83,33 @@ class Skipping(unittest.TestCase):
         pushed = ["docs/screenshots/01-HomePage.png", "README.md", "app-icon.png", "app/src/debug/kotlin/x/screenshot/README.md"]
         self.assertEqual("true", self.skip(files=["app/src/Main.kt", *pushed], push_files=pushed))
 
+    def test_a_push_of_only_generated_files_is_built_when_the_commit_before_it_was_not(self):
+        # Two pushes within seconds: the first (code) got no run, and the second (CI's own) must not be skipped for it
+        pushed = ["docs/screenshots/01-HomePage.png", "README.md"]
+        self.assertEqual("false", self.skip(files=["app/src/Main.kt", *pushed], push_files=pushed, before_built=False))
+
+    def test_it_says_in_the_log_why_that_push_is_built(self):
+        pushed = ["README.md"]
+        log = c.run("LukeNeedham/Demo", "pull_request", "synchronize", "main", ["app/src/Main.kt", *pushed], pushed, False)[1]
+        self.assertEqual(1, len(log))
+        self.assertIn("not built", log[0])
+
     def test_one_other_file_in_the_push_builds_it(self):
         self.assertEqual("false", self.skip(files=["app/src/Main.kt"], push_files=["README.md", "app/src/Main.kt"]))
 
     def test_a_push_that_cannot_be_listed_builds(self):
-        self.assertEqual("false", self.skip(files=["README.md"], push_files=[]))
+        self.assertEqual("false", self.skip(files=["app/src/Main.kt", "README.md"], push_files=[]))
 
     def test_only_a_synchronize_is_skipped_for_its_push(self):
-        self.assertEqual("false", self.skip(action="opened", files=["README.md"], push_files=["README.md"]))
+        self.assertEqual("false", self.skip(action="opened", files=["app/src/Main.kt", "README.md"], push_files=["README.md"]))
 
     def test_other_readmes_and_images_are_not_generated(self):
         for f in ["docs/README.md", "app/README.md", "docs/other.png", "docs/screenshotsx/a.png", "app-icon.png.bak"]:
-            self.assertEqual("false", self.skip(files=[f], push_files=[f]), f)
+            self.assertEqual("false", self.skip(files=["app/src/Main.kt", f], push_files=[f]), f)
 
-    def test_other_files_under_claude_still_build(self):
-        self.assertEqual("false", self.skip(files=[".claude/settings.json"]))
-        self.assertEqual("false", self.skip(files=["CLAUDE.md"]))
+    def test_claude_settings_and_claude_md_are_not_android_sources(self):
+        self.assertEqual("true", self.skip(files=[".claude/settings.json"]))
+        self.assertEqual("true", self.skip(files=["CLAUDE.md"]))
 
     def test_a_pr_with_no_known_files_builds(self):
         self.assertEqual("false", self.skip(files=[]))

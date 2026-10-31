@@ -1,0 +1,60 @@
+package __PACKAGE__.ui
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.text.BasicText
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import __PACKAGE__.generated.resources.Res
+import __PACKAGE__.generated.resources.settings_title
+import __PACKAGE__.ui.theme.AppTheme
+import com.lukeneedham.common.ui.DebugButton
+import org.jetbrains.compose.resources.stringResource
+import org.jetbrains.compose.ui.tooling.preview.Preview
+
+/** All of the page's UI. `internal`: the screenshots of the app use it too. */
+@Composable
+internal fun SettingsPageContent(
+    state: SettingsUiState,
+    onOpenDebug: () -> Unit,
+) {
+    val theme = AppTheme.current
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(theme.background)
+            .safeDrawingPadding()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        BasicText(
+            text = stringResource(Res.string.settings_title),
+            style = TextStyle(
+                color = theme.onBackground,
+                fontFamily = theme.fontFamily,
+                fontSize = 24.sp,
+                lineHeight = 32.sp,
+                fontWeight = FontWeight.SemiBold,
+            ),
+        )
+        // Draws nothing unless debugging is on, so it stays in the layout for release builds
+        if (state.isDebugEnabled) DebugButton(onClick = onOpenDebug)
+    }
+}
+
+/** For Android Studio while building the page: debugging on. */
+@Preview
+@Composable
+private fun Preview() {
+    AppTheme {
+        SettingsPageContent(state = SettingsUiState(isDebugEnabled = true), onOpenDebug = {})
+    }
+}

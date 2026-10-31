@@ -6,13 +6,13 @@ description: Luke Needham's conventions for Android apps - project setup, debug 
 # Luke's app conventions
 
 This folder is copied from `LukeNeedham/ci-workflows` (`skills/lukeneedham-conventions`) by CI, which opens a
-"Sync from ci-workflows" PR when it differs. Never edit it here; change it there. The same goes for the four
-callers in `.github/workflows/`.
+"Sync from ci-workflows" PR when it differs, and that PR merges itself once its checks pass. Never edit it here; change it
+there. The same goes for the callers in `.github/workflows/`.
 
 The long guides are in that repo's `docs/`: `new-app.md` (read first when starting an app), `setup.md`,
 `app-config.md`, `app-icon.md`, `readme.md` (the README layout and `readme.yml`), `pages.md` (`XPage` and
-`XPageContent`), `screenshots.md` (the README screenshots), `app-conventions.md`, `library.md`,
-`using-the-library.md` and `consuming-apps.md`. If you can reach GitHub, read the relevant page; otherwise the rules
+`XPageContent`), `app-shell.md` (`MainActivity`, `Root`, navigation), `networking.md` (Ktor/OkHttp, DTOs, the network log), `lint.md` (the checks CI runs on them), `screenshots.md` (the README screenshots), `app-conventions.md`, `library.md`,
+`using-the-library.md`, `consuming-apps.md` and `create-app.md` (how a new app repo is created). If you can reach GitHub, read the relevant page; otherwise the rules
 below are enough.
 
 ## Project
@@ -31,10 +31,16 @@ below are enough.
 - Every app is built the same way and nothing is configured per app: module `:app`, debug APK at
   `app/build/outputs/apk/debug/app-debug.apk`, PRs into `main` only (never `master` or `develop`), JDK 17.
   A new app needs only its entry (`name`, `repo`) in `ci-workflows`' `apps.json`.
-- Every app has all four callers: `trigger_on_pull_request.yml`, `build_main.yml` (AppHub builds main through
-  it, so keep the name), `delete_prereleases.yml` and `release.yml`. `release.yml` fails at once, with a message
-  that lists what is missing, until the app has the four release secrets and `gradle/android-release.gradle`.
-- A PR that changes only `.claude/skills/` is not built, so it has no APK and no AppHub comment from CI.
+  Claude cannot create the repo (403): the user makes it, then sets it up with the *New App* workflow of
+  `ci-workflows` (`docs/create-app.md`), which adds the entry, the first sync and a Kotlin
+  Multiplatform project (Android target only: shared code in `commonMain`, `App`, `MainActivity` and the manifest in `androidMain`, the
+  screenshots in `androidDebug`, strings as Compose resources) that builds: the debug keystore, the dependencies, the app shell,
+  `AppTheme` and a `SettingsPage` with the `DebugButton`. Look at what is there before adding anything, and keep Android-only
+  code out of `commonMain`.
+- Every app has all the callers of `ci-workflows`' `callers/`, copied by the sync: never edit, rename or delete one
+  (`docs/setup.md` there documents each). The release run fails at once, with a message that lists what is missing, until the
+  app has the four release secrets and `gradle/android-release.gradle`.
+- A PR that changes no Android source file (only `docs/`, `.claude/`, or Markdown outside a `src/` folder) is not built, so it has no APK and no AppHub comment from CI.
 - CI's own commits (generated screenshots, icon and README) are pushed with the owner's `GENERATED_COMMIT_TOKEN` when the app has it, and are not built again.
 - Debug mode always comes from `BuildConfig.DEBUG`.
 - Open a PR for completed work. Paste the PR's **AppHub link** (`https://www.lukeneedham.com/apphub/pr/<repo name>/<number>`,
@@ -66,6 +72,10 @@ below are enough.
   `Copyright (c) <year> Luke Needham. All rights reserved.`
 
 ## Pages and screenshots
+- **The content of a bottom sheet is always its own composable, in its own file, with its own preview** (`docs/pages.md`):
+  `XSheetContent` in `XSheetContent.kt`, stateless (state down, events up) and unaware of the sheet around it, with at least
+  one `private` `@Preview` wrapped in `AppTheme`. `XSheet` is only the container (scrim, surface, drag handle, animation,
+  insets) and only puts `XSheetContent` in it.
 - **Every page is `XPage` + `XPageContent`, always** (`docs/pages.md`, which has the migration steps). `XPage` is public:
   it gets its ViewModel, always named **`XViewModel`** (`koinViewModel<XViewModel>()`) and **one per page: a ViewModel is never shared between pages** (no feature-wide, app-wide or activity/nav-graph-scoped ViewModel; state that pages share goes in a repository, a Koin `single`), collects the state, handles
   lifecycle and one-off events, turns navigation into lambdas, and only calls `XPageContent`; no preview.
@@ -73,8 +83,20 @@ below are enough.
   navigator) and **always has at least one `private` `@Preview` in the same file** (named `Preview`; see Previews below). **Each of `XPage`, `XPageContent`, `XViewModel` and `XUiState` is in its own file**
   (`XPage.kt`, `XPageContent.kt` with the previews, `XViewModel.kt`, `XUiState.kt`). Never `XScreen`, `XContent` or `XView`. **The route is always
   `Route.X`**, a member of the one `sealed interface Route : NavKey` in `Route.kt` (`Route.Home` is `HomePage`:
-  `entry<Route.Home> { HomePage(...) }`; never `HomeNavKey`, `HomeKey` or `HomeRoute`).
-- **README screenshots live in one package, `<app package>.screenshot`, in `src/debug`**: a file per page that has
+  `Route.Home -> HomePage(...)` in `Router`; never `HomeNavKey`, `HomeKey` or `HomeRoute`).
+- **The same job checks the page rules** (each error names its rule id on the line):
+  files and names (`PAGE-1`..`4`), `XPage` calls `XPageContent` once and draws nothing, `XPageContent` is stateless
+  (`PAGE-5`, `6`), a ViewModel is requested only in its own `XPage` as `XViewModel`, by one page, never activity/nav-graph
+  scoped, never a Koin `single`, never holding another ViewModel, no `SharedFlow` (`VM-1`..`7`), an immutable `UiState` with
+  no `Flow` (`UI-1`..`3`), previews (`PRV-1`..`7`: `private fun Preview()` in `XPageContent.kt`, in `AppTheme`, no
+  Koin/ViewModel, **a preview for every public or `internal` composable**, however short) and one public composable per file named after it (`CMP-1`).
+  A bottom sheet is only ever used inside an `XSheet` composable that puts an `XSheetContent` (own file, own preview, stateless,
+  no sheet in it) in the sheet (`SHEET-1`..`5`).
+  An exception needs `// lint:ignore RULE-ID: reason` on the line or above it, and a reason.
+- **Only an `XPage` requests a ViewModel.** `Root` is the root composable, not a page, and holds none: a state-driven `Root`
+  (loading, a missing permission, the setup) holds a **`RootCoordinator`** instead, a plain class registered with `single { }`
+  and obtained with `koinInject()` (`docs/app-shell.md`).
+- **README screenshots live in one package, `<app package>.screenshot`, in `src/debug`** (`src/androidDebug` in a Kotlin Multiplatform app): a file per page that has
   some, named after the page (`HomePage.kt`; more previews = more screenshots, no file = none). Each screenshot is a
   **private `@Preview` composable that owns its mock data** inside its body and renders `HomePageContent` with it
   (`HomePageScreenshot`). The package's **`order.txt`** lists the screenshots (`HomePage`) in README order, one per line, **with no comments** (no `#` lines: CI fails on them);
@@ -88,26 +110,71 @@ below are enough.
   wrapper) opts out with `screenshots: manual` in `readme.yml`, has no `screenshot` folder and commits one by hand.
 
 ## Architecture
-- Single activity (`ComponentActivity`), Jetpack Compose, no XML, no fragments.
-- Navigation 3 (the `@Serializable` members of one `sealed interface Route : NavKey`, back stack owned by the app).
+- **The app shell is defined in one doc, `docs/app-shell.md`, for new apps and for migrating existing ones.** Single
+  activity, always **`MainActivity`** (never another name, a second activity or fragments), which only calls
+  `setContent { Root(...) }` and may hand `Root` what only the activity can provide (a deep link, a permission callback); `Root` (`Root.kt`, the root composable; it may be state driven through a `RootCoordinator`) sets up `AppTheme`, `ProvideDebugSettings` and the other app-wide providers,
+  then calls `AppNavigation` (owns the `backStack` and the `NavDisplay`; only `Root` calls it); `Router` is the
+  exhaustive `when (route)` with one `XPage(...)` per `Route` member, **no `else`**, and the common actions as local
+  functions (`navigateTo(route)`, `onBack()`; branches pass `::onBack`, never `backStack.add(...)`); `routeEntryProvider`
+  does `val route = key as Route` and returns `NavEntry(route) { Router(backStack, route) }`; never the
+  `entryProvider { entry<...> { } }` DSL (a missing route fails at runtime). Fixed names, one file each: `App` (the
+  `Application`), `MainActivity`, `Root`, `AppNavigation`, `Router`, `Route`, `AppTheme` (the composable `AppTheme { }`, read
+  through the `object AppTheme`); never a variant (`AppRoot`, `MainScreen`, `AppRouter`, `NavHost`, `RoutePage`,
+  `<AppName>Theme`, `ProvideAppTheme`). Exceptions (`docs/app-shell.md`): an overlay activity (a window over other
+  apps, named after its job) may be a second activity but a screen never is; Kotlin Multiplatform apps use the JetBrains
+  Navigation 3 artifacts (`rememberNavBackStack(config, ...)` with every `Route` member registered in the config, since iOS and the web have no reflection). A route needing its own `NavEntry` options (`metadata`) builds its own.
+- Jetpack Compose, no XML. Navigation 3 (the `@Serializable` members of one `sealed interface Route : NavKey`, back stack owned by the app).
 - MVVM with unidirectional data flow: a `ViewModel` exposes one immutable `UiState` `StateFlow`; composables
   use `collectAsStateWithLifecycle()` and send events up as function calls; no logic in composables.
 - Coroutines + Flow; `viewModelScope` for screen work. UI -> domain/data layers; no Android types in the lower layer.
-- **Koin for dependency injection**: `module { }` with `singleOf` / `viewModelOf` / `factoryOf`, `startKoin`
+- **Never `AndroidViewModel`** (banned in every app): ViewModels extend `ViewModel` and take their dependencies (never an `Application` or `Context`) as constructor parameters, provided by Koin.
+- **Koin for dependency injection, in every app without exception**: `module { }` with `singleOf` / `viewModelOf` / `factoryOf`, `startKoin`
   in `Application.onCreate`, `koinViewModel()` in composables. Constructor injection; classes never call Koin.
+  **All Koin modules live in one Kotlin `object` named `KoinModules`** (`<app package>.di`, `val modules: List<Module>`;
+  `App` calls `modules(KoinModules.modules)`); it may delegate to other objects specific to a feature or use case.
+  `KoinModules.kt` contains only that object. Qualifier names are `const val`s of the one `object KoinQualifier` (`KoinQualifier.kt`, in the same `di` package,
+  `named(KoinQualifier.X)`, never a string literal, nested objects allowed for groups); every other object is in a file of its own.
+  **Koin modules only wire**: one-line bindings (`singleOf`, `viewModelOf`, `single<Api> { Impl(get()) }`) whose only
+  arguments are `get()`, `androidContext()`, runtime parameters and named constants. Any configuration (builders and DSLs
+  like `HttpClient(OkHttp) { ... }` or `Room.databaseBuilder(...)`, timeouts, cache sizes, file names, keys, an inline
+  `File` or `CoroutineScope(...)`, a value read from a global, chained factory calls) lives in a dedicated class or Kotlin
+  `object` that the module just calls (`single { HttpClientFactory.create() }`); a `File` or scope other bindings need is
+  bound under a qualifier constant. Name a feature object's module `bindings`, not `module`.
+- **Naming: an acronym is an ordinary word in camel case** (`docs/app-conventions.md#naming`): `IosSdkManager`, not `iOSSDKManager`;
+  `HttpClient`, `parseJson`, `UserDto`, `UiState`, `userId`, never `HTTPClient`, `parseJSON`, `UserDTO`, `UIState`, `userID`. Only a name a library
+  or platform API fixes (an override, `Dispatchers.IO`) keeps its spelling.
+- **No top-level functions** (`docs/app-conventions.md#no-top-level-functions`, `TOP-1`): a function is a member of a class or an `object`; only extension
+  functions, composables (previews included) and what the platform needs there (`expect`/`actual`/`external` functions, `main`) are top-level.
+  App logic goes in the class that owns it (repository, ViewModel) or an `object` named for what it does (`object CalendarDayIndex`), a
+  `private` helper in a `private object` of the file. **An extension is only for something generic** (`fun String?.orDash()`: a
+  standard or library type, usable in any app), never a way around an object (no `List<Day>.resolveIndex()` for this app's days). CI cannot tell; hold to it.
+- **CI checks these rules.** The `conventions` job of every PR (one check, `docs/lint.md`) fails on a Koin module that configures (`DI-4`), a `KoinModules.kt` or
+  `KoinQualifier.kt` with more than its object (`DI-2`), an `AndroidViewModel` (`VM-8`), a string qualifier (`DI-5`), or an acronym in
+  capitals in a name (`NAME-1`), as well as the page, ViewModel and preview rules below. Run it with
+  `python3 scripts/check_conventions.py <app>` from `LukeNeedham/ci-workflows`.
 - **Coil 3 for image loading** (`io.coil-kt.coil3:coil-compose`, not Coil 2.x, Glide or Picasso): `AsyncImage`
   for files, URIs and URLs. Add `coil-network-okhttp` only if the app loads images over the network.
 - Unit tests for ViewModels and repositories (JUnit, `kotlinx-coroutines-test`).
 
 ## Libraries and code patterns (details: `docs/app-conventions.md`)
+- **Networking (only apps that make network calls; `docs/networking.md`)**: Ktor client with the OkHttp engine. Every model from the
+  network is a `@Serializable` **`XDto`** (`UserDto`, never `UserDTO`/`UserResponse`) with **every property nullable and defaulting
+  to `null`** (enums as `String?`) and a lenient `Json` (`ignoreUnknownKeys`, `isLenient`, `coerceInputValues`, `explicitNulls = false`), so
+  no API response can crash the app. A mapper `XDto.toDomain()` (never throwing; defaults, fallbacks, drops unusable items) turns each
+  into a domain model; **a DTO never leaves the networking layer** (never in a ViewModel, `UiState` or `Route`). Failed calls are
+  caught and logged, not crashed on. **Every client must have `NetworkLogInterceptor()` added to its engine** (the library's network
+  log). An app with no networking: none of this applies.
 - Libraries: `kotlinx.serialization`, Room (structured data), DataStore (settings, never `SharedPreferences`),
-  Ktor client with the OkHttp engine (networking), `kotlinx-datetime`, Media3 (audio/video).
+  Ktor client with the OkHttp engine (networking, see above), `kotlinx-datetime`, Media3 (audio/video).
 - **All text in `strings.xml`**, none hard-coded (including content descriptions).
 - **Own `AppTheme`**, a hand-made composition local holding colours and typefaces. Never read `MaterialTheme`
   in the app; always `AppTheme.current`. No fixed text-style scale: set font size and line height inline in
   the composable, take only the typeface from the theme.
-- **One composable per file with its `@Preview`** (fake `UiState`, wrapped in `AppTheme`), and a preview for
-  every composable; trivial ones can sit next to their parent and skip both.
+- **One composable per file with its `@Preview`** (fake `UiState`, wrapped in `AppTheme`). **Every public or `internal`
+  composable has a preview, and a new composable is written together with its preview** (a changed one gets its preview
+  updated); the camera, a video and the like are mocked in it. Exempt: a composable that returns a value, `Root`,
+  `AppNavigation`, `Router` and `AppTheme`; one that draws nothing takes a `lint:ignore PRV-7` and a reason; a `private`
+  helper needs none.
 - **Previews:** a preview is a `private fun Preview()` in the file of its composable; with several in a file, the main
   one is `Preview` and the others `Preview` plus a differentiator (`PreviewEmpty`, `PreviewLoading`). (The `screenshot`
   package is the exception: `XScreenshot`, unique across the package.)
@@ -123,7 +190,8 @@ below are enough.
 - The debug pages are optional. An app that shows them wraps the UI in
   `ProvideDebugSettings(theme = AppTheme.current.toDebugTheme())`, inside `AppTheme` (the library uses no Material:
   the app maps `AppTheme` to a `DebugTheme` in one function), adds `DebugPage`, `LogsPage` and `CrashesPage` to
-  navigation, and puts a `DebugButton` on a settings page (never a floating button). The library's `DebugPage` shows
+  navigation (an app with network calls also adds `NetworkPage`, passes `onOpenNetwork` to `DebugPage` and adds
+  `NetworkLogInterceptor()` to its OkHttp client or Ktor OkHttp `engine { }`), and puts a `DebugButton` on a settings page (never a floating button). The library's `DebugPage` shows
   the app's package and version; an app with its own debug tools keeps its own debug page with a button to it.
   Scale animation durations with `LocalAnimationSpeed.current.scale(ms)`.
 - "Update all consuming apps" means every app in `apps.json` of `ci-workflows`: bump `common` in each, one PR per

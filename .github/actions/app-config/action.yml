@@ -6,7 +6,7 @@ description: >
 
 outputs:
   generate:
-    description: 'true when the run builds and generates files: a pull request that is not closed, or a manual run, unless it has nothing to do (the PR targets a branch other than main, or changes only the Claude skill)'
+    description: 'true when the run builds and generates files: a pull request that is not closed, or a manual run, unless it has nothing to do (the PR targets a branch other than main, or changes no Android source file: only docs, Markdown or the Claude skill)'
     value: ${{ steps.config.outputs.generate }}
   cleanup:
     description: 'true when the run cleans up the build releases of a pull request that was closed'
@@ -71,6 +71,20 @@ runs:
           echo "::warning::Could not list the files of the push, so it is built in full"
         fi
 
+    # A push of only generated files (CI's own commit) is skipped only if the commit before it was built: two pushes within seconds
+    # can leave the first without a run, and it must not then be skipped by the second.
+    - name: Find out whether the commit before the push was built
+      id: built
+      if: github.event_name == 'pull_request' && github.event.action == 'synchronize'
+      shell: bash
+      env:
+        ACTION_PATH: ${{ github.action_path }}
+        GH_TOKEN: ${{ github.token }}
+        REPO: ${{ github.repository }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+        BEFORE: ${{ github.event.before }}
+      run: echo "built=$(python3 "$ACTION_PATH/../../../scripts/was_built.py" --repo "$REPO" --pr "$PR_NUMBER" --sha "$BEFORE")" >> "$GITHUB_OUTPUT"
+
     - name: Get the settings
       id: config
       shell: bash
@@ -82,7 +96,9 @@ runs:
         BASE_REF: ${{ github.event.pull_request.base.ref }}
         FILES: ${{ steps.files.outputs.path }}
         PUSH_FILES: ${{ steps.push.outputs.path }}
+        BEFORE_BUILT: ${{ steps.built.outputs.built }}
       # The action is checked out with the whole repo: the script is three directories up
       run: |
         python3 "$ACTION_PATH/../../../scripts/app_config.py" \
-          --repo "$REPO" --event "$EVENT" --action "$EVENT_ACTION" --base "$BASE_REF" --files "$FILES" --push-files "$PUSH_FILES"
+          --repo "$REPO" --event "$EVENT" --action "$EVENT_ACTION" --base "$BASE_REF" --files "$FILES" --push-files "$PUSH_FILES" \
+          --before-built "${BEFORE_BUILT:-unknown}"

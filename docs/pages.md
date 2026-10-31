@@ -5,9 +5,22 @@ file, next to its `XViewModel` and `XUiState`.** This is
 the one way to build a screen in every app, so that any app reads like any other, and the previews and the README
 screenshots work the same everywhere ([screenshots.md](screenshots.md)).
 
-A **page** is a destination of the navigation: a full screen, one `entry<Route.X>` of the `NavDisplay`. A reusable piece
+A **page** is a destination of the navigation: a full screen, one `Route.X` branch of the exhaustive `when` in `Router` ([app-shell.md](app-shell.md)). A reusable piece
 (a card, a row, a toolbar), and a dialog or a sheet that belongs to a page, is **not** a page: it is a plain
 composable in its own file, and a dialog or sheet is drawn by the `XPageContent` of its page.
+
+## Only pages hold ViewModels
+
+**Only an `XPage` requests a ViewModel.** Nothing else does: not `Router`, not a component, not a dialog or a sheet, and
+not `Root`. `Root` is the root composable of the app, not a page (it is not a destination of the navigation), so it has no
+`RootPageContent` and no `Route.Root`; when it is state driven it holds a `RootCoordinator` instead, a plain class and not a
+ViewModel ([app-shell.md](app-shell.md#a-state-driven-root)). The checks of [lint.md](lint.md) enforce this.
+
+**The content of a bottom sheet is always its own composable, in its own file, with its own preview.** A sheet `XSheet` is only
+the container (the scrim, the surface and its drag handle, the animation, the insets), which is hard to preview. What it shows is
+`XSheetContent`, in `XSheetContent.kt`: stateless like a `PageContent` (state down, events up), it knows nothing of the sheet around it,
+and it has at least one `private` `Preview` in its file, wrapped in `AppTheme`. `XSheet` only puts `XSheetContent` in the sheet: nothing
+else is drawn inside it.
 
 ## The two composables
 
@@ -71,6 +84,9 @@ needed, or passes it to `XPageContent` as a plain parameter ([app-conventions.md
 
 ## Names and files
 
+**CI checks all of this** (and the ViewModel, UiState and preview rules of [app-conventions.md](app-conventions.md)): the
+`conventions` job fails a PR that breaks a rule, with the rule id on the line. The list is in [lint.md](lint.md).
+
 - **One ViewModel per page, and it is never shared.** `HomeViewModel` belongs to `HomePage` and to no other page.
   **Shared ViewModels are not allowed, in any form**: not one ViewModel for a whole feature or flow (a
   `PoemBookViewModel` behind a shelf, a book and a search page), not one for the app, not a ViewModel scoped to the
@@ -94,26 +110,9 @@ needed, or passes it to `XPageContent` as a plain parameter ([app-conventions.md
 - **The route of `XPage` is `Route.X`** (`HomePage` is `Route.Home`, `PullRequestPage` is `Route.PullRequest`).
   **`Route` is one `sealed interface`, in `Route.kt`, and every page has a member of it**: a `data object`, or a
   `data class` with the page's arguments. `Route.Home` maps to `HomePage`, `Route.Detail` to `DetailPage`; never a
-  top-level `HomeNavKey`, `HomeKey`, `HomeRoute` or a bare `Home`. The entry only calls the page, with the navigation as
-  lambdas:
-
-  ```kotlin
-  // Route.kt
-  @Serializable
-  sealed interface Route : NavKey {
-      @Serializable data object Home : Route
-      @Serializable data class Detail(val id: String) : Route
-  }
-
-  // in AppNavigation
-  entry<Route.Home> {
-      HomePage(onOpenSettings = { backStack.add(Route.Settings) }, onOpenDetail = { backStack.add(Route.Detail(it)) })
-  }
-  entry<Route.Detail> { route -> DetailPage(id = route.id, onBack = { backStack.removeLastOrNull() }) }
-  ```
-
-  (With a navigation library that has no `NavKey`, `Route` is the same sealed interface with that library's base type, e.g.
-  `Parcelable`.) The `backStack` never goes below `AppNavigation`: neither `XPage` nor `XPageContent` gets it.
+  top-level `HomeNavKey`, `HomeKey`, `HomeRoute` or a bare `Home`. The branch of the `Router` only calls the page, with the
+  navigation as lambdas (`onBack = ::onBack`): the `Router`, `Route` and the rest of the app shell are defined in
+  [app-shell.md](app-shell.md), and `XPage` and `XPageContent` never get the `backStack`.
 - Any README screenshots of a page (a page can have several, or none) are separate from the general previews: previews in the app's `screenshot`
   package, each owning its data ([screenshots.md](screenshots.md)).
 
@@ -129,7 +128,7 @@ where everything is.
 Do this for every page of the app, in the same change as the rest of its migration:
 
 1. A screen composable that gets the ViewModel (`XScreen`, `XRoute`, or the entry itself calling `koinViewModel`)
-   becomes **`XPage`**. If the entry in `AppNavigation` holds the ViewModel, state and lifecycle code, move it into `XPage`.
+   becomes **`XPage`**. If the branch in the `Router` holds the ViewModel, state and lifecycle code, move it into `XPage`.
 2. The composable that draws the screen (`XContent`, `XScreenContent`, or the body of the old screen) becomes
    **`XPageContent`**, `internal`, taking only state and lambdas. If a screen is not split yet, split it: everything
    that needs the ViewModel, Koin or a `Flow` goes up into `XPage`.
@@ -144,6 +143,8 @@ Do this for every page of the app, in the same change as the rest of its migrati
 5. Give `XPageContent` its `private` previews in `XPageContent.kt` (at least one), and (if the page deserves a screenshot) a file in the `screenshot` package.
 6. Update every reference: tests, docs and the app's `CLAUDE.md` lines that name files.
 7. **Not pages:** composables that are only parts of a page keep their names; nothing else gets the `Page` suffix.
+8. **The app shell** (`MainActivity`, `Root`, `AppNavigation`, `Router`, `App`) is migrated in the same change, with its
+   own steps: [app-shell.md](app-shell.md#migrating-an-existing-app).
 
 A check of the result: `grep -rn "Screen\b\|Screen(" app/src/main` should find no page composables, and every
-`entry<…>` of the navigation should be an `entry<Route.X>` that calls exactly one `XPage`.
+branch of the `Router` should be a `Route.X` that calls exactly one `XPage`.

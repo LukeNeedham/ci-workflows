@@ -1,0 +1,12 @@
+package __PACKAGE__
+
+import com.lukeneedham.common.DebugKit
+import com.lukeneedham.common.DebugKitConfig
+
+/**
+ * Starts the shared library's logger and crash handler. Each platform calls it first thing in its entry point, with its own
+ * flag for a debug build (`BuildConfig.DEBUG` on Android).
+ */
+fun initDebugKit(isDebug: Boolean) {
+    DebugKit.init(DebugKitConfig(enabled = isDebug))
+}

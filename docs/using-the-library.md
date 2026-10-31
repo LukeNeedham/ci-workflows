@@ -40,7 +40,7 @@ Compose, Gradle upgrades it to match, so test the app's screens after adding the
 That gives every app the logger and the crash handler. **The debug pages are optional**; an app that wants them also does:
 
 5. **Wrap the UI in `ProvideDebugSettings`**, and place a `DebugButton` on a settings page ([Wrap the UI](#wrap-the-ui-in-providedebugsettings), [A settings page](#a-settings-page)).
-6. **Add the three pages** (`DebugPage`, `LogsPage`, `CrashesPage`) to your navigation.
+6. **Add the pages** (`DebugPage`, `LogsPage`, `CrashesPage`, and `NetworkPage` if the app makes network calls) to your navigation.
 
 ## A new app
 
@@ -249,7 +249,9 @@ already wrapped, a setting added to the library later reaches every screen with 
 bump and nothing else, instead of a change to every consuming app.
 
 ```kotlin
-setContent {
+// Root.kt: the one composable `MainActivity` calls (`setContent { Root() }`)
+@Composable
+fun Root() {
     AppTheme {
         ProvideDebugSettings(theme = AppTheme.current.toDebugTheme()) {
             AppNavigation()
@@ -308,48 +310,50 @@ floating action button** (or any other overlay): the debug entry point is part o
 app's main UI. The button draws nothing when debugging is off, so it can stay in the code for release
 builds.
 
-**Navigation 3 or a hand-written back stack** :
+**Navigation 3** (every app: the shell is in [app-shell.md](app-shell.md)). Add three members to `Route` and three
+branches to the `Router`; the `when` is exhaustive, so the compiler reminds you:
 
 ```kotlin
-internal enum class Route { /* ... */ Debug, Logs, Crashes }
+// Route.kt
+@Serializable data object Debug : Route
+@Serializable data object Logs : Route
+@Serializable data object Crashes : Route
 
-when (route) {
-    // ...
-    Route.Debug -> DebugPage(
-        onBack = back,
-        onOpenLogs = { backStack.add(Route.Logs) },
-        onOpenCrashes = { backStack.add(Route.Crashes) },
-    )
-    Route.Logs -> LogsPage(onBack = back)
-    Route.Crashes -> CrashesPage(onBack = back)
-}
+// Router.kt (navigateTo and onBack are the Router's own functions)
+Route.Debug -> DebugPage(
+    onBack = ::onBack,
+    onOpenLogs = { navigateTo(Route.Logs) },
+    onOpenCrashes = { navigateTo(Route.Crashes) },
+)
+Route.Logs -> LogsPage(onBack = ::onBack)
+Route.Crashes -> CrashesPage(onBack = ::onBack)
 ```
 
-**Voyager** (FlagTutor's style):
+**The network page** is optional: an app that makes HTTP calls adds a fourth route, passes `onOpenNetwork` to
+`DebugPage` (the button is hidden without it), and adds `NetworkLogInterceptor()` to its OkHttp client (also the engine of a Ktor client):
 
 ```kotlin
-class DebugScreen : Screen {
-    @Composable
-    override fun Content() {
-        val navigator = LocalNavigator.currentOrThrow
-        DebugPage(
-            onBack = navigator::pop,
-            onOpenLogs = { navigator.push(LogsScreen()) },
-            onOpenCrashes = { navigator.push(CrashesScreen()) },
-        )
-    }
+// Route.kt
+@Serializable data object Network : Route
+
+// Router.kt: add onOpenNetwork = { navigateTo(Route.Network) } to DebugPage, and
+Route.Network -> NetworkPage(onBack = ::onBack)
+
+// where the client is built: Ktor on the OkHttp engine
+val client = HttpClient(OkHttp) {
+    engine { addInterceptor(NetworkLogInterceptor()) }
 }
 
-class LogsScreen : Screen {
-    @Composable
-    override fun Content() = LogsPage(onBack = LocalNavigator.currentOrThrow::pop)
-}
-
-class CrashesScreen : Screen {
-    @Composable
-    override fun Content() = CrashesPage(onBack = LocalNavigator.currentOrThrow::pop)
-}
+// or a plain OkHttp client
+val okHttp = OkHttpClient.Builder().addInterceptor(NetworkLogInterceptor()).build()
 ```
+
+
+It lists every call with its request and response (headers, bodies, status, duration), in memory only and only in
+debug builds. Clients on another engine call `DebugKit.networkLog.record(NetworkEntry(...))` from a plugin of their own.
+
+On a Kotlin Multiplatform app, also register the three routes in the back stack's serialization config
+([app-shell.md](app-shell.md#exceptions)).
 
 **Anything else** (a hand-rolled page router, a sealed `Page` class): add three cases and pass
 `onBack` your existing back action. Nothing about the pages depends on the navigation library.

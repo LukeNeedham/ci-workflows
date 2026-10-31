@@ -26,8 +26,8 @@ general previews.
 
 ## The `screenshot` package
 
-All the screenshot code is in **one package, `<the app's package>.screenshot`**, in `src/debug` (so that the mock data
-is not in the release APK; `internal` composables of `src/main` are visible from it). **A page that has screenshots has
+All the screenshot code is in **one package, `<the app's package>.screenshot`**, in `src/debug` (`src/androidDebug` in a Kotlin Multiplatform app, so that the mock data
+is not in the release APK; `internal` composables of `src/main`, or `commonMain` and `androidMain`, are visible from it). **A page that has screenshots has
 a file here, named after the page; not every page needs one, and a page can have several screenshots.** Each file
 holds the screenshots of its page, and **each screenshot is one private `@Preview` composable that owns its mock data
 and renders the page's content with it**:
@@ -73,7 +73,7 @@ private fun HomePageScreenshot() {
 
   So a file holds **nothing at the top level but private `@Preview` composables** without parameters, with the data and
   any helper inside the body. A top-level `val`, `object` or helper function, or a non-private declaration, would be a way
-  to share, and **fails the `screenshots` job** (`scripts/screenshots/check_screenshot_package.py`).
+  to share, and **fails the `screenshots` job** (`scripts/conventions/screenshots.py`).
 - Mock data uses no network, Koin, ViewModel or clock. CI renders every screenshot in **inspection mode**
   (`LocalInspectionMode provides true`, as Android Studio does for a preview), so a page that skips Koin or video in a
   preview does the same in its screenshot: a screenshot does not wrap itself for that. Images from a URL (Coil) cannot

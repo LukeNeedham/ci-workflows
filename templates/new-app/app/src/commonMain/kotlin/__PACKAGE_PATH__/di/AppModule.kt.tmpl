@@ -1,0 +1,10 @@
+package __PACKAGE__.di
+
+import __PACKAGE__.ui.SettingsViewModel
+import com.lukeneedham.common.DebugKit
+import org.koin.core.module.dsl.viewModel
+import org.koin.dsl.module
+
+val appModule = module {
+    viewModel { SettingsViewModel(isDebugEnabled = DebugKit.enabled) }
+}

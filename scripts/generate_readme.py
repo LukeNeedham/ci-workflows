@@ -24,9 +24,8 @@ from pathlib import Path
 import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-sys.path.insert(0, str(Path(__file__).resolve().parent / "screenshots"))
 from app_config import SETTINGS
-from check_screenshot_package import package_folders
+from conventions.screenshots import package_folders
 
 SOURCE = "readme.yml"
 HEADER = f"<!-- Generated from {SOURCE} by LukeNeedham/ci-workflows (docs/readme.md). Edit {SOURCE}, not this file. -->"

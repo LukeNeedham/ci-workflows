@@ -1,0 +1,46 @@
+package __PACKAGE__.ui.theme
+
+import androidx.compose.runtime.Immutable
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontFamily
+
+/** Every colour and typeface the app uses. Read them with `AppTheme.current`. No text styles: each composable sets its own size. */
+@Immutable
+data class AppThemeValues(
+    val background: Color,
+    val onBackground: Color,
+    val surface: Color,
+    val onSurface: Color,
+    val primary: Color,
+    val onPrimary: Color,
+    val outline: Color,
+    val error: Color,
+    val warning: Color,
+    val fontFamily: FontFamily,
+)
+
+internal val LightAppThemeValues = AppThemeValues(
+    background = Color(0xFFFFFFFF),
+    onBackground = Color(0xFF1B1B1F),
+    surface = Color(0xFFEEEEF3),
+    onSurface = Color(0xFF1B1B1F),
+    primary = Color(0xFF3F51B5),
+    onPrimary = Color(0xFFFFFFFF),
+    outline = Color(0xFF8A8A94),
+    error = Color(0xFFB3261E),
+    warning = Color(0xFF8D6E00),
+    fontFamily = FontFamily.Default,
+)
+
+internal val DarkAppThemeValues = AppThemeValues(
+    background = Color(0xFF121214),
+    onBackground = Color(0xFFE4E1E6),
+    surface = Color(0xFF1F1F24),
+    onSurface = Color(0xFFE4E1E6),
+    primary = Color(0xFFBAC3FF),
+    onPrimary = Color(0xFF1B2278),
+    outline = Color(0xFF8E8E98),
+    error = Color(0xFFF2B8B5),
+    warning = Color(0xFFE6C34A),
+    fontFamily = FontFamily.Default,
+)

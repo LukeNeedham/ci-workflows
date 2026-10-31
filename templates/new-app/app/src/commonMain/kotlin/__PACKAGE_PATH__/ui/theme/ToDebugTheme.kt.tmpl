@@ -1,0 +1,17 @@
+package __PACKAGE__.ui.theme
+
+import com.lukeneedham.common.ui.DebugTheme
+
+/** What the shared library's debug pages are drawn with, so that they match the app. */
+fun AppThemeValues.toDebugTheme() = DebugTheme(
+    background = background,
+    onBackground = onBackground,
+    surface = surface,
+    onSurface = onSurface,
+    primary = primary,
+    onPrimary = onPrimary,
+    outline = outline,
+    error = error,
+    warning = warning,
+    fontFamily = fontFamily,
+)

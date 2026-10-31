@@ -4,7 +4,7 @@ from pathlib import Path
 
 import _paths  # noqa: F401
 import screenshots_wanted as w
-from check_screenshot_package import package_files
+from conventions.screenshots import package_files
 
 
 class ScreenshotsWantedTest(unittest.TestCase):

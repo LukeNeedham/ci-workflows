@@ -21,10 +21,16 @@ then follow it, and tell the user about anything you skipped and why.
 
 - **Ask for what you do not know**, in one go: app name, package name (`com.lukeneedham.<app>`), what
   the app does, and anything unusual (orientation, minimum Android version, login).
-- **The repo.** Claude cannot create GitHub repos (the integration gets a 403). Ask the user to create
-  an empty repo named after the app, **with a README** so `main` exists, and to give the Claude GitHub
-  App access to it (<https://github.com/apps/claude/installations/select_target>). Until they have,
-  pushing fails with a 403.
+- **The repo.** Claude cannot create GitHub repos (the integration gets a 403). The user sets it up with the *New App*
+  workflow ([create-app.md](create-app.md)): a caller creates the repo with a README and starts the workflow, which gives it a
+  first commit with the first sync and **a Kotlin Multiplatform project that builds** (Android target only: the Gradle wrapper,
+  the dependencies of this architecture, the debug keystore, `App`, `MainActivity`, the app shell, `AppTheme`, a `SettingsPage`
+  with the library's `DebugButton`, its screenshot and a test), then the secret and the `apps.json` entry. Then **steps 1 to 3, the
+  app shell and the library (6 and 7) are done**: look at what is there and carry on from it (the `readme.yml` placeholders, the
+  real icon, the pages of the app). Without it, ask the user to create an empty repo named after the app, **with a README** so
+  `main` exists. Either way the user gives the Claude GitHub App access to it
+  (<https://github.com/apps/claude/installations/select_target>) unless its installation covers all repositories. Until
+  they have, pushing fails with a 403.
 - **Work on a branch and open a PR to `main`.** The PR build (step 3) only runs on PRs.
 - **Claude can never build or run the app**: the sandbox has no access to Gradle, Maven or the Android SDK. Builds
   and compile checks happen only on CI. Do not try to download Gradle or set up the SDK (a waste of tokens): write
@@ -93,23 +99,17 @@ Permanent, signed **release** builds are separate (own key, kept in repo secrets
 Every app uses the shared workflows in this repo. Follow **[setup.md](setup.md)**, which has the
 details. In short, for a new app:
 
-1. Copy [`callers/trigger_on_pull_request.yml`](../callers/trigger_on_pull_request.yml) to
-   `.github/workflows/trigger_on_pull_request.yml`, unchanged. The callers have no settings.
-2. Copy [`callers/delete_prereleases.yml`](../callers/delete_prereleases.yml) to
-   `.github/workflows/delete_prereleases.yml`, unchanged.
-3. Copy [`callers/build_main.yml`](../callers/build_main.yml) to `.github/workflows/build_main.yml`, unchanged.
-   AppHub builds `main` on demand through it, so keep the file name.
-4. Copy [`callers/release.yml`](../callers/release.yml) to `.github/workflows/release.yml`, unchanged. Every app has
-   it. It fails at once, with a clear message, until the app has the release key and the Gradle script
-   ([setup.md](setup.md#3-permanent-releases-optional)); only do that when the user wants installable releases (the
+1. Copy every file of [`callers/`](../callers) to `.github/workflows/`, unchanged ([setup.md](setup.md) documents each). The
+   callers have no settings. The release caller fails at once, with a clear message, until the app has the release key and the
+   Gradle script ([setup.md](setup.md#3-permanent-releases-optional)); only do that when the user wants installable releases (the
    four repo secrets are for the user to add).
-5. Add the app to [`apps.json`](../apps.json) ([consuming-apps.md](consuming-apps.md)), **in the same change as
+2. Add the app to [`apps.json`](../apps.json) ([consuming-apps.md](consuming-apps.md)), **in the same change as
    the callers**: just its `name` and `repo`, there is nothing else to configure ([app-config.md](app-config.md)). The
    app has to follow the standard: module `:app`, so the debug APK is
    `app/build/outputs/apk/debug/app-debug.apk`, and the default branch `main`. CI then gives it the Claude skill and
-   the `CLAUDE.md` block and keeps the callers above in line, through a "Sync from ci-workflows" PR
+   the `CLAUDE.md` block and keeps the callers in line, through a "Sync from ci-workflows" PR
    ([sync.md](sync.md)): the callers are copied by hand only this once, so that the app's first PR has CI.
-6. `ci-workflows` is a public repo, so don't worry about access.
+3. `ci-workflows` is a public repo, so don't worry about access.
 
 Open a PR: CI first comments with an **AppHub** link (`https://www.lukeneedham.com/apphub/pr/<repo name>/<number>`,
 the PR's page in the AppHub app, where the build can be downloaded and installed), then builds the debug APK and
@@ -136,7 +136,7 @@ reserved.`), supplies the generic setup, and the architecture is the same in eve
 `README.md`. The icon in it is the CI-generated `app-icon.png`, so there is nothing to add for it.
 
 **Every app has screenshots**: add a
-`screenshot` package in `src/debug`, with a file for each page that has screenshots (a page can have several, or none;
+`screenshot` package in `src/debug` (`src/androidDebug` in a Kotlin Multiplatform app), with a file for each page that has screenshots (a page can have several, or none;
 each screenshot is a `@Preview` that owns its mock data and renders the page's content), an `order.txt` listing the
 screenshots in README order ([screenshots.md](screenshots.md); the package README is generated by CI). CI then renders every preview of the package
 into `docs/screenshots/` (numbered by the order) and the README shows them. The app holds no screenshot dependencies or test: those live in
@@ -152,49 +152,62 @@ Defaults for a normal app. If the user asks for something else, do that instead.
   `internal`, stateless `XPageContent` (state down, events up) that has the previews. Never `XScreen`, `XContent` or a
   screen that mixes the two. Any README screenshots of a page are previews in the `screenshot` package
   ([screenshots.md](screenshots.md)).
-- **Single activity.** One `MainActivity` (extending `ComponentActivity`) hosts the whole UI. Screens
-  are composables, never extra activities or fragments.
+- **The app shell: single activity, `Root`, `AppNavigation`, `Router`.** One `MainActivity` (extending `ComponentActivity`)
+  hosts the whole UI and only calls `setContent { Root() }`; screens are composables, never extra activities or fragments.
+  The names, the code and the rules are defined in one place, **[app-shell.md](app-shell.md)**: follow it for every new
+  app (existing apps are migrated to it by the same doc).
 - **Jetpack Compose, themed by the app's own `AppTheme`** (a hand-made composition local, never
   `MaterialTheme`; see [app-conventions.md](app-conventions.md#theme)). No XML layouts.
-- **Navigation 3** (`androidx.navigation3`) for navigation. Destinations are `@Serializable` data
-  objects/classes, the members of one `sealed interface Route : NavKey`; the back stack is state the app owns:
-
-  ```kotlin
-  @Serializable
-  sealed interface Route : NavKey {
-      @Serializable data object Home : Route
-      @Serializable data class Detail(val id: String) : Route
-  }
-
-  val backStack = rememberNavBackStack(Route.Home)
-  NavDisplay(
-      backStack = backStack,
-      onBack = { backStack.removeLastOrNull() },
-      entryProvider = entryProvider {
-          entry<Route.Home> { HomePage(onOpenDetail = { backStack.add(Route.Detail(it)) }) }
-          entry<Route.Detail> { route -> DetailPage(id = route.id, onBack = { backStack.removeLastOrNull() }) }
-      },
-  )
-  ```
-
-  **The route of `XPage` is always `Route.X`** ([pages.md](pages.md)): `Route.Home` is `HomePage`.
-
-  Check the current stable versions and API before using them; Navigation 3 is newer than most
+- **Navigation 3** (`androidx.navigation3`) for navigation: destinations are `@Serializable` members of one
+  `sealed interface Route : NavKey`, the back stack is state the app owns, and the entry provider is type exhaustive
+  (an exhaustive `when` in `Router`, never the `entryProvider { entry<...> }` DSL). All of it is in
+  **[app-shell.md](app-shell.md)**. The route of `XPage` is always `Route.X` ([pages.md](pages.md)): `Route.Home` is
+  `HomePage`. Check the current stable versions and API before using them; Navigation 3 is newer than most
   documentation.
 - **MVVM with unidirectional data flow.** Each screen has a `ViewModel` exposing one immutable
   `UiState` as a `StateFlow`; the composable collects it with `collectAsStateWithLifecycle()` and
   sends user actions as plain function calls up to the ViewModel. State goes down, events go up.
   Composables hold no business logic. **One ViewModel per screen, never shared between screens** ([pages.md](pages.md#names-and-files)):
   state that several screens need lives in a repository (a Koin `single`), not in a ViewModel they have in common.
+- **Never `AndroidViewModel`.** It is banned in every app: a ViewModel extends `ViewModel`, never `AndroidViewModel`, and
+  never takes an `Application` (or any `Context`) to build its own dependencies. It takes what it needs as constructor
+  parameters (repositories, data sources, a small wrapper around the `Context` thing it needs) from Koin
+  (`viewModelOf(::XViewModel)`, `koinViewModel()`). Nothing calls `viewModel()` with a factory by hand or an
+  `appViewModel { }` helper either.
 - **Coroutines and Flow** for async work; `viewModelScope` for work tied to a screen.
+- **Networking** (only for apps that make network calls): Ktor + OkHttp, every network model a defensive `XDto` mapped to a
+  domain model at the edge, and the debug kit network log linked up: all in **[networking.md](networking.md)**.
 - **Layers.** UI (composables + ViewModels) → domain/data (repositories). Keep Android types out of
   the lower layer so it can be unit-tested on the JVM.
-- **Dependency injection: Koin.** Use [Koin](https://insert-koin.io) for DI in every app. Declare
+- **Dependency injection: Koin, in every app without exception.** Use [Koin](https://insert-koin.io) for DI in every app, however small (one screen, one ViewModel, a service or keyboard app: still Koin). Declare
   modules with `module { }` (`singleOf`, `viewModelOf`, `factoryOf`), start it in `Application.onCreate`
   with `startKoin { androidContext(this@App); modules(...) }`, and get ViewModels in composables with
   `koinViewModel()` (`koin-androidx-compose`). Classes take their dependencies as constructor
   parameters and never call Koin themselves, so they stay unit-testable. Check the current Koin version
   and the BOM (`koin-bom`) before adding it.
+  **All the app's Koin modules live in one Kotlin `object` named `KoinModules`** (file `KoinModules.kt`, package
+  `<app package>.di`), which exposes `val modules: List<Module>`; `App` starts Koin with `modules(KoinModules.modules)` and
+  nothing else declares a `module { }` outside it. `KoinModules` may delegate to other Kotlin objects specific to a feature or use
+  case (`object NetworkModule { val bindings = module { ... } }`), and a platform module of a Kotlin Multiplatform app is
+  one of those. Declare the private module `val`s above `modules`, because object properties initialise in order.
+  **`KoinModules.kt` holds the `object KoinModules` and nothing else**: no other top-level declaration (no `const val`, no
+  helper, no second class). The qualifier names, when a binding needs one, are `const val`s of the `object KoinQualifier` in
+  `KoinQualifier.kt` (also in the `<app package>.di` package, next to `KoinModules.kt`), used as `named(KoinQualifier.REPO_CREATION_TOKEN)`: always this name, never a string
+  literal in a module, and related names may be grouped in nested objects (`KoinQualifier.Dispatcher.io`). Every feature object,
+  factory or config object is in its own file too. The fixed names are in [app-shell.md](app-shell.md#the-names).
+  **Koin modules only wire; they do not configure.** A module's body is a list of one-line bindings
+  (`singleOf(::X)`, `single<Api> { KtorApi(get()) }`, `viewModelOf(::XViewModel)`). The only arguments of a binding are
+  `get()` (with a qualifier if needed), `androidContext()`, the runtime parameters of a `viewModel { (id: String) -> ... }`
+  and named constants. Everything else is configuration, and goes into a dedicated class or Kotlin `object` that the
+  module just calls: a builder or a DSL (`HttpClient(OkHttp) { ... }`, `Room.databaseBuilder(...).addMigrations(...)`,
+  `OkHttpClient.Builder()...`), timeouts, cache sizes, file names, keys, a `File` or a `CoroutineScope(...)` built inline, a
+  value read from a global (`DebugKit.enabled`), or two factory calls chained. `single { HttpClientFactory.create() }`, not the
+  builder inside the lambda. A `File`, a scope or the like that other bindings need is bound under a qualifier constant,
+  `single(named(APK_DIRECTORY)) { AppDirectories.apks(androidContext()) }`, and read back with `get(named(APK_DIRECTORY))`.
+  No other lambdas, branches, literals or comments explaining settings in a module: the comment goes on the factory. The
+  factories are plain code, so they stay unit-testable and findable without opening a DI file. Name the module of a
+  feature object `bindings` (`object NetworkModule { val bindings = module { ... } }`), not `module`, which would shadow the
+  `module { }` function.
 - **Image loading: Coil 3.** Use [Coil](https://coil-kt.github.io/coil/) **version 3** (group
   `io.coil-kt.coil3`, not the older `io.coil-kt:coil-compose` 2.x) for every image that is not a bundled
   drawable: files, content URIs, and URLs. Add `coil-compose`, plus `coil-network-okhttp` only if the app
@@ -213,6 +226,11 @@ Defaults for a normal app. If the user asks for something else, do that instead.
 logs and crashes pages. Follow **[using-the-library.md](using-the-library.md)** to add it, and use
 `Logger` rather than `Log` or `println`.
 
+**An app that makes network calls must link its HTTP client to the library's network log**: add
+`NetworkLogInterceptor()` to the OkHttp engine of the Ktor client, so every call is recorded (debug builds only, in memory).
+This is not optional, even for an app that shows no debug pages; an app that shows them also adds the `NetworkPage`
+([networking.md](networking.md#the-debug-kit-network-log)).
+
 The debug pages are optional. An app that shows them puts the library's `DebugButton` on a settings page (never a
 floating button on the main page); see [A settings page](using-the-library.md#a-settings-page).
 
@@ -220,18 +238,23 @@ floating button on the main page); see [A settings page](using-the-library.md#a-
 
 Some apps are too small for the above, such as the Krillion web-game wrapper: one `WebView` in one
 activity. Still do steps 1 to 5 (project, **debug keystore**, **CI workflows**, **app icon**, **README**) and the **shared
-library** (logger and crash handler, no debug pages), keep it to a single activity, and skip the rest. Say which
+library** (logger and crash handler, debug pages), the **app shell** ([app-shell.md](app-shell.md), the same as for every app), and skip the rest. Say which
 sections you skipped and why. Such an app has no `screenshot` package (no Compose, no `@Preview`): it sets `screenshots: manual` in `readme.yml` and commits at least one screenshot into `docs/screenshots/` by hand, and CI leaves it alone.
 
 ## Done checklist
 
 - [ ] Package is `com.lukeneedham.<app>`; versions match this repo
 - [ ] `app/debug.keystore` committed and used by the `debug` signing config
-- [ ] All four callers copied unchanged (`trigger_on_pull_request.yml`, `build_main.yml`, `delete_prereleases.yml`, `release.yml`), module `:app`, default branch `main`
+- [ ] All callers copied unchanged, module `:app`, default branch `main`
 - [ ] Adaptive launcher icon in place (CI then generates `app-icon.png` at the repo root on the first PR)
 - [ ] Every page is an `XPage` + `XPageContent`, named and split as in [pages.md](pages.md); a `screenshot` package with the screenshots worth showing (any number per page, none for some pages, at least one in all), and its `order.txt` ([screenshots.md](screenshots.md)), or, for an app that cannot render previews, `screenshots: manual` and at least one hand-committed screenshot in `docs/screenshots/`
 - [ ] Handwritten `readme.yml` ([readme.md](readme.md)); CI generates `README.md` from it
-- [ ] Single activity, Compose, Navigation 3, MVVM, Koin for DI, Coil 3 for images, or a stated reason for each departure
+- [ ] The app shell as in [app-shell.md](app-shell.md) (`MainActivity` calling only `Root`, `AppNavigation`, an exhaustive `Router`); Compose, Navigation 3, MVVM, Koin for DI, Coil 3 for images, or a stated reason for each departure
+- [ ] Koin for DI, no `AndroidViewModel` anywhere (ViewModels extend `ViewModel` and get dependencies as constructor parameters)
+- [ ] The `conventions` job of the PR passes ([lint.md](lint.md)): it checks the rules of this list that are about the code (Koin, `AndroidViewModel`, names, pages, ViewModels, previews)
+- [ ] `KoinModules.kt` contains only `object KoinModules`; qualifier names (if any) are in `object KoinQualifier` (`KoinQualifier.kt`), never string literals; every other object is in its own file
+- [ ] All Koin modules are in the `object KoinModules` (it may delegate to feature objects); `App` starts Koin with `KoinModules.modules`
+- [ ] Koin modules only wire: configuration (builders, timeouts, file names, many arguments) is in a dedicated class or `object` the module calls
 - [ ] [app-conventions.md](app-conventions.md) followed: strings in `strings.xml`, own `AppTheme` (no `MaterialTheme`), a preview per composable, 48dp touch targets
-- [ ] Shared library added, `DebugKit.init` called first, `Logger` used (debug pages optional)
+- [ ] Shared library added, `DebugKit.init` called first, `Logger` used (debug pages optional); if the app makes network calls, it follows [networking.md](networking.md) (`XDto` models mapped to domain models, `NetworkLogInterceptor()` on its client)
 - [ ] PR opened, CI green, AppHub link pasted to the user

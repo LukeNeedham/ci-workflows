@@ -93,7 +93,8 @@ python3 /tmp/ci-workflows/scripts/generate_readme.py . --check    # writes nothi
 ## Rollout and reporting
 
 - An app's **first `readme.yml` PR also brings it in line with the rest of the standard**: its pages renamed and split as
-  `XPage` + `XPageContent` ([pages.md](pages.md#migrating-an-existing-app)), and its `screenshot` package
+  `XPage` + `XPageContent` ([pages.md](pages.md#migrating-an-existing-app)), its app shell (`MainActivity`, `Root`, `Router`;
+  [app-shell.md](app-shell.md#migrating-an-existing-app)), and its `screenshot` package
   ([screenshots.md](screenshots.md)). The README cannot be generated before, since it shows the screenshots.
 - An app with **no `readme.yml`** gets a warning in its PR build and keeps its current README until it has one; the screenshot rules (and the `LICENSE`) apply from its `readme.yml` on.
   The [sync](sync.md) lists such apps (and invalid `readme.yml`s) in its run summary. It never writes a `readme.yml`.
