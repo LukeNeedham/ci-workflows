@@ -30,10 +30,28 @@ enum entry we write, whatever the acronym and however short:
 | `URLBuilder`, `apiURL` | `UrlBuilder`, `apiUrl` |
 | `HTMLParser`, `XMLNode` | `HtmlParser`, `XmlNode` |
 
-Packages stay all lower case (`com.example.app.sdk`), and constants stay `UPPER_SNAKE_CASE` (`API_URL`), where the question does not
-arise. The one exception is a name we do not choose: an override or a call of a library or platform API keeps the name it
-has (`getURL()`, `Dispatchers.IO`), and a name a serialization format fixes is kept in `@SerialName`, not in our own
-property name.
+**No all-caps names, for anything.** Kotlin and Android code does not use `SCREAMING_SNAKE_CASE` any more, and neither do we, in
+game and other "pattern-heavy" code too:
+
+- **Enum entries are upper camel case** (`GamePhase.GameOver`, `ToadKind.Purple`), like the entries of any sealed type.
+- **Constants are camel case**, named like any other property: a `const val`, or a `val` of an object or of the top level that holds a
+  fixed value (`const val maxRetries = 3`, `SnakeTuning.speed`, a private `val gold = Color(...)`). Group tuning numbers in small
+  objects named after what they tune, not in one object of everything.
+
+| Not | But |
+|---|---|
+| `GAME_OVER` (enum entry) | `GameOver` |
+| `API_URL`, `MAX_RETRIES` | `apiUrl`, `maxRetries` |
+| `val GOLD = Color(...)` | `val gold = Color(...)` |
+
+Packages stay all lower case (`com.example.app.sdk`). The one exception is a name we do not choose: an override or a call of a library or
+platform API keeps the name it has (`getURL()`, `Dispatchers.IO`, `Float.MAX_VALUE`), and a name a serialization format fixes is kept
+in `@SerialName`, not in our own property name.
+
+**Small classes with one job.** A game, an engine or a "manager" is no reason for a God class. Give each job its own class with a
+tight responsibility, and let a thin class step them in order: a world that only steps an effect tracker, a spawner, a feeding
+rule and a particle system, not one that does all of it; a snake split into head, body and wall bounce; a renderer file that draws
+one thing. A class that needs "and" to describe it is two classes.
 
 ## Libraries
 

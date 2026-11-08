@@ -23,7 +23,7 @@ It checks the **code**, not the Gradle files, and skips `build/`, `.gradle/` and
 
 A run of capitals that ends a name, or comes before a digit, is an acronym (`userID`, `newPP`, `UTF8Decoder`). A run of three or more before
 a lower case letter is an acronym followed by a word (`HTTPClient`: `HTTP` and `Client`). A run of **two** before a lower case letter is a
-one-letter word and a word (`parsesAUri`, `selectedXOffset`), and passes. `UPPER_SNAKE_CASE` constants pass. The names the code only uses
+one-letter word and a word (`parsesAUri`, `selectedXOffset`), and passes. All-caps constants pass this rule (we do not write them, see [app-conventions.md](app-conventions.md#naming), but CI does not check that). The names the code only uses
 (`JSONArray`, `IOException`, `Dispatchers.IO`) are not looked at, and neither is an `override`, whose name the supertype fixed. For the
 rare name that has to stay, put `@Suppress("AcronymNaming")` on its line or the one above.
 
