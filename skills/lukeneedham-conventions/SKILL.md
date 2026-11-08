@@ -139,7 +139,8 @@ below are enough.
 - Unit tests for ViewModels and repositories (JUnit, `kotlinx-coroutines-test`).
 
 ## Libraries and code patterns (details: `docs/app-conventions.md`)
-- **Networking (only apps that make network calls; `docs/networking.md`)**: Ktor client with the OkHttp engine. Every model from the
+- **Networking (only apps that make network calls; `docs/networking.md`)**: a new app has **no Ktor, no `coil-network-okhttp` and no
+  `INTERNET` permission**; the optional skill `networking-setup` adds them (and the client) when a feature needs the network. Ktor client with the OkHttp engine. Every model from the
   network is a `@Serializable` **`XDto`** (`UserDto`, never `UserDTO`/`UserResponse`) with **every property nullable and defaulting
   to `null`** (enums as `String?`) and a lenient `Json` (`ignoreUnknownKeys`, `isLenient`, `coerceInputValues`, `explicitNulls = false`), so
   no API response can crash the app. A mapper `XDto.toDomain()` (never throwing; defaults, fallbacks, drops unusable items) turns each

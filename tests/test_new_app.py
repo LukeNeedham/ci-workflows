@@ -547,16 +547,21 @@ class RenderedApp(unittest.TestCase):
             "compose.components.uiToolingPreview", "libs.androidx.activity.compose",
             "libs.jetbrains.navigation3.ui", "libs.jetbrains.lifecycle.viewmodel.navigation3", "libs.jetbrains.lifecycle.runtime.compose",
             "libs.koin.core", "libs.koin.compose.viewmodel", "libs.koin.android", "platform(libs.koin.bom)",
-            "libs.coil.compose", "libs.coil.network.okhttp",
+            "libs.coil.compose",
             "libs.kotlinx.serialization.json", "libs.kotlinx.coroutines.core", "libs.kotlinx.coroutines.android", "libs.kotlinx.datetime",
             "libs.room.runtime", "libs.room.ktx", 'add("kspAndroid", libs.room.compiler)', "libs.datastore.preferences",
-            "libs.ktor.client.core", "libs.ktor.client.okhttp", "libs.ktor.client.content.negotiation", "libs.ktor.serialization.kotlinx.json",
             "libs.media3.exoplayer", 'kotlin("test")', "libs.kotlinx.coroutines.test",
             "libs.plugins.kotlinMultiplatform", "libs.plugins.composeMultiplatform", "libs.plugins.kotlinSerialization",
             "libs.plugins.composeCompiler", "libs.plugins.androidApplication", "libs.plugins.ksp",
         ):
             self.assertIn(needle, build)
         self.assertNotIn("material", build.lower(), "no Material: the app has its own theme")
+
+    def test_a_new_app_has_no_networking_until_the_skill_adds_it(self):
+        everything = "".join(self.text(p) for p in ("app/build.gradle.kts", "gradle/libs.versions.toml", "app/src/androidMain/AndroidManifest.xml"))
+        for word in ("ktor", "okhttp", "INTERNET"):
+            self.assertNotIn(word, everything, f"{word}: networking is added by skills/networking-setup, only to an app that needs it")
+        self.assertTrue((n.TOOLS / "skills" / "networking-setup" / "SKILL.md").is_file())
 
     def test_the_project_follows_the_standard_of_new_app_md(self):
         build = self.text("app/build.gradle.kts")
@@ -723,7 +728,7 @@ class RenderedApp(unittest.TestCase):
                 ET.parse(path)
         manifest = self.text("app/src/androidMain/AndroidManifest.xml")
         self.assertIn('android:icon="@mipmap/ic_launcher"', manifest)
-        self.assertIn("android.permission.INTERNET", manifest)
+        self.assertNotIn("android.permission", manifest, "no permission until a feature needs it (skills/networking-setup)")
         self.assertIn('android:theme="@style/Theme.App"', manifest)
         res = "app/src/androidMain/res"
         self.assertIn('<style name="Theme.App"', self.text(f"{res}/values/themes.xml"))
