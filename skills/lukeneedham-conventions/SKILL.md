@@ -38,8 +38,10 @@ below are enough.
   `AppTheme` and a `SettingsPage` with the `DebugButton`. Look at what is there before adding anything, and keep Android-only
   code out of `commonMain`.
 - Every app has all the callers of `ci-workflows`' `callers/`, copied by the sync: never edit, rename or delete one
-  (`docs/setup.md` there documents each). The release run fails at once, with a message that lists what is missing, until the
-  app has the four release secrets and `gradle/android-release.gradle`.
+  (`docs/setup.md` there documents each). **Releases are optional** (`docs/setup.md`): an app that does not publish releases never runs the release workflow, and
+  missing release secrets or `gradle/android-release.gradle` are not a defect to report or fix. Only if the workflow is
+  run does it fail at once, with a message that lists what is missing, until the app has the four release secrets and
+  `gradle/android-release.gradle`.
 - A PR that changes no Android source file (only `docs/`, `.claude/`, or Markdown outside a `src/` folder) is not built, so it has no APK and no AppHub comment from CI.
 - CI's own commits (generated screenshots, icon and README) are pushed with the owner's `GENERATED_COMMIT_TOKEN` when the app has it, and are not built again.
 - Debug mode always comes from `BuildConfig.DEBUG`.
