@@ -67,12 +67,25 @@ class SyncApp(unittest.TestCase):
         self.write(".claude/skills/lukeneedham-conventions/SKILL.md", "old")
         self.write(".claude/skills/lukeneedham-conventions/stray.md", "x")
 
-        changed = s.sync_skill(self.dir)
+        changed = s.sync_skills(self.dir)
 
         self.assertIn(".claude/skills/lukeneedham-conventions/stray.md", changed)
         self.assertFalse((self.dir / ".claude/skills/lukeneedham-conventions/stray.md").exists())
         source = (TOOLS / "skills/lukeneedham-conventions/SKILL.md").read_text()
         self.assertEqual(source, (self.dir / ".claude/skills/lukeneedham-conventions/SKILL.md").read_text())
+
+    def test_every_skill_of_the_repo_is_mirrored_including_the_optional_ones(self):
+        self.assertEqual(["lukeneedham-conventions", "networking-setup"], s.skill_names())
+        s.sync_skills(self.dir)
+        for name in s.skill_names():
+            source = (TOOLS / "skills" / name / "SKILL.md").read_text()
+            self.assertEqual(source, (self.dir / ".claude/skills" / name / "SKILL.md").read_text())
+
+    def test_the_networking_skill_says_when_it_is_for(self):
+        text = (TOOLS / "skills/networking-setup/SKILL.md").read_text()
+        self.assertTrue(text.startswith("---\nname: networking-setup\n"))
+        for needle in ("Optional", "INTERNET", "ktor", "coil-network-okhttp", "NetworkLogInterceptor()", "docs/networking.md"):
+            self.assertIn(needle, text)
 
     def test_the_old_copy_it_by_hand_line_becomes_the_block(self):
         self.write("CLAUDE.md", """# Instructions for Claude

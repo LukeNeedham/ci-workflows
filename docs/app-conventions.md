@@ -44,7 +44,7 @@ property name.
 | Serialization | `kotlinx.serialization` (also what Navigation 3 keys use) |
 | Structured data | Room |
 | Settings and small key-value data | DataStore (not `SharedPreferences`) |
-| Networking | Ktor client with the OkHttp engine (`ktor-client-okhttp`), only for apps that make network calls. Models, mapping and the debug kit network log are in **[networking.md](networking.md)** |
+| Networking | Ktor client with the OkHttp engine (`ktor-client-okhttp`), only for apps that make network calls, added by the optional skill `networking-setup` (a new app has none of it, nor the `INTERNET` permission). Models, mapping and the debug kit network log are in **[networking.md](networking.md)** |
 | Date and time | `kotlinx-datetime` |
 | Audio and video | Media3 (ExoPlayer) |
 

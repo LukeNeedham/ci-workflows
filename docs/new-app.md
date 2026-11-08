@@ -174,7 +174,8 @@ Defaults for a normal app. If the user asks for something else, do that instead.
   (`viewModelOf(::XViewModel)`, `koinViewModel()`). Nothing calls `viewModel()` with a factory by hand or an
   `appViewModel { }` helper either.
 - **Coroutines and Flow** for async work; `viewModelScope` for work tied to a screen.
-- **Networking** (only for apps that make network calls): Ktor + OkHttp, every network model a defensive `XDto` mapped to a
+- **Networking** (only for apps that make network calls; a new app has no Ktor and no `INTERNET` permission, the optional skill
+  `networking-setup` adds them when a feature needs the network): Ktor + OkHttp, every network model a defensive `XDto` mapped to a
   domain model at the edge, and the debug kit network log linked up: all in **[networking.md](networking.md)**.
 - **Layers.** UI (composables + ViewModels) → domain/data (repositories). Keep Android types out of
   the lower layer so it can be unit-tested on the JVM.

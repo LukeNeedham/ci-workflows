@@ -2,7 +2,7 @@
 """Syncs the shared files of this repo into every app listed in apps.json, as one standing PR per app.
 
 What is synced (see docs/sync.md):
-  - the Claude skill, mirrored to .claude/skills/lukeneedham-conventions/
+  - the Claude skills (every folder of skills/), each mirrored to .claude/skills/<name>/
   - the callers in .github/workflows/, copied byte for byte from callers/ (all of them, to every app; they
     hold no settings, see docs/app-config.md)
   - a managed block in the app's CLAUDE.md
@@ -40,7 +40,7 @@ from automerge import TITLE_TAG
 from check_screenshot_package import setup_problems
 
 TOOLS = Path(__file__).resolve().parent.parent
-SKILL = "lukeneedham-conventions"
+SKILL = "lukeneedham-conventions"  # the one every app reads first; the others are optional (networking-setup)
 BRANCH = "sync/ci-workflows"
 # The tag makes the PR merge itself in the app, once its checks have passed (automerge.py)
 PR_TITLE = f"{TITLE_TAG} Sync from ci-workflows"
@@ -62,24 +62,30 @@ OLD_BULLET_RE = re.compile(r"^(?:- )?Before starting work, check that .*?docs/sk
 # What to put in an app. Pure functions on files, so they can be tested without a network.
 # ---------------------------------------------------------------------------------------------------
 
-def sync_skill(app_dir, tools=TOOLS):
-    """Mirrors the skill into the app. Returns the paths that changed."""
-    source = tools / "skills" / SKILL
-    dest = app_dir / ".claude" / "skills" / SKILL
+def skill_names(tools=TOOLS):
+    """The skills of this repo: every folder of skills/ that has a SKILL.md."""
+    return sorted(p.name for p in (tools / "skills").iterdir() if (p / "SKILL.md").is_file())
+
+
+def sync_skills(app_dir, tools=TOOLS):
+    """Mirrors every skill into the app. Returns the paths that changed."""
     changed = []
-    wanted = {p.relative_to(source) for p in source.rglob("*") if p.is_file()}
-    if dest.exists():
-        for existing in sorted(p for p in dest.rglob("*") if p.is_file()):
-            if existing.relative_to(dest) not in wanted:
-                existing.unlink()
-                changed.append(str(existing.relative_to(app_dir)))
-    for relative in sorted(wanted):
-        target = dest / relative
-        content = (source / relative).read_bytes()
-        if not target.exists() or target.read_bytes() != content:
-            target.parent.mkdir(parents=True, exist_ok=True)
-            target.write_bytes(content)
-            changed.append(str(target.relative_to(app_dir)))
+    for name in skill_names(tools):
+        source = tools / "skills" / name
+        dest = app_dir / ".claude" / "skills" / name
+        wanted = {p.relative_to(source) for p in source.rglob("*") if p.is_file()}
+        if dest.exists():
+            for existing in sorted(p for p in dest.rglob("*") if p.is_file()):
+                if existing.relative_to(dest) not in wanted:
+                    existing.unlink()
+                    changed.append(str(existing.relative_to(app_dir)))
+        for relative in sorted(wanted):
+            target = dest / relative
+            content = (source / relative).read_bytes()
+            if not target.exists() or target.read_bytes() != content:
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes(content)
+                changed.append(str(target.relative_to(app_dir)))
     return changed
 
 
@@ -101,7 +107,7 @@ def claude_block():
     callers = "`, `".join(CALLERS)
     return (
         f"{BLOCK_BEGIN}\n"
-        f"- `.claude/skills/{SKILL}` and the callers `{callers}` in `.github/workflows/` are kept in sync from\n"
+        f"- `.claude/skills/` (`{SKILL}` and the optional ones, such as `networking-setup`) and the callers `{callers}` in `.github/workflows/` are kept in sync from\n"
         f"  `LukeNeedham/ci-workflows` by CI, which keeps one PR titled \"Sync from ci-workflows\" open when they\n"
         f"  differ. Do not edit them here and do not copy them by hand: change them in ci-workflows. The callers\n"
         f"  hold no settings: every app is built the same way (see `docs/app-config.md` there).\n"
@@ -145,7 +151,7 @@ def sync_claude_md(app_dir):
 
 def sync_app(app_dir, tools=TOOLS):
     """Applies everything to the checkout [app_dir]. Returns the paths that changed."""
-    return sync_skill(app_dir, tools) + sync_callers(app_dir, tools) + sync_claude_md(app_dir)
+    return sync_skills(app_dir, tools) + sync_callers(app_dir, tools) + sync_claude_md(app_dir)
 
 
 # ---------------------------------------------------------------------------------------------------

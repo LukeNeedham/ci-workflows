@@ -1,7 +1,9 @@
 # Networking
 
 **Only for apps that make network calls.** An app with none ignores this page: it has no DTOs, no Ktor client and no
-network log to link up.
+network log to link up, and **no networking dependency and no `INTERNET` permission**: a new app has none of them. The
+setup (catalog, dependencies, permission, client, debug page) is the optional skill
+[`networking-setup`](../skills/networking-setup/SKILL.md); run it in the PR of the first feature that needs the network.
 
 - [The stack](#the-stack)
 - [DTOs: `XDto`](#dtos-xdto)

@@ -47,10 +47,11 @@ In this order. Every step can be repeated, so a run that stopped half way is fin
 
    The app of the templates has:
    - **the dependencies of the architecture** in `gradle/libs.versions.toml` and `app/build.gradle.kts`. In `commonMain`: Compose
-     Multiplatform, Navigation 3 (the JetBrains artifacts) and the lifecycle, Koin, Coil 3, `kotlinx.serialization`, Ktor, the
+     Multiplatform, Navigation 3 (the JetBrains artifacts) and the lifecycle, Koin, Coil 3, `kotlinx.serialization`, the
      coroutines, `kotlinx-datetime` and the shared library. In `androidMain`, as they are not for every target: activity-compose,
-     Koin's Android part, Room (with KSP, `kspAndroid`), DataStore, Media3, the OkHttp engines of Coil and Ktor and the coroutines'
-     Android part; they move to the source set of the targets that have them. Release builds are minified, with the keep rules
+     Koin's Android part, Room (with KSP, `kspAndroid`), DataStore, Media3 and the coroutines'
+     Android part. There is no Ktor, no OkHttp engine and no `INTERNET` permission: the optional skill
+     [`networking-setup`](../skills/networking-setup/SKILL.md) adds them to an app that needs the network; they move to the source set of the targets that have them. Release builds are minified, with the keep rules
      (`proguard-rules.pro`);
    - **`App`** and **`MainActivity`**, as above;
    - **the shell of [app-shell.md](app-shell.md)**: `Root` (`AppTheme`, `ProvideDebugSettings`, `AppNavigation()`),
