@@ -203,7 +203,7 @@ Defaults for a normal app. If the user asks for something else, do that instead.
   `OkHttpClient.Builder()...`), timeouts, cache sizes, file names, keys, a `File` or a `CoroutineScope(...)` built inline, a
   value read from a global (`DebugKit.enabled`), or two factory calls chained. `single { HttpClientFactory.create() }`, not the
   builder inside the lambda. A `File`, a scope or the like that other bindings need is bound under a qualifier constant,
-  `single(named(APK_DIRECTORY)) { AppDirectories.apks(androidContext()) }`, and read back with `get(named(APK_DIRECTORY))`.
+  `single(named(KoinQualifier.apkDirectory)) { AppDirectories.apks(androidContext()) }`, and read back with `get(named(KoinQualifier.apkDirectory))`.
   No other lambdas, branches, literals or comments explaining settings in a module: the comment goes on the factory. The
   factories are plain code, so they stay unit-testable and findable without opening a DI file. Name the module of a
   feature object `bindings` (`object NetworkModule { val bindings = module { ... } }`), not `module`, which would shadow the
