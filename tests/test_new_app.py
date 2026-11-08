@@ -485,7 +485,7 @@ class RenderedApp(unittest.TestCase):
 
     def test_the_app_is_in_the_files_the_task_names_in_the_source_sets_of_a_multiplatform_app(self):
         for relative in (
-            "DebugKitSetup.kt", "di/AppModule.kt",
+            "DebugKitSetup.kt", "di/KoinModules.kt",
             "ui/Root.kt", "ui/AppNavigation.kt", "ui/Router.kt", "ui/Route.kt",
             "ui/SettingsPage.kt", "ui/SettingsPageContent.kt", "ui/SettingsViewModel.kt", "ui/SettingsUiState.kt",
             "ui/theme/AppTheme.kt", "ui/theme/AppThemeValues.kt", "ui/theme/ToDebugTheme.kt",
@@ -793,7 +793,7 @@ class RenderedApp(unittest.TestCase):
         self.assertNotIn("org.junit", test)
         self.assertNotIn("`", test, "a name with spaces is not allowed on every target")
         self.assertIn("SettingsViewModel(isDebugEnabled = true)", test)
-        self.assertIn("SettingsViewModel(isDebugEnabled = DebugKit.enabled)", (self.common / "di" / "AppModule.kt").read_text())
+        self.assertIn("SettingsViewModel(isDebugEnabled = DebugKit.enabled)", (self.common / "di" / "KoinModules.kt").read_text())
         self.assertIn("class SettingsViewModel(isDebugEnabled: Boolean)", self.ui("SettingsViewModel.kt"))
 
     def test_a_second_run_changes_nothing_and_an_existing_file_is_kept(self):
