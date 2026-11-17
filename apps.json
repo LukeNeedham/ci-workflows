@@ -9,5 +9,6 @@
   {"name": "Patchwork", "repo": "LukeNeedham/Patchwork"},
   {"name": "LT Companion", "repo": "LukeNeedham/LT-Companion"},
   {"name": "LyricTutor", "repo": "LukeNeedham/LyricTutor"},
-  {"name": "Snake", "repo": "LukeNeedham/Snake"}
+  {"name": "Snake", "repo": "LukeNeedham/Snake"},
+  {"name": "PushToTalkAi", "repo": "LukeNeedham/PushToTalkAi"}
 ]
