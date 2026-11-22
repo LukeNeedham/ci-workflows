@@ -1,0 +1,40 @@
+name: Vercel Setup
+
+# Sets a website up on Vercel (docs/next-js-app.md): the project, connected to the GitHub repo, and Deployment Protection off for
+# previews. New App does the same for a new website; this is for one that exists (PersonalWebsite). Started by hand
+# (*Actions -> Vercel Setup -> Run workflow*). It needs the secret VERCEL_TOKEN, and VERCEL_TEAM_ID if the project belongs to a team.
+# The logic is scripts/vercel_setup.py. Safe to run again: what is right is left alone.
+
+run-name: Vercel Setup ${{ inputs.repo }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      repo:
+        description: The GitHub repo of the website, owner/name, for example LukeNeedham/PersonalWebsite
+        type: string
+        required: true
+      dry-run:
+        description: Only read the Vercel project and say what would change
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  vercel:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set the website up on Vercel
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_TEAM_ID: ${{ secrets.VERCEL_TEAM_ID }}
+          REPO: ${{ inputs.repo }}
+          DRY_RUN: ${{ inputs.dry-run }}
+        run: |
+          args=()
+          if [ "$DRY_RUN" = "true" ]; then args+=(--dry-run); fi
+          python3 scripts/vercel_setup.py "$REPO" "${args[@]}"

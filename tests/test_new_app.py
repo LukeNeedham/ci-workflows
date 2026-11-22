@@ -15,7 +15,7 @@ import new_app as n
 import sync_apps
 
 COMMON = "0.8.0"
-APPS = '[\n  {"name": "AppHub", "repo": "LukeNeedham/AppHub"},\n  {"name": "Krillion wrapper", "repo": "LukeNeedham/krillion-wrapper"}\n]\n'
+APPS = '[\n  {"name": "AppHub", "repo": "LukeNeedham/AppHub", "stack": "kmp"},\n  {"name": "Krillion wrapper", "repo": "LukeNeedham/krillion-wrapper", "stack": "kmp"}\n]\n'
 
 
 class Always(list):
@@ -70,26 +70,26 @@ class Names(unittest.TestCase):
 
 class AppsJson(unittest.TestCase):
     def test_the_app_is_added_as_the_last_entry_in_the_layout_of_the_file(self):
-        new = n.add_to_apps_json(APPS, "LyricTutor", "LukeNeedham/LyricTutor")
+        new = n.add_to_apps_json(APPS, "LyricTutor", "LukeNeedham/LyricTutor", "kmp")
 
         self.assertEqual(
-            '[\n  {"name": "AppHub", "repo": "LukeNeedham/AppHub"},\n  {"name": "Krillion wrapper", "repo": "LukeNeedham/krillion-wrapper"},\n'
-            '  {"name": "LyricTutor", "repo": "LukeNeedham/LyricTutor"}\n]\n', new)
-        self.assertEqual({"name": "LyricTutor", "repo": "LukeNeedham/LyricTutor"}, json.loads(new)[-1])
+            '[\n  {"name": "AppHub", "repo": "LukeNeedham/AppHub", "stack": "kmp"},\n  {"name": "Krillion wrapper", "repo": "LukeNeedham/krillion-wrapper", "stack": "kmp"},\n'
+            '  {"name": "LyricTutor", "repo": "LukeNeedham/LyricTutor", "stack": "kmp"}\n]\n', new)
+        self.assertEqual({"name": "LyricTutor", "repo": "LukeNeedham/LyricTutor", "stack": "kmp"}, json.loads(new)[-1])
 
     def test_the_real_file_stays_valid_and_gains_exactly_one_entry(self):
         text = (n.TOOLS / "apps.json").read_text()
         # A name that is not in the file, whatever apps it holds by now
-        new = n.add_to_apps_json(text, "ANewApp", "LukeNeedham/ANewApp")
-        self.assertEqual(json.loads(text) + [{"name": "ANewApp", "repo": "LukeNeedham/ANewApp"}], json.loads(new))
+        new = n.add_to_apps_json(text, "ANewApp", "LukeNeedham/ANewApp", "kmp")
+        self.assertEqual(json.loads(text) + [{"name": "ANewApp", "repo": "LukeNeedham/ANewApp", "stack": "kmp"}], json.loads(new))
 
     def test_an_app_that_is_listed_is_not_added_again(self):
-        self.assertIsNone(n.add_to_apps_json(APPS, "AppHub", "LukeNeedham/AppHub"))
-        self.assertIsNone(n.add_to_apps_json(APPS, "Other", "lukeneedham/apphub"), "the repo, whatever its case")
-        self.assertIsNone(n.add_to_apps_json(APPS, "AppHub", "LukeNeedham/Else"), "the name")
+        self.assertIsNone(n.add_to_apps_json(APPS, "AppHub", "LukeNeedham/AppHub", "kmp"))
+        self.assertIsNone(n.add_to_apps_json(APPS, "Other", "lukeneedham/apphub", "kmp"), "the repo, whatever its case")
+        self.assertIsNone(n.add_to_apps_json(APPS, "AppHub", "LukeNeedham/Else", "kmp"), "the name")
 
     def test_a_file_with_no_trailing_newline_works(self):
-        new = n.add_to_apps_json(APPS.rstrip(), "LyricTutor", "LukeNeedham/LyricTutor")
+        new = n.add_to_apps_json(APPS.rstrip(), "LyricTutor", "LukeNeedham/LyricTutor", "kmp")
         self.assertEqual(3, len(json.loads(new)))
 
 
@@ -168,7 +168,7 @@ class Scaffold(unittest.TestCase):
         self.assertIn("androiddebugkey", listing.stdout)
 
     def test_the_first_sync_and_the_scaffold_are_both_in_the_first_commit(self):
-        changed = n.set_up_app(self.dir, "LyricTutor", COMMON, keystore=fake_keystore)
+        changed = n.set_up_app(self.dir, "LyricTutor", COMMON, "kmp", keystore=fake_keystore)
 
         self.assertIn("CLAUDE.md", changed)
         self.assertIn(".github/workflows/trigger_on_pull_request.yml", changed)
@@ -176,7 +176,7 @@ class Scaffold(unittest.TestCase):
         self.assertIn("settings.gradle.kts", changed)
         self.assertIn("app/debug.keystore", changed)
         # What the sync would make is already there, so its next run opens no PR
-        self.assertEqual([], sync_apps.sync_app(self.dir))
+        self.assertEqual([], sync_apps.sync_app(self.dir, "kmp"))
 
 
 class PushFirstCommit(unittest.TestCase):
@@ -207,7 +207,7 @@ class PushFirstCommit(unittest.TestCase):
         return subprocess.run(["git", *args], cwd=directory, check=True, capture_output=True, text=True).stdout
 
     def test_the_first_commit_lands_on_main_with_the_project_and_the_readme_kept(self):
-        changed = n.push_first_commit("LukeNeedham/LyricTutor", "LyricTutor", None, str(self.work), COMMON, keystore=fake_keystore)
+        changed = n.push_first_commit("LukeNeedham/LyricTutor", "LyricTutor", None, str(self.work), COMMON, "kmp", keystore=fake_keystore)
 
         self.assertIn("app/debug.keystore", changed)
         log = self.run_git(self.bare, "log", "--format=%s", "main").splitlines()
@@ -221,12 +221,12 @@ class PushFirstCommit(unittest.TestCase):
         self.assertEqual("100755", mode, "gradlew stays executable in git")
 
     def test_a_second_run_pushes_nothing(self):
-        n.push_first_commit("LukeNeedham/LyricTutor", "LyricTutor", None, str(self.work), COMMON, keystore=fake_keystore)
+        n.push_first_commit("LukeNeedham/LyricTutor", "LyricTutor", None, str(self.work), COMMON, "kmp", keystore=fake_keystore)
         before = self.run_git(self.bare, "rev-parse", "main")
         second_work = Path(self._tmp.name) / "work2"
         second_work.mkdir()
 
-        changed = n.push_first_commit("LukeNeedham/LyricTutor", "LyricTutor", None, str(second_work), COMMON, keystore=fake_keystore)
+        changed = n.push_first_commit("LukeNeedham/LyricTutor", "LyricTutor", None, str(second_work), COMMON, "kmp", keystore=fake_keystore)
 
         self.assertEqual([], changed)
         self.assertEqual(before, self.run_git(self.bare, "rev-parse", "main"))
@@ -245,7 +245,7 @@ class CreateRepo(unittest.TestCase):
     def test_the_repo_is_created_with_a_readme_so_that_main_exists(self):
         call = self.github()
 
-        repo = n.create_repo(call, "LyricTutor", private=True)
+        repo = n.create_repo(call, "LyricTutor", private=True, stack="kmp")
 
         self.assertEqual("LukeNeedham/LyricTutor", repo)
         (_, _, body), = call.made("POST")
@@ -253,32 +253,32 @@ class CreateRepo(unittest.TestCase):
 
     def test_a_repo_is_public_unless_private_is_asked_for(self):
         call = self.github()
-        n.create_repo(call, "LyricTutor", private=False)
+        n.create_repo(call, "LyricTutor", private=False, stack="kmp")
         self.assertIs(False, call.made("POST")[0][2]["private"])
 
     def test_another_default_branch_is_renamed_to_main(self):
         call = self.github({("POST", "/user/repos"): {"default_branch": "master"}})
 
-        n.create_repo(call, "LyricTutor", private=False)
+        n.create_repo(call, "LyricTutor", private=False, stack="kmp")
 
         self.assertIn(("POST", "/repos/LukeNeedham/LyricTutor/branches/master/rename", {"new_name": "main"}), call.calls)
 
     def test_main_is_not_renamed(self):
         call = self.github()
-        n.create_repo(call, "LyricTutor", private=False)
+        n.create_repo(call, "LyricTutor", private=False, stack="kmp")
         self.assertEqual([], [c for c in call.calls if "rename" in c[1]])
 
     def test_a_repo_that_exists_is_an_error(self):
         call = self.github({("GET", "/repos/LukeNeedham/LyricTutor"): {"name": "LyricTutor"}})
 
         with self.assertRaisesRegex(RuntimeError, "already exists"):
-            n.create_repo(call, "LyricTutor", private=False)
+            n.create_repo(call, "LyricTutor", private=False, stack="kmp")
         self.assertEqual([], call.made("POST"))
 
     def test_resume_carries_on_with_the_repo_that_exists_and_creates_nothing(self):
         call = self.github({("GET", "/repos/LukeNeedham/LyricTutor"): {"name": "LyricTutor"}})
 
-        repo = n.create_repo(call, "LyricTutor", private=False, resume=True)
+        repo = n.create_repo(call, "LyricTutor", private=False, stack="kmp", resume=True)
 
         self.assertEqual("LukeNeedham/LyricTutor", repo)
         self.assertEqual([], call.made("POST"))
@@ -287,14 +287,14 @@ class CreateRepo(unittest.TestCase):
         call = self.github({("GET", "/user"): {"login": "someone-else"}})
 
         with self.assertRaisesRegex(RuntimeError, "someone-else"):
-            n.create_repo(call, "LyricTutor", private=False)
+            n.create_repo(call, "LyricTutor", private=False, stack="kmp")
         self.assertEqual([], call.made("POST"))
 
     def test_an_error_other_than_not_found_is_not_taken_for_a_free_name(self):
         call = self.github({("GET", "/repos/LukeNeedham/LyricTutor"): RuntimeError("GET /repos/x returned 500: oops")})
 
         with self.assertRaisesRegex(RuntimeError, "500"):
-            n.create_repo(call, "LyricTutor", private=False)
+            n.create_repo(call, "LyricTutor", private=False, stack="kmp")
         self.assertEqual([], call.made("POST"))
 
 
@@ -307,7 +307,7 @@ class RegisterApp(unittest.TestCase):
     def test_it_commits_the_new_file_to_main_with_the_sha_it_read(self):
         call = FakeGithub({("GET", f"{self.PATH}?ref=main"): self.file(APPS, "s1")})
 
-        added = n.register_app(call, "LyricTutor", "LukeNeedham/LyricTutor")
+        added = n.register_app(call, "LyricTutor", "LukeNeedham/LyricTutor", "kmp")
 
         self.assertTrue(added)
         (_, path, body), = call.made("PUT")
@@ -315,13 +315,13 @@ class RegisterApp(unittest.TestCase):
         self.assertEqual({"message", "content", "sha", "branch"}, set(body))
         self.assertEqual(("s1", "main", "Add LyricTutor to apps.json"), (body["sha"], body["branch"], body["message"]))
         committed = json.loads(base64.b64decode(body["content"]))
-        self.assertEqual({"name": "LyricTutor", "repo": "LukeNeedham/LyricTutor"}, committed[-1])
+        self.assertEqual({"name": "LyricTutor", "repo": "LukeNeedham/LyricTutor", "stack": "kmp"}, committed[-1])
         self.assertEqual(3, len(committed), "only the one entry is added")
 
     def test_an_app_that_is_listed_makes_no_commit(self):
         call = FakeGithub({("GET", f"{self.PATH}?ref=main"): self.file(APPS)})
 
-        self.assertFalse(n.register_app(call, "AppHub", "LukeNeedham/AppHub"))
+        self.assertFalse(n.register_app(call, "AppHub", "LukeNeedham/AppHub", "kmp"))
         self.assertEqual([], call.made("PUT"))
 
     def test_a_commit_that_landed_in_between_is_retried_on_top_of_it(self):
@@ -331,7 +331,7 @@ class RegisterApp(unittest.TestCase):
             ("PUT", self.PATH): [RuntimeError(f"PUT {self.PATH} returned 409: conflict"), {}],
         })
 
-        self.assertTrue(n.register_app(call, "LyricTutor", "LukeNeedham/LyricTutor"))
+        self.assertTrue(n.register_app(call, "LyricTutor", "LukeNeedham/LyricTutor", "kmp"))
 
         puts = call.made("PUT")
         self.assertEqual(["old", "new"], [p[2]["sha"] for p in puts])
@@ -344,7 +344,7 @@ class RegisterApp(unittest.TestCase):
         })
 
         with self.assertRaisesRegex(RuntimeError, "403"):
-            n.register_app(call, "LyricTutor", "LukeNeedham/LyricTutor")
+            n.register_app(call, "LyricTutor", "LukeNeedham/LyricTutor", "kmp")
         self.assertEqual(1, len(call.made("PUT")))
 
 
@@ -370,7 +370,7 @@ class CreateApp(unittest.TestCase):
                 return call(method, path, body)
             return with_token
 
-        def push(repo, name, token, work, common_version):
+        def push(repo, name, token, work, common_version, stack):
             events.append(("push", repo, token, common_version))
             return list(pushed)
 
@@ -378,7 +378,7 @@ class CreateApp(unittest.TestCase):
         original = sync_apps.sync_secret
         sync_apps.sync_secret = lambda app, token, commit, dry_run: secrets.append((app["repo"], token, commit)) or (" set" if commit else "")
         self.addCleanup(setattr, sync_apps, "sync_secret", original)
-        lines = n.create_app("LyricTutor", push=push, make_caller=make_caller, **kwargs)
+        lines = n.create_app("LyricTutor", "kmp", push=push, make_caller=make_caller, **kwargs)
         return lines, events, secrets
 
     def test_the_steps_run_in_order_and_the_app_is_listed_last(self):
@@ -389,7 +389,7 @@ class CreateApp(unittest.TestCase):
         self.assertLess(kinds.index(("push", "LukeNeedham/LyricTutor")), kinds.index(("PUT", f"/repos/{n.COMMON_REPO}/contents/apps.json")))
         self.assertEqual([("LukeNeedham/LyricTutor", "sync", "commit")], secrets)
         self.assertEqual(
-            ["repo https://github.com/LukeNeedham/LyricTutor (public)", "shared library common 0.8.0", "first commit on main: 2 files",
+            ["repo https://github.com/LukeNeedham/LyricTutor (public)", "shared library common 0.8.0", "stack kmp", "first commit on main: 2 files",
              "secret GENERATED_COMMIT_TOKEN set", "apps.json: LyricTutor added"], lines)
 
     def test_the_newest_library_version_of_the_releases_and_the_tags_goes_to_the_push(self):
@@ -409,17 +409,17 @@ class CreateApp(unittest.TestCase):
 
     def test_no_token_is_an_error(self):
         with self.assertRaisesRegex(RuntimeError, "No token"):
-            n.create_app("LyricTutor")
+            n.create_app("LyricTutor", "kmp")
 
     def test_a_bad_name_is_refused_before_anything_is_called(self):
         with self.assertRaises(ValueError):
-            n.create_app("bad name", create_token="t")
+            n.create_app("bad name", "kmp", create_token="t")
 
     def test_a_repo_that_is_set_up_and_listed_reports_that_nothing_was_left_to_do(self):
         lines, _, _ = self.run_it(pushed=(), listed=True, create_token="t")
 
-        self.assertEqual("first commit: nothing to add, already done", lines[2])
-        self.assertEqual("apps.json: LyricTutor was already listed", lines[4])
+        self.assertEqual("first commit: nothing to add, already done", lines[3])
+        self.assertEqual("apps.json: LyricTutor was already listed", lines[5])
 
     def test_a_missing_commit_token_is_said_not_hidden(self):
         lines, _, _ = self.run_it(create_token="t")
@@ -433,7 +433,7 @@ class CreateApp(unittest.TestCase):
         })
 
         with self.assertRaisesRegex(RuntimeError, "Create it first.*resume"):
-            n.create_app("LyricTutor", create_token="t", make_caller=lambda token: call)
+            n.create_app("LyricTutor", "kmp", create_token="t", make_caller=lambda token: call)
 
     def test_a_private_repo_is_reported_as_private(self):
         lines, _, _ = self.run_it(create_token="t", private=True)
@@ -475,7 +475,7 @@ class RenderedApp(unittest.TestCase):
         return re.sub(r"//[^\n]*", "", re.sub(r"/\*.*?\*/", "", text, flags=re.S))
 
     def test_every_template_is_a_tmpl_and_nothing_is_left_of_a_token_or_the_suffix(self):
-        templates = n.TOOLS.joinpath(*n.TEMPLATE_DIR)
+        templates = n.TOOLS.joinpath(*n.TEMPLATE_DIRS["kmp"])
         self.assertTrue(all(p.name.endswith(n.TEMPLATE_SUFFIX) for p in templates.rglob("*") if p.is_file()))
         for path in self.dir.rglob("*"):
             if path.is_file() and path.suffix not in (".jar", ".keystore") and ".git" not in path.parts:
@@ -814,13 +814,177 @@ class RenderedApp(unittest.TestCase):
     def test_a_template_with_a_token_that_nothing_fills_is_refused(self):
         with tempfile.TemporaryDirectory() as tools:
             tools = Path(tools)
-            template = tools.joinpath(*n.TEMPLATE_DIR)
+            template = tools.joinpath(*n.TEMPLATE_DIRS["kmp"])
             template.mkdir(parents=True)
             (template / "a.txt.tmpl").write_text("hello __NOT_A_TOKEN__")
             (tools / "gradle").mkdir()
             (tools / "gradle" / "libs.versions.toml").write_text('agp = "1"\nkotlin = "2"\ncompose-plugin = "3"\n')
             with self.assertRaisesRegex(ValueError, "__NOT_A_TOKEN__"):
-                n.render_templates(Path(tools) / "out", n.template_values("LyricTutor", COMMON, tools), [], tools)
+                n.render_templates(Path(tools) / "out", n.template_values("LyricTutor", COMMON, tools), [], "kmp", tools)
+
+
+class NextJsScaffold(unittest.TestCase):
+    """The website of templates/next-js. Its real check is that it builds (`yarn lint`, `typecheck`, `test` and `build`), which needs
+    the network and Node 24, so this keeps its rules: the files, the tokens, the layers and the Page and PageContent split."""
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.dir = Path(self._tmp.name)
+        self.addCleanup(self._tmp.cleanup)
+        self.installed = []
+        self.changed = n.scaffold_next_js(self.dir, "My_Site", year=2026, install=lambda d: (self.installed.append(d), (d / "yarn.lock").write_text("")))
+
+    def text(self, relative):
+        return (self.dir / relative).read_text()
+
+    def test_it_has_what_a_next_js_project_is_synced_and_what_it_builds_with(self):
+        for relative in (".claude/skills/next-js-conventions/SKILL.md",):
+            self.assertFalse((self.dir / relative).exists(), "the skill is the sync's, not the scaffold's")
+        for relative in ("package.json", "tsconfig.json", "next.config.ts", ".prettierrc.json", "vitest.config.mts", "eslint.config.ts",
+                         ".gitignore", "LICENSE", "README.md", "yarn.lock", "src/app/page.tsx", "src/app/layout.tsx"):
+            self.assertTrue((self.dir / relative).is_file(), relative)
+            self.assertIn(relative, self.changed)
+        self.assertEqual("Copyright (c) 2026 Luke Needham. All rights reserved.\n", self.text("LICENSE"))
+
+    def test_the_lockfile_is_made_once_and_nothing_is_overwritten(self):
+        self.assertEqual([self.dir], self.installed)
+        self.assertEqual([], n.scaffold_next_js(self.dir, "My_Site", install=lambda d: self.fail("installed again")))
+
+    def test_the_name_is_filled_in_and_the_package_name_is_a_valid_one(self):
+        package = json.loads(self.text("package.json"))
+        self.assertEqual("my-site", package["name"])
+        self.assertIn("My_Site", self.text("src/app/layout.tsx"))
+        for path in self.dir.rglob("*"):
+            if path.is_file() and path.name != "yarn.lock":
+                self.assertEqual([], n.TOKEN_RE.findall(path.read_text()), path)
+                self.assertFalse(path.name.endswith(".tmpl"), path)
+
+    def test_the_scripts_are_the_ones_the_pr_workflow_runs(self):
+        scripts = json.loads(self.text("package.json"))["scripts"]
+        for name in ("lint", "typecheck", "test", "build"):
+            self.assertIn(name, scripts)
+        self.assertEqual("24.x", json.loads(self.text("package.json"))["engines"]["node"])
+
+    def test_a_page_is_a_stateful_page_and_a_stateless_content_in_their_own_files(self):
+        folder = "src/presentation/feature/home/"
+        for name in ("HomePage.tsx", "HomePageContent.tsx", "HomeUiState.ts", "useHomeViewModel.ts"):
+            self.assertTrue((self.dir / folder / name).is_file(), name)
+        content = self.text(folder + "HomePageContent.tsx")
+        self.assertNotRegex(content, r"use client|useState|useEffect|useHomeViewModel", "the content has no state of its own")
+        self.assertIn("onButtonClick", content, "events go up as lambdas")
+        page = self.text(folder + "HomePage.tsx")
+        self.assertIn("useHomeViewModel()", page)
+        self.assertIn("<HomePageContent", page)
+        self.assertEqual("import { HomePage }", self.text("src/app/page.tsx").splitlines()[0][:19], "a route renders the page of its feature")
+
+    def test_every_import_uses_the_alias(self):
+        for path in (self.dir / "src").rglob("*.ts*"):
+            self.assertNotRegex(path.read_text(), r"from '\.\.?/", str(path))
+        self.assertIn("no-restricted-imports", self.text("eslint.config.ts"))
+
+    def test_it_is_typescript_only(self):
+        # No JavaScript file at all, not even a config: the ESLint and Next configs are .ts, and Vitest's is .mts
+        scripts = [p for p in self.dir.rglob("*") if p.suffix in (".js", ".jsx", ".mjs", ".cjs")]
+        self.assertEqual([], scripts)
+        self.assertFalse(json.loads(self.text("tsconfig.json").replace("\n", " "))["compilerOptions"]["allowJs"])
+        # ... and a JavaScript file that is added later fails the lint, with the rule that says why
+        config = self.text("eslint.config.ts")
+        self.assertIn("**/*.{js,jsx,mjs,cjs}", config)
+        self.assertIn("JavaScript is not allowed", config)
+        # The TypeScript config needs jiti, which ESLint loads it with
+        self.assertIn("jiti", json.loads(self.text("package.json"))["devDependencies"])
+
+    def test_the_dependencies_are_installed_with_the_lockfile_never_the_other_way_round(self):
+        self.assertIn("/node_modules", self.text(".gitignore"))
+        self.assertIn("next-env.d.ts", self.text(".gitignore"))
+
+
+class NextJsFirstCommit(unittest.TestCase):
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.dir = Path(self._tmp.name)
+        self.addCleanup(self._tmp.cleanup)
+
+    def test_a_website_gets_the_sync_of_its_stack_and_no_android_app(self):
+        changed = n.set_up_app(self.dir, "MySite", None, "next-js", install=lambda d: (d / "yarn.lock").write_text(""))
+
+        self.assertIn(".claude/skills/next-js-conventions/SKILL.md", changed)
+        self.assertIn(".github/workflows/web_pr.yml", changed)
+        self.assertIn("package.json", changed)
+        self.assertEqual(["web_pr.yml"], sorted(p.name for p in (self.dir / ".github/workflows").iterdir()))
+        for left_out in ("settings.gradle.kts", "gradlew", "app", "readme.yml", "app-icon.png"):
+            self.assertFalse((self.dir / left_out).exists(), left_out)
+
+    def test_an_app_does_not_get_the_website(self):
+        changed = n.set_up_app(self.dir, "LyricTutor", COMMON, "kmp", keystore=fake_keystore)
+        self.assertNotIn("package.json", changed)
+        self.assertNotIn(".github/workflows/web_pr.yml", changed)
+
+    def test_the_website_is_in_line_with_the_sync_so_the_next_sync_opens_no_pr(self):
+        n.set_up_app(self.dir, "MySite", None, "next-js", install=lambda d: (d / "yarn.lock").write_text(""))
+        self.assertEqual([], sync_apps.sync_app(self.dir, "next-js"))
+
+
+class Stack(unittest.TestCase):
+    def test_there_is_no_default_and_only_a_stack_the_sync_knows_is_taken(self):
+        self.assertEqual("next-js", n.check_stack("next-js"))
+        for bad in (None, "", "react", "KMP", "next"):
+            with self.assertRaises(ValueError, msg=bad):
+                n.check_stack(bad)
+
+    def test_create_app_refuses_a_bad_stack_before_anything_is_called(self):
+        with self.assertRaises(ValueError):
+            n.create_app("MySite", "react", create_token="t", make_caller=lambda token: self.fail("called"))
+
+    def test_the_entry_of_apps_json_has_the_stack(self):
+        new = n.add_to_apps_json(APPS, "MySite", "LukeNeedham/MySite", "next-js")
+        self.assertEqual({"name": "MySite", "repo": "LukeNeedham/MySite", "stack": "next-js"}, json.loads(new)[-1])
+        self.assertIn('{"name": "MySite", "repo": "LukeNeedham/MySite", "stack": "next-js"}', new)
+
+    def test_the_repo_is_described_by_its_stack(self):
+        for stack, words in (("kmp", "an Android app"), ("next-js", "a website")):
+            call = FakeGithub({("GET", "/user"): {"login": "LukeNeedham"}, ("GET", "/repos/LukeNeedham/X1"): missing("x"),
+                               ("POST", "/user/repos"): {"default_branch": "main"}})
+            n.create_repo(call, "X1", private=False, stack=stack)
+            self.assertEqual(f"X1, {words}", call.calls[-1][2]["description"])
+
+    def test_the_next_steps_of_a_website_say_what_vercel_needs(self):
+        text = n.next_steps("MySite", "next-js")
+        self.assertIn("https://github.com/LukeNeedham/MySite", text)
+        self.assertIn("Vercel", text)
+        self.assertIn("Deployment Protection", text)
+        self.assertNotIn("Package for the app", text)
+
+    def test_a_website_needs_no_shared_library_version(self):
+        events = []
+        answers = {
+            ("GET", "/user"): {"login": "LukeNeedham"},
+            ("GET", "/repos/LukeNeedham/MySite"): missing("x"),
+            ("POST", "/user/repos"): {"default_branch": "main"},
+            ("GET", f"/repos/{n.COMMON_REPO}/contents/apps.json?ref=main"): {"content": base64.b64encode(APPS.encode()).decode(), "sha": "s"},
+        }
+        call = FakeGithub(answers)
+
+        def make_caller(token):
+            def with_token(method, path, body=None):
+                events.append((method, path))
+                return call(method, path, body)
+            return with_token
+
+        pushed = []
+        original = sync_apps.sync_secret
+        sync_apps.sync_secret = lambda *a, **k: ""
+        self.addCleanup(setattr, sync_apps, "sync_secret", original)
+        lines = n.create_app("MySite", "next-js", create_token="t", make_caller=make_caller,
+                             push=lambda *a: pushed.append(a) or ["package.json"])
+
+        self.assertFalse([e for e in events if "releases" in e[1] or "tags" in e[1]], "no call for the library")
+        self.assertIsNone(pushed[0][4], "common_version")
+        self.assertEqual("next-js", pushed[0][5])
+        self.assertIn("stack next-js", lines)
+        self.assertNotIn("shared library", " ".join(lines))
+        put = [c for c in call.calls if c[0] == "PUT"][0]
+        self.assertIn('"stack": "next-js"', base64.b64decode(put[2]["content"]).decode())
 
 
 class CommonVersion(unittest.TestCase):
@@ -842,7 +1006,7 @@ class CommonVersion(unittest.TestCase):
 
 class Summary(unittest.TestCase):
     def test_the_next_steps_name_the_repo_the_package_and_what_is_left_to_do(self):
-        text = n.next_steps("LyricTutor")
+        text = n.next_steps("LyricTutor", "kmp")
 
         self.assertIn("https://github.com/LukeNeedham/LyricTutor", text)
         self.assertIn("com.lukeneedham.lyrictutor", text)

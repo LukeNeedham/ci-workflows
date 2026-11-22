@@ -7,8 +7,8 @@ Claude: nothing needs to remember to copy anything.
 
 | What | Where in the app | How |
 |---|---|---|
-| The Claude skills | `.claude/skills/<name>/` for every folder of [`skills/`](../skills) (the conventions and the optional ones, [skill.md](skill.md)) | Mirrored exactly: files that no longer exist here are deleted |
-| The callers | `.github/workflows/`: all the files of [`callers/`](../callers) | Copied **byte for byte** from [`callers/`](../callers), **all of them to every app**. They hold no settings, so every app has identical files. The release caller fails with a clear message in an app that is not set up for releases |
+| The Claude skills | `.claude/skills/<name>/` for the skills of the app's stack: `kmp` gets the conventions and the optional ones ([skill.md](skill.md)), `next-js` gets `next-js-conventions` | Mirrored exactly: files that no longer exist here are deleted |
+| The callers | `.github/workflows/`: the callers of the app's stack, the files of [`callers/`](../callers) for `kmp`, of [`callers/next-js/`](../callers/next-js) for `next-js` | Copied **byte for byte**, **all of the stack's callers to every app of the stack**. They hold no settings, so every app of a stack has identical files. The release caller fails with a clear message in an app that is not set up for releases |
 | A note for Claude | A block in the app's `CLAUDE.md`, between `ci-workflows:begin` and `ci-workflows:end` | Replaced each time. Also tells Claude to always paste the PR's AppHub link into the chat when work completes, and to answer the Stop hook's git warnings with `git fetch origin` and nothing else (`CLAUDE.md` is always loaded, unlike the skill). The old "copy the skill by hand" line is replaced by it. The rest of `CLAUDE.md` is the app's |
 
 Not synced: the app's `readme.yml`, which is handwritten, and its `README.md`, which the PR build generates from it
@@ -30,7 +30,7 @@ CI does run on the PRs, because they are opened with a token and not with `GITHU
 ## Merging the PRs
 
 Nobody merges them. The title starts with `[auto-merge]`, and the `automerge` job of
-[`android_pr.yml`](../.github/workflows/android_pr.yml) merges such a PR with a merge commit once every other job of
+[`android_pr.yml`](../.github/workflows/android_pr.yml) (or [`web_pr.yml`](../.github/workflows/web_pr.yml) for a `next-js` project) merges such a PR with a merge commit once every other job of
 its run has passed or been skipped. A failed or cancelled job leaves the PR open for you. The job is in the shared
 workflow, which the callers use at `@main`, so it needs nothing in the apps and no setting in them.
 
@@ -50,15 +50,18 @@ A run fails (and GitHub emails you) if any app failed, after trying all of them.
 ## apps.json
 
 ```json
-{"name": "AppHub", "repo": "LukeNeedham/AppHub"}
+{"name": "AppHub", "repo": "LukeNeedham/AppHub", "stack": "kmp"}
 ```
 
 | Field | Meaning |
 |---|---|
-| `name`, `repo` | The app's name and its `owner/name`, **spelled exactly as on GitHub** (`LukeNeedham/Stickerboard`, not `stickerboard`): nothing matches names case-insensitively, including `--apps`. The only fields: every app gets everything, and nothing is configured per app |
+| `name`, `repo` | The project's name and its `owner/name`, **spelled exactly as on GitHub** (`LukeNeedham/Stickerboard`, not `stickerboard`): nothing matches names case-insensitively, including `--apps` |
+| `stack` | **Required, with no default.** What the project is built with, which decides what it gets from the sync and which workflows run: `kmp` (Kotlin Multiplatform: an Android app that also builds for iOS and the web) or `next-js` (a Next.js website with no Android app, [next-js-app.md](next-js-app.md)). The sync stops before it touches any app when an entry has no stack or an unknown one, and lists them |
 
-**A new app:** add it here (this is also the list "all consuming apps" means), then run *Sync Apps* for it. Its
-first sync PR adds the callers, the skill and the `CLAUDE.md` block.
+These are the only fields: every project of a stack gets the same, and nothing is configured per project.
+
+**A new project:** create it from AppHub's New project, or *New App* ([create-app.md](create-app.md)), which adds the entry; or add it here with its stack (this is also the list "all consuming apps" means), then run *Sync Apps*
+for it. Its first sync PR adds the callers, the skill and the `CLAUDE.md` block.
 
 ## The token (one-time setup)
 
@@ -124,7 +127,8 @@ not belong in `scripts/`. The tests, and a lint of the workflows (actionlint), r
 ## Changing what is synced
 
 Change the file in `skills/` or `callers/` and merge: the next run opens the PRs. To sync something new (another
-caller, say), add it to `callers/` and to `CALLERS` in the script, and to `docs/setup.md`. A new
+caller, say), add it to `callers/` (`callers/next-js/` for that stack) and to `CALLERS` or `NEXT_JS_CALLERS` in the script,
+and to `docs/setup.md`; a new skill goes into the `skills` of its stack in `STACKS`. A new stack is a new entry of `STACKS`. A new
 setting that belongs to an app goes into `DEFAULTS` in `scripts/app_config.py`.
 
 ## Workflows only call scripts
@@ -140,5 +144,7 @@ command line.
 | `pr_releases.py` | the PR build (stale comment, metadata, superseded) and the cleanup |
 | `release.py` | `android_release.yml` |
 | `library_release.py` | `library_release.yml` |
-| `automerge.py` | the `automerge` job of `android_pr.yml` |
+| `automerge.py` | the `automerge` job of `android_pr.yml` and of `web_pr.yml` |
+| `web_preview.py` | the `preview` job of `web_pr.yml` (the Vercel preview of a `next-js` PR) |
+| `next_js_project.py` | the `check` job of `web_pr.yml` (the package manager and the scripts of the project) |
 | `ghactions.py` | the helpers for step outputs, `GITHUB_ENV` and error annotations |

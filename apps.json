@@ -1,14 +1,15 @@
 [
-  {"name": "Android-Dock", "repo": "LukeNeedham/Android-Dock"},
-  {"name": "FlagTutor", "repo": "LukeNeedham/FlagTutor"},
-  {"name": "VideoDiary", "repo": "LukeNeedham/VideoDiary"},
-  {"name": "PoetryBook", "repo": "LukeNeedham/PoetryBook"},
-  {"name": "Stickerboard", "repo": "LukeNeedham/Stickerboard"},
-  {"name": "Krillion wrapper", "repo": "LukeNeedham/krillion-wrapper"},
-  {"name": "AppHub", "repo": "LukeNeedham/AppHub"},
-  {"name": "Patchwork", "repo": "LukeNeedham/Patchwork"},
-  {"name": "LT Companion", "repo": "LukeNeedham/LT-Companion"},
-  {"name": "LyricTutor", "repo": "LukeNeedham/LyricTutor"},
-  {"name": "Snake", "repo": "LukeNeedham/Snake"},
-  {"name": "PushToTalkAi", "repo": "LukeNeedham/PushToTalkAi"}
+  {"name": "Android-Dock", "repo": "LukeNeedham/Android-Dock", "stack": "kmp"},
+  {"name": "FlagTutor", "repo": "LukeNeedham/FlagTutor", "stack": "kmp"},
+  {"name": "VideoDiary", "repo": "LukeNeedham/VideoDiary", "stack": "kmp"},
+  {"name": "PoetryBook", "repo": "LukeNeedham/PoetryBook", "stack": "kmp"},
+  {"name": "Stickerboard", "repo": "LukeNeedham/Stickerboard", "stack": "kmp"},
+  {"name": "Krillion wrapper", "repo": "LukeNeedham/krillion-wrapper", "stack": "kmp"},
+  {"name": "AppHub", "repo": "LukeNeedham/AppHub", "stack": "kmp"},
+  {"name": "Patchwork", "repo": "LukeNeedham/Patchwork", "stack": "kmp"},
+  {"name": "LT Companion", "repo": "LukeNeedham/LT-Companion", "stack": "kmp"},
+  {"name": "LyricTutor", "repo": "LukeNeedham/LyricTutor", "stack": "kmp"},
+  {"name": "Snake", "repo": "LukeNeedham/Snake", "stack": "kmp"},
+  {"name": "PushToTalkAi", "repo": "LukeNeedham/PushToTalkAi", "stack": "kmp"},
+  {"name": "PersonalWebsite", "repo": "LukeNeedham/PersonalWebsite", "stack": "next-js"}
 ]

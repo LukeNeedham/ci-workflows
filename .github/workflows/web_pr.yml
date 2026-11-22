@@ -1,0 +1,137 @@
+name: Web PR
+
+# Reusable workflow: the whole PR flow of a Next.js website in one call (docs/next-js-app.md). It lints and builds the
+# project, finds the preview that Vercel deploys for the PR, checks that it opens without a login and links it in a
+# PR comment, which AppHub can read the URL from. Nothing runs for a PR that targets a branch other than main.
+#
+# Caller: callers/next-js/web_pr.yml. It has no settings: every Next.js website is checked the same way.
+
+on:
+  workflow_call:
+    secrets:
+      # A token of the owner, to merge the sync PR with, so that the checks of the merged commit run (docs/sync.md).
+      GENERATED_COMMIT_TOKEN:
+        required: false
+
+jobs:
+  # Lint, typecheck and test (when the project has those scripts), and build with what the lockfile says. The package
+  # manager is found from the lockfile, the Node version is the engines.node of package.json.
+  check:
+    if: github.event_name == 'pull_request' && github.base_ref == 'main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: LukeNeedham/ci-workflows/.github/actions/ci-scripts@main
+
+      - name: Find the package manager
+        id: project
+        run: python3 "$CI_SCRIPTS/next_js_project.py"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+          cache: ${{ steps.project.outputs.manager }}
+
+      - name: Install
+        env:
+          INSTALL: ${{ steps.project.outputs.install }}
+        run: $INSTALL
+
+      - name: Lint
+        env:
+          RUN: ${{ steps.project.outputs.run }}
+        run: $RUN lint
+
+      - name: Typecheck
+        if: steps.project.outputs.has-typecheck == 'true'
+        env:
+          RUN: ${{ steps.project.outputs.run }}
+        run: $RUN typecheck
+
+      - name: Test
+        if: steps.project.outputs.has-test == 'true'
+        env:
+          RUN: ${{ steps.project.outputs.run }}
+        run: $RUN test
+
+      - name: Build
+        env:
+          RUN: ${{ steps.project.outputs.run }}
+        run: $RUN build
+
+  # Vercel deploys the preview itself (its GitHub integration), so there is no token here: this waits for the deployment
+  # that Vercel reports to GitHub for the commit, then fails the job when the preview asks for a login, so that a protected
+  # preview is not mistaken for a working one. The comment is one per PR, updated by each push.
+  preview:
+    if: github.event_name == 'pull_request' && github.base_ref == 'main'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: web-pr-preview-${{ github.repository }}-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
+    permissions:
+      contents: read
+      deployments: read
+      pull-requests: write
+    steps:
+      - uses: LukeNeedham/ci-workflows/.github/actions/ci-scripts@main
+
+      # The AppHub link depends only on the repo name and the PR number, so it is posted once and never changes
+      - name: Post AppHub link on PR
+        uses: marocchino/sticky-pull-request-comment@v3
+        with:
+          header: apphub-pr-link
+          only_create: true
+          message: |
+            ### 📲 AppHub
+
+            [Open this pull request in AppHub](https://www.lukeneedham.com/apphub/pr/${{ github.event.repository.name }}/${{ github.event.pull_request.number }})
+
+      - name: Wait for the Vercel preview
+        id: preview
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+        run: python3 "$CI_SCRIPTS/web_preview.py" --repo "$REPO" --pr "$PR" --sha "$SHA" --body-file "$RUNNER_TEMP/preview.md"
+
+      - name: Link the preview on PR
+        if: ${{ !cancelled() && hashFiles(format('{0}/preview.md', runner.temp)) != '' }}
+        uses: marocchino/sticky-pull-request-comment@v3
+        with:
+          header: web-preview-link
+          path: ${{ runner.temp }}/preview.md
+
+  # Merges the PR that sync_apps.yml opens (its title starts with [auto-merge], see scripts/automerge.py) once every job
+  # above has passed, like android_pr.yml does. It uses the owner's token: a merge made with the workflow token starts no
+  # workflow. Without the secret it only says so. automerge.py checks the PR again before it merges.
+  automerge:
+    needs: [check, preview]
+    if: >-
+      ${{ !cancelled()
+      && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
+      && github.event_name == 'pull_request'
+      && startsWith(github.event.pull_request.title, '[auto-merge]')
+      && github.event.pull_request.head.repo.full_name == github.repository }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: LukeNeedham/ci-workflows/.github/actions/ci-scripts@main
+
+      - name: Merge the PR
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GENERATED_COMMIT_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          RUN_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::notice::Not merged: this repo has no GENERATED_COMMIT_TOKEN secret (docs/sync.md)."
+            exit 0
+          fi
+          python3 "$CI_SCRIPTS/automerge.py" --repo "$REPO" --pr "$PR" --run-sha "$RUN_SHA"

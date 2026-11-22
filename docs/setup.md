@@ -1,7 +1,7 @@
 # Setting up a project
 
 How to start using these workflows in a new project, or move an existing project over to them. The
-caller files are in [`callers/`](../callers) and have no settings: copy them as they are (all of them). For an app
+caller files of a `kmp` app are in [`callers/`](../callers) (those of a `next-js` website are in [`callers/next-js/`](../callers/next-js)) and have no settings: copy them as they are (all of them). For an app
 in `apps.json` the [sync](sync.md) copies the callers by itself.
 
 For what each workflow does, its inputs and the PR comment it posts, see the
@@ -108,7 +108,7 @@ Both releases are replaced in place by every run and are kept by the "delete pre
 
 ## Setting up a new project
 
-1. Add the project to [`apps.json`](../apps.json): its `name` and `repo`.
+1. Add the project to [`apps.json`](../apps.json): its `name`, `repo` and `stack` (`kmp`; a website is `next-js`, see [next-js-app.md](next-js-app.md)).
 2. Copy all the files of `callers/` to `.github/workflows/` in the project, unchanged. After the first
    copy the [sync](sync.md) keeps them in line.
 3. Commit them on a branch and open a PR to the target branch.

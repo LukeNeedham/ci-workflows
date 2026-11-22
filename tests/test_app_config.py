@@ -162,11 +162,12 @@ class Workflows(unittest.TestCase):
 class AppsFile(unittest.TestCase):
     apps = json.loads((TOOLS / "apps.json").read_text())
 
-    def test_an_entry_is_just_a_name_and_a_repo(self):
-        # Nothing is configured per app: every app is built the same way
+    def test_an_entry_is_just_a_name_a_repo_and_a_stack(self):
+        # Nothing is configured per app: every app of a stack is built the same way. The stack is always written out
         self.assertTrue(self.apps)
         for entry in self.apps:
-            self.assertEqual({"name", "repo"}, set(entry), entry)
+            self.assertEqual({"name", "repo", "stack"}, set(entry), entry)
+            self.assertIn(entry["stack"], ("kmp", "next-js"), entry)
             self.assertRegex(entry["repo"], r"^[\w.-]+/[\w.-]+$")
             self.assertTrue(entry["name"])
         # Names are compared exactly, so two entries must not differ only by case
