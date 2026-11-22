@@ -21,5 +21,18 @@ export default defineConfig([
       ],
     },
   },
+  // TypeScript only: any JavaScript file (.js, .jsx, .mjs, .cjs) fails the lint, wherever it is
+  {
+    files: ['**/*.{js,jsx,mjs,cjs}'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'Program',
+          message: 'JavaScript is not allowed: write TypeScript (.ts or .tsx).',
+        },
+      ],
+    },
+  },
   globalIgnores(['.next/**', 'out/**', 'build/**', 'next-env.d.ts', 'src/generated/**']),
 ])

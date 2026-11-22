@@ -840,7 +840,7 @@ class NextJsScaffold(unittest.TestCase):
     def test_it_has_what_a_next_js_project_is_synced_and_what_it_builds_with(self):
         for relative in (".claude/skills/next-js-conventions/SKILL.md",):
             self.assertFalse((self.dir / relative).exists(), "the skill is the sync's, not the scaffold's")
-        for relative in ("package.json", "tsconfig.json", "next.config.ts", "eslint.config.mjs", ".prettierrc.json", "vitest.config.mts",
+        for relative in ("package.json", "tsconfig.json", "next.config.ts", ".prettierrc.json", "vitest.config.mts", "eslint.config.ts",
                          ".gitignore", "LICENSE", "README.md", "yarn.lock", "src/app/page.tsx", "src/app/layout.tsx"):
             self.assertTrue((self.dir / relative).is_file(), relative)
             self.assertIn(relative, self.changed)
@@ -880,7 +880,19 @@ class NextJsScaffold(unittest.TestCase):
     def test_every_import_uses_the_alias(self):
         for path in (self.dir / "src").rglob("*.ts*"):
             self.assertNotRegex(path.read_text(), r"from '\.\.?/", str(path))
-        self.assertIn("no-restricted-imports", self.text("eslint.config.mjs"))
+        self.assertIn("no-restricted-imports", self.text("eslint.config.ts"))
+
+    def test_it_is_typescript_only(self):
+        # No JavaScript file at all, not even a config: the ESLint and Next configs are .ts, and Vitest's is .mts
+        scripts = [p for p in self.dir.rglob("*") if p.suffix in (".js", ".jsx", ".mjs", ".cjs")]
+        self.assertEqual([], scripts)
+        self.assertFalse(json.loads(self.text("tsconfig.json").replace("\n", " "))["compilerOptions"]["allowJs"])
+        # ... and a JavaScript file that is added later fails the lint, with the rule that says why
+        config = self.text("eslint.config.ts")
+        self.assertIn("**/*.{js,jsx,mjs,cjs}", config)
+        self.assertIn("JavaScript is not allowed", config)
+        # The TypeScript config needs jiti, which ESLint loads it with
+        self.assertIn("jiti", json.loads(self.text("package.json"))["devDependencies"])
 
     def test_the_dependencies_are_installed_with_the_lockfile_never_the_other_way_round(self):
         self.assertIn("/node_modules", self.text(".gitignore"))

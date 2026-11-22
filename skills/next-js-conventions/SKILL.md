@@ -28,6 +28,8 @@ The long guide is `docs/next-js-app.md` in that repo. If you can reach GitHub, r
   and hands them down, with no UI of its own. `XPageContent` is all of the page's UI: no hooks, no `'use client'`, takes the
   `XUiState` and one callback per user action (state down, events up). A route file only renders `<XPage />`. A reusable
   piece (card, row) is a plain component in its own file, not a page. Never `XView` or `XScreen`.
+- **TypeScript only: never write JavaScript**, not a script and not a config (`.ts`, `.tsx`, `.mts`). `allowJs` is off and ESLint
+  fails any `.js`, `.jsx`, `.mjs` or `.cjs` file.
 - **Imports use the alias `@/`**, never `../` (ESLint fails it).
 - Routes live in `UrlProvider`, never typed out in a component. Providers are plain objects, not classes with an instance.
 - Text is sized by the theme's named `textStyles` (`mainTitle`, `subTitle`, `body`, `fine`), never in a component.

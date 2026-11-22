@@ -47,6 +47,12 @@ src/
 - `XPageContent` is easy to test: render it with a state and click. The view model is tested with `renderHook`. The scaffold has both tests.
 - A reusable piece (a card, a row) is **not** a page: it is a plain component in its own file. Never `XView` or `XScreen`.
 
+**TypeScript only, no JavaScript at all.** Not a page, not a script, not a config: the ESLint config is `eslint.config.ts`
+(loaded with `jiti`), the Next config `next.config.ts` and the Vitest config `vitest.config.mts`. `tsconfig.json` has
+`allowJs: false`, and the ESLint config has a rule that **fails the lint on any `.js`, `.jsx`, `.mjs` or `.cjs` file**, wherever it
+is, saying to write TypeScript. A project that is older than the template (PersonalWebsite has a `next.config.js`, which Next 13
+cannot read as TypeScript) takes it on when it is upgraded.
+
 **One way to import: the alias `@/`** (the folder `src/`), never a relative path that climbs out of a folder (`../`). ESLint
 fails it (`no-restricted-imports`).
 
@@ -64,7 +70,8 @@ runs at build time only and writes to `src/generated/` (git-ignored). `src/` onl
 **Formatting is Prettier's** (no semicolons, single quotes, 100 columns), checked by `lint`, fixed by `yarn format`.
 
 **Stack and versions**: Next.js, React and **Chakra UI v3** at their newest, TypeScript 6 (typescript-eslint does not support 7 yet, so
-`typescript` is pinned to `~6.0`), ESLint 10 with `eslint-config-next`, Vitest with Testing Library, Prettier and `yarn`. The versions are
+`typescript` is pinned to `~6.0`), ESLint 10 with `eslint-config-next`, Vitest (which is built on Vite, so `vite` is installed too; it is
+used by the tests only) with Testing Library, Prettier and `yarn`. The versions are
 carets in the template and `yarn.lock` pins what was installed on the day the project was created.
 
 ## What the sync gives it
