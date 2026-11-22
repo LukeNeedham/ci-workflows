@@ -15,7 +15,7 @@ import new_app as n
 import sync_apps
 
 COMMON = "0.8.0"
-APPS = '[\n  {"name": "AppHub", "repo": "LukeNeedham/AppHub"},\n  {"name": "Krillion wrapper", "repo": "LukeNeedham/krillion-wrapper"}\n]\n'
+APPS = '[\n  {"name": "AppHub", "repo": "LukeNeedham/AppHub", "stack": "kmp"},\n  {"name": "Krillion wrapper", "repo": "LukeNeedham/krillion-wrapper", "stack": "kmp"}\n]\n'
 
 
 class Always(list):
@@ -73,15 +73,15 @@ class AppsJson(unittest.TestCase):
         new = n.add_to_apps_json(APPS, "LyricTutor", "LukeNeedham/LyricTutor")
 
         self.assertEqual(
-            '[\n  {"name": "AppHub", "repo": "LukeNeedham/AppHub"},\n  {"name": "Krillion wrapper", "repo": "LukeNeedham/krillion-wrapper"},\n'
-            '  {"name": "LyricTutor", "repo": "LukeNeedham/LyricTutor"}\n]\n', new)
-        self.assertEqual({"name": "LyricTutor", "repo": "LukeNeedham/LyricTutor"}, json.loads(new)[-1])
+            '[\n  {"name": "AppHub", "repo": "LukeNeedham/AppHub", "stack": "kmp"},\n  {"name": "Krillion wrapper", "repo": "LukeNeedham/krillion-wrapper", "stack": "kmp"},\n'
+            '  {"name": "LyricTutor", "repo": "LukeNeedham/LyricTutor", "stack": "kmp"}\n]\n', new)
+        self.assertEqual({"name": "LyricTutor", "repo": "LukeNeedham/LyricTutor", "stack": "kmp"}, json.loads(new)[-1])
 
     def test_the_real_file_stays_valid_and_gains_exactly_one_entry(self):
         text = (n.TOOLS / "apps.json").read_text()
         # A name that is not in the file, whatever apps it holds by now
         new = n.add_to_apps_json(text, "ANewApp", "LukeNeedham/ANewApp")
-        self.assertEqual(json.loads(text) + [{"name": "ANewApp", "repo": "LukeNeedham/ANewApp"}], json.loads(new))
+        self.assertEqual(json.loads(text) + [{"name": "ANewApp", "repo": "LukeNeedham/ANewApp", "stack": "kmp"}], json.loads(new))
 
     def test_an_app_that_is_listed_is_not_added_again(self):
         self.assertIsNone(n.add_to_apps_json(APPS, "AppHub", "LukeNeedham/AppHub"))
@@ -176,7 +176,7 @@ class Scaffold(unittest.TestCase):
         self.assertIn("settings.gradle.kts", changed)
         self.assertIn("app/debug.keystore", changed)
         # What the sync would make is already there, so its next run opens no PR
-        self.assertEqual([], sync_apps.sync_app(self.dir))
+        self.assertEqual([], sync_apps.sync_app(self.dir, "kmp"))
 
 
 class PushFirstCommit(unittest.TestCase):
@@ -315,7 +315,7 @@ class RegisterApp(unittest.TestCase):
         self.assertEqual({"message", "content", "sha", "branch"}, set(body))
         self.assertEqual(("s1", "main", "Add LyricTutor to apps.json"), (body["sha"], body["branch"], body["message"]))
         committed = json.loads(base64.b64decode(body["content"]))
-        self.assertEqual({"name": "LyricTutor", "repo": "LukeNeedham/LyricTutor"}, committed[-1])
+        self.assertEqual({"name": "LyricTutor", "repo": "LukeNeedham/LyricTutor", "stack": "kmp"}, committed[-1])
         self.assertEqual(3, len(committed), "only the one entry is added")
 
     def test_an_app_that_is_listed_makes_no_commit(self):

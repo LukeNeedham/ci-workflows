@@ -10,7 +10,7 @@ the real logic lives here, so a fix made once reaches every project.
 | [`android_pr_cleanup.yml`](.github/workflows/android_pr_cleanup.yml) | *Building block.* Deletes the PR's build pre-releases and tags | PR closed |
 | [`android_main_build.yml`](.github/workflows/android_main_build.yml) | On every push to **main**, builds the debug APK (kept as the rolling pre-release `main-build`) and renders the previews | Push to main, or by hand, from the caller |
 | [`android_release.yml`](.github/workflows/android_release.yml) | Publishes a **permanent, signed release** (tag + APK) | Run by hand, from the caller |
-| [`sync_apps.yml`](.github/workflows/sync_apps.yml) | Opens a PR in every app of [`apps.json`](apps.json) that keeps its skill, all the callers and `CLAUDE.md` block in line with this repo ([docs/sync.md](docs/sync.md)) | Change here, weekly, or by hand |
+| [`sync_apps.yml`](.github/workflows/sync_apps.yml) | Opens a PR in every app of [`apps.json`](apps.json) that keeps its skill, its callers (the ones of its `stack`: `kmp` or `next-js`) and `CLAUDE.md` block in line with this repo ([docs/sync.md](docs/sync.md)) | Change here, weekly, or by hand |
 | [`new_app.yml`](.github/workflows/new_app.yml) | Sets up a new app repo (made by the caller, with its own token): a first commit with a project that builds, the secret and the `apps.json` entry ([docs/create-app.md](docs/create-app.md)) | By hand, or the New app button of AppHub |
 | [`delete_prereleases.yml`](.github/workflows/delete_prereleases.yml) | Deletes **all** pre-releases and tags in the repo | Run by hand |
 

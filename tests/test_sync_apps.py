@@ -22,7 +22,7 @@ class SyncApp(unittest.TestCase):
         path.write_text(text)
 
     def test_a_new_app_gets_the_skill_the_callers_and_the_block(self):
-        changed = s.sync_app(self.dir)
+        changed = s.sync_app(self.dir, "kmp")
 
         self.assertIn(".claude/skills/lukeneedham-conventions/SKILL.md", changed)
         for name in s.CALLERS:
@@ -32,13 +32,13 @@ class SyncApp(unittest.TestCase):
         self.assertTrue(claude.startswith("# Instructions for Claude"))
 
     def test_a_second_run_changes_nothing(self):
-        s.sync_app(self.dir)
-        self.assertEqual([], s.sync_app(self.dir))
+        s.sync_app(self.dir, "kmp")
+        self.assertEqual([], s.sync_app(self.dir, "kmp"))
 
     def test_the_callers_are_copied_byte_for_byte_over_whatever_the_app_has(self):
         self.write(".github/workflows/trigger_on_pull_request.yml", "name: Old\nwith:\n  apk-path: old.apk\n")
 
-        changed = s.sync_callers(self.dir)
+        changed = s.sync_callers(self.dir, "kmp")
 
         self.assertIn(".github/workflows/trigger_on_pull_request.yml", changed)
         for name in s.CALLERS:
@@ -58,7 +58,7 @@ class SyncApp(unittest.TestCase):
                 comments, name)
 
     def test_every_app_gets_every_caller_including_the_release_one(self):
-        s.sync_callers(self.dir)
+        s.sync_callers(self.dir, "kmp")
         for name in ("trigger_on_pull_request.yml", "build_main.yml", "delete_prereleases.yml", "release.yml"):
             self.assertTrue((self.dir / ".github/workflows" / name).is_file(), name)
         self.assertEqual(sorted(p.name for p in (TOOLS / "callers").glob("*.yml")), sorted(s.CALLERS))
@@ -67,7 +67,7 @@ class SyncApp(unittest.TestCase):
         self.write(".claude/skills/lukeneedham-conventions/SKILL.md", "old")
         self.write(".claude/skills/lukeneedham-conventions/stray.md", "x")
 
-        changed = s.sync_skills(self.dir)
+        changed = s.sync_skills(self.dir, "kmp")
 
         self.assertIn(".claude/skills/lukeneedham-conventions/stray.md", changed)
         self.assertFalse((self.dir / ".claude/skills/lukeneedham-conventions/stray.md").exists())
@@ -75,9 +75,9 @@ class SyncApp(unittest.TestCase):
         self.assertEqual(source, (self.dir / ".claude/skills/lukeneedham-conventions/SKILL.md").read_text())
 
     def test_every_skill_of_the_repo_is_mirrored_including_the_optional_ones(self):
-        self.assertEqual(["lukeneedham-conventions", "networking-setup"], s.skill_names())
-        s.sync_skills(self.dir)
-        for name in s.skill_names():
+        self.assertEqual(["lukeneedham-conventions", "networking-setup"], s.skill_names("kmp"))
+        s.sync_skills(self.dir, "kmp")
+        for name in s.skill_names("kmp"):
             source = (TOOLS / "skills" / name / "SKILL.md").read_text()
             self.assertEqual(source, (self.dir / ".claude/skills" / name / "SKILL.md").read_text())
 
@@ -86,6 +86,65 @@ class SyncApp(unittest.TestCase):
         self.assertTrue(text.startswith("---\nname: networking-setup\n"))
         for needle in ("Optional", "INTERNET", "ktor", "coil-network-okhttp", "NetworkLogInterceptor()", "docs/networking.md"):
             self.assertIn(needle, text)
+
+    def test_a_next_js_project_gets_its_own_skill_and_caller_and_nothing_of_the_android_apps(self):
+        changed = s.sync_app(self.dir, "next-js")
+
+        self.assertIn(".claude/skills/next-js-conventions/SKILL.md", changed)
+        self.assertEqual(["web_pr.yml"], sorted(p.name for p in (self.dir / ".github/workflows").iterdir()))
+        self.assertEqual(
+            (TOOLS / "callers/next-js/web_pr.yml").read_bytes(), (self.dir / ".github/workflows/web_pr.yml").read_bytes())
+        self.assertEqual(["next-js-conventions"], sorted(p.name for p in (self.dir / ".claude/skills").iterdir()))
+        claude = (self.dir / "CLAUDE.md").read_text()
+        self.assertIn("no Android app", claude)
+        self.assertIn("preview URL", claude)
+        self.assertNotIn("readme.yml", claude)
+        self.assertNotIn("XPageContent", claude)
+        self.assertEqual([], s.sync_app(self.dir, "next-js"), "a second run changes nothing")
+
+    def test_the_next_js_caller_has_one_comment_saying_where_it_is_copied_from(self):
+        comments = [l for l in (TOOLS / "callers/next-js/web_pr.yml").read_text().splitlines() if "#" in l]
+        self.assertEqual(
+            ["# Copied from LukeNeedham/ci-workflows (callers/next-js/web_pr.yml). Do not edit it here: change it there."], comments)
+
+    def test_every_stack_names_skills_and_callers_that_exist(self):
+        self.assertEqual(["kmp", "next-js"], sorted(s.STACKS))
+        for stack, config in s.STACKS.items():
+            self.assertTrue(s.skill_names(stack), stack)
+            for name in config["caller_files"]:
+                self.assertTrue((s.callers_dir(stack) / name).is_file(), (stack, name))
+
+    def test_a_skill_belongs_to_the_stacks_that_list_it(self):
+        self.assertEqual(["lukeneedham-conventions", "networking-setup"], s.skill_names("kmp"))
+        self.assertEqual(["next-js-conventions"], s.skill_names("next-js"))
+
+    def test_there_is_no_default_stack(self):
+        for entry in ({"repo": "o/a"}, {"repo": "o/a", "stack": None}, {"repo": "o/a", "stack": "react"}, {"repo": "o/a", "stack": "KMP"}):
+            with self.assertRaises(ValueError, msg=entry) as e:
+                s.stack_of(entry)
+            self.assertIn("o/a", str(e.exception))
+            self.assertIn('"kmp"', str(e.exception))
+            self.assertIn('"next-js"', str(e.exception))
+        self.assertEqual("kmp", s.stack_of({"repo": "o/a", "stack": "kmp"}))
+
+    def test_nothing_is_synced_when_an_entry_has_no_valid_stack(self):
+        path = self.dir / "apps.json"
+        path.write_text('[{"name": "A", "repo": "o/a", "stack": "kmp"}, {"name": "B", "repo": "o/b"}, {"name": "C", "repo": "o/c", "stack": "x"}]')
+
+        with self.assertRaises(SystemExit) as e:
+            s.load_apps(path)
+
+        self.assertIn("o/b", str(e.exception))
+        self.assertIn("o/c", str(e.exception))
+        self.assertNotIn("o/a has", str(e.exception))
+
+    def test_the_real_apps_file_is_valid(self):
+        apps = s.load_apps()
+        self.assertTrue(any(a["stack"] == "next-js" for a in apps))
+
+    def test_the_pull_request_names_the_standard_of_the_stack(self):
+        self.assertIn("docs/next-js-app.md", s.pr_body(["CLAUDE.md"], "next-js"))
+        self.assertIn("docs/app-config.md", s.pr_body(["CLAUDE.md"], "kmp"))
 
     def test_the_old_copy_it_by_hand_line_becomes_the_block(self):
         self.write("CLAUDE.md", """# Instructions for Claude
@@ -96,7 +155,7 @@ class SyncApp(unittest.TestCase):
 - Another rule.
 """)
 
-        s.sync_claude_md(self.dir)
+        s.sync_claude_md(self.dir, "kmp")
 
         text = (self.dir / "CLAUDE.md").read_text()
         self.assertNotIn("Before starting work", text)
@@ -109,18 +168,18 @@ class SyncApp(unittest.TestCase):
                " See that repo's `docs/skill.md`.\n")
         self.write("CLAUDE.md", "# Instructions\n\n- Rule.\n\n" + old + "\n" + s.BLOCK_BEGIN + "\nstale\n" + s.BLOCK_END + "\n")
 
-        s.sync_claude_md(self.dir)
+        s.sync_claude_md(self.dir, "kmp")
 
         text = (self.dir / "CLAUDE.md").read_text()
         self.assertNotIn("Before starting work", text)
         self.assertEqual(1, text.count(s.BLOCK_BEGIN))
         self.assertIn("- Rule.\n\n" + s.BLOCK_BEGIN, text)
-        self.assertEqual([], s.sync_claude_md(self.dir))
+        self.assertEqual([], s.sync_claude_md(self.dir, "kmp"))
 
     def test_an_existing_block_is_replaced_not_added_again(self):
         self.write("CLAUDE.md", "# Instructions\n\n" + s.BLOCK_BEGIN + "\nstale\n" + s.BLOCK_END + "\n\n- Rule.\n")
 
-        s.sync_claude_md(self.dir)
+        s.sync_claude_md(self.dir, "kmp")
 
         text = (self.dir / "CLAUDE.md").read_text()
         self.assertEqual(1, text.count(s.BLOCK_BEGIN))
@@ -128,7 +187,7 @@ class SyncApp(unittest.TestCase):
         self.assertIn("- Rule.", text)
 
     def test_the_block_tells_claude_the_readme_standard(self):
-        s.sync_claude_md(self.dir)
+        s.sync_claude_md(self.dir, "kmp")
         self.assertIn("docs/readme-template.yml", (self.dir / "CLAUDE.md").read_text())
 
     def test_the_readme_source_is_reported_but_nothing_is_written(self):
@@ -153,7 +212,7 @@ class SyncApp(unittest.TestCase):
         (self.dir / "app/src/debug/kotlin/x/screenshot").rmdir()
         self.write("readme.yml", (TOOLS / "docs/readme-template.yml").read_text() + "\nscreenshots: manual\n")
         self.assertEqual("", s.readme_note(self.dir))
-        s.sync_app(self.dir)
+        s.sync_app(self.dir, "kmp")
         self.assertFalse((self.dir / "README.md").exists())
 
 class Api(unittest.TestCase):

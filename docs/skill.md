@@ -18,9 +18,15 @@ Never edit an app's copy by hand: change it here. The app's `CLAUDE.md` carries 
 Add the app to [`apps.json`](../apps.json) and run *Sync Apps*: the first PR adds the skill, the callers and the
 `CLAUDE.md` block. Every app has the skill.
 
+## The skill of another stack
+
+A project of the `next-js` stack ([next-js-app.md](next-js-app.md)) gets [`next-js-conventions`](../skills/next-js-conventions/SKILL.md)
+and not the one above: the Android and Kotlin conventions do not apply to it. Which skills a stack gets is `STACKS` in
+[`sync_apps.py`](../scripts/sync_apps.py).
+
 ## Optional skills
 
-`skills/` can hold more skills than the conventions one, for what only some apps need. They are mirrored to every app
+`skills/` can hold more skills than the conventions one, for what only some apps need. They are mirrored to every `kmp` app
 like the first (an app that never needs one just never loads it), so they cost nothing and an app's Claude finds them
 without this repo. Today: [`networking-setup`](../skills/networking-setup/SKILL.md), the setup of Ktor, the `INTERNET`
 permission, the client and the network log, for apps that make network calls ([networking.md](networking.md)). A new app

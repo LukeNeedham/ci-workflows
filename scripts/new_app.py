@@ -104,9 +104,10 @@ def add_to_apps_json(text, name, repo):
     if any(a["repo"].lower() == repo.lower() or a["name"] == name for a in apps):
         return None
     last = text.rstrip().rindex("}")
-    entry = f'  {{"name": {json.dumps(name)}, "repo": {json.dumps(repo)}}}'
+    # This script scaffolds Kotlin Multiplatform apps only, so that is the stack (docs/sync.md)
+    entry = f'  {{"name": {json.dumps(name)}, "repo": {json.dumps(repo)}, "stack": "kmp"}}'
     new = text[: last + 1] + ",\n" + entry + "\n]\n"
-    if json.loads(new)[-1] != {"name": name, "repo": repo}:  # the layout is only ours to keep; the data must be right
+    if json.loads(new)[-1] != {"name": name, "repo": repo, "stack": "kmp"}:  # the layout is only ours to keep; the data must be right
         raise ValueError("Could not add the app to apps.json")
     return new
 
@@ -224,7 +225,7 @@ def scaffold(app_dir, name, common_version, tools=TOOLS, keystore=make_debug_key
 
 def set_up_app(app_dir, name, common_version, tools=TOOLS, keystore=make_debug_keystore):
     """The first sync and the scaffold, applied to the checkout [app_dir]. Returns the paths that changed."""
-    return sync_apps.sync_app(app_dir, tools) + scaffold(app_dir, name, common_version, tools, keystore)
+    return sync_apps.sync_app(app_dir, "kmp", tools) + scaffold(app_dir, name, common_version, tools, keystore)
 
 
 # ---------------------------------------------------------------------------------------------------
