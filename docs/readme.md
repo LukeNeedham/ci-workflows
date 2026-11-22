@@ -79,6 +79,31 @@ Copyright (c) 2026 Luke Needham. All rights reserved.
 An open-source app has the full text of its license (MIT, Apache 2.0 and so on). The file is handwritten and committed
 with the app's first `readme.yml`; CI never writes it.
 
+## Websites
+
+A website (stack `next-js`, [next-js-app.md](next-js-app.md)) is generated the same way, with the same script (`--stack next-js`), but
+its format is its own and smaller: [`readme-template-web.yml`](readme-template-web.yml) is the skeleton. The `readme` job of
+[`web_pr.yml`](../.github/workflows/web_pr.yml) runs the same composite action, and a site with no `readme.yml` only gets a warning.
+
+| Field | Required | Meaning |
+|---|---|---|
+| `name`, `tagline` | yes | The site's name and one line on what it is |
+| `description` | yes | What the site is and who it is for; a paragraph or two |
+| `links` | no | `web` (the production site, shown as "Website") and `other`, a list of `title` and `url`. Shown under the tagline |
+| `developer.notes` | no | Only what is specific to developing this site (an environment variable, a build-time step, a quirk) |
+| `sections` | no | Extra sections: a list of `title` and `body` |
+
+There is no `screenshots`, `user` or icon: a visitor uses the site itself, so there is nothing to install, and a screenshot of it would go
+stale. Unknown fields, `#`/`##` headings in the text and a `license` field are errors, as for the apps.
+
+The layout, in this order: the name as the one `#` heading and the tagline (with the `links` under it), `## Description`,
+`## Getting started as a developer`, any `sections`, `## Contributing` and `## License`. **What comes from the project:** the package
+manager (from the lockfile: `yarn.lock`, `pnpm-lock.yaml` or `package-lock.json`), the commands (the `dev`, `lint`, `format`,
+`typecheck`, `test` and `build` scripts of `package.json`, the ones it has), the Node version (`engines.node`) and the license
+(the `LICENSE` file, which is required). The architecture is not described: it is the same for every site ([next-js-app.md](next-js-app.md)).
+
+`README.md` is ignored by Prettier (`/README.md` in `.prettierignore`), because it is generated, and `readme.yml` is not.
+
 ## Running it yourself
 
 Not needed, since CI does it, but to see the result before pushing (from the app's repo root):
@@ -88,6 +113,7 @@ pip install pyyaml
 git clone --depth 1 https://github.com/LukeNeedham/ci-workflows /tmp/ci-workflows
 python3 /tmp/ci-workflows/scripts/generate_readme.py .            # writes README.md
 python3 /tmp/ci-workflows/scripts/generate_readme.py . --check    # writes nothing, exits 1 if README.md is out of date
+python3 /tmp/ci-workflows/scripts/generate_readme.py . --stack next-js    # a website (the default stack is kmp)
 ```
 
 ## Rollout and reporting

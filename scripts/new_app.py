@@ -51,6 +51,7 @@ from datetime import date
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import generate_readme
 import sync_apps
 import vercel_setup
 
@@ -262,9 +263,9 @@ def is_github_readme_stub(text, name):
 
 
 def scaffold_next_js(app_dir, name, tools=TOOLS, year=None, install=install_dependencies):
-    """A new Next.js website that builds: `.gitignore`, `LICENSE`, the files of templates/next-js and `yarn.lock`. Nothing
-    that is already there is touched, except the stub README that GitHub made with the repo, which the README of the template
-    replaces. Returns the paths written."""
+    """A new Next.js website that builds: `.gitignore`, `LICENSE`, the files of templates/next-js (with `readme.yml`) and `yarn.lock`,
+    and the `README.md` that CI would render from `readme.yml`. Nothing that is already there is touched, except the stub README
+    that GitHub made with the repo, which the generated one replaces. Returns the paths written."""
     changed = []
     readme = app_dir / "README.md"
     if readme.is_file() and is_github_readme_stub(readme.read_text(), name):
@@ -275,6 +276,10 @@ def scaffold_next_js(app_dir, name, tools=TOOLS, year=None, install=install_depe
     if not (app_dir / "yarn.lock").exists():
         install(app_dir)
         changed.append("yarn.lock")
+    # The README is written here too, so that the first PR already has it (CI renders the same one, and the next ones when readme.yml changes)
+    if not readme.exists():
+        generate_readme.write_web(app_dir, f"{OWNER}/{name}")
+        changed.append("README.md")
     return changed
 
 

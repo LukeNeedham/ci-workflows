@@ -48,7 +48,8 @@ MVVM). Read it first when starting any new app. The repo itself is made by [docs
 
 Every app keeps its README content in a handwritten `readme.yml`; CI renders `README.md` from it in one layout
 (icon, name, description, links, getting started as a user and as a developer, license and so on), so the layout is
-enforced from here: **[docs/readme.md](docs/readme.md)**, skeleton in [docs/readme-template.yml](docs/readme-template.yml).
+enforced from here: **[docs/readme.md](docs/readme.md)**, skeleton in [docs/readme-template.yml](docs/readme-template.yml). A website
+has the same, with a smaller layout of its own ([skeleton](docs/readme-template-web.yml)).
 
 ## Pages
 

@@ -204,6 +204,115 @@ class GenerateReadmeTest(unittest.TestCase):
             self.assertIn(expected, text)
 
 
+WEB_TEMPLATE = TEMPLATE.parent / "readme-template-web.yml"
+PACKAGE = '{"scripts": {"dev": "next dev", "build": "next build", "lint": "eslint .", "format": "prettier --write .", "test": "vitest run"}, "engines": {"node": "24.x"}}'
+
+
+class website:
+    """A folder with the files that the README of a website needs from the project: package.json, a lockfile and a LICENSE."""
+
+    def __init__(self, lockfile="yarn.lock", package=PACKAGE, license="MIT License\n"):
+        self.lockfile, self.package, self.license = lockfile, package, license
+
+    def __enter__(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        folder = Path(self.tmp.name)
+        if self.package is not None:
+            (folder / "package.json").write_text(self.package)
+        if self.lockfile:
+            (folder / self.lockfile).write_text("")
+        if self.license is not None:
+            (folder / "LICENSE").write_text(self.license)
+        return folder
+
+    def __exit__(self, *exc):
+        self.tmp.cleanup()
+
+
+def web_data():
+    return yaml.safe_load(WEB_TEMPLATE.read_text())
+
+
+class WebsiteReadmeTest(unittest.TestCase):
+    def render(self, d=None, **folder):
+        with website(**folder) as path:
+            return g.render_web(d or web_data(), "LukeNeedham/Demo", g.web_facts(path))
+
+    def test_the_template_is_valid(self):
+        self.assertEqual([], g.problems(web_data(), stack="next-js"))
+        with website() as folder:
+            self.assertEqual([], g.problems(web_data(), folder, "next-js"))
+
+    def test_the_layout_has_no_icon_screenshots_or_install_steps(self):
+        text = self.render()
+        headings = [l[3:] for l in text.splitlines() if l.startswith("## ")]
+        self.assertEqual(["Description", "Getting started as a developer", "Contributing", "License"], headings)
+        for left_out in ("app-icon", "Screenshots", "Android", "AppHub", "Getting started as a user"):
+            self.assertNotIn(left_out, text)
+        self.assertTrue(text.startswith("<!-- Generated from readme.yml"))
+        self.assertIn("# Demo Site\n\nOne line", text)
+        self.assertTrue(text.rstrip().endswith("MIT. See [LICENSE](LICENSE)."))
+
+    def test_the_commands_come_from_the_package_manager_and_the_scripts_of_the_project(self):
+        text = self.render()
+        self.assertIn("Requirements: Node.js 24 and yarn.", text)
+        for line in ("git clone https://github.com/LukeNeedham/Demo.git", "cd Demo", "yarn install", "yarn dev ", "yarn lint ",
+                     "yarn format ", "yarn test ", "yarn build "):
+            self.assertIn(line, text)
+        self.assertNotIn("yarn typecheck", text, "the project has no such script")
+        npm = self.render(lockfile="package-lock.json")
+        self.assertIn("npm install", npm)
+        self.assertIn("npm run build", npm)
+        self.assertIn("Requirements: Node.js and pnpm.", self.render(lockfile="pnpm-lock.yaml", package='{"scripts": {}}'))
+
+    def test_a_website_has_its_own_fields(self):
+        d = web_data()
+        d["screenshots"] = "manual"
+        d["user"] = {"steps": ["x"]}
+        found = "\n".join(g.problems(d, stack="next-js"))
+        self.assertIn("unknown field `screenshots` (a website has no screenshots", found)
+        self.assertIn("unknown field `user`", found)
+        d = web_data()
+        d["links"] = {"play-store": "https://play.google.com/x"}
+        self.assertIn("unknown field `links.play-store` (one of web, or `other`)", "\n".join(g.problems(d, stack="next-js")))
+
+    def test_links_notes_and_sections(self):
+        d = web_data()
+        d["links"] = {"web": "https://demo.example.com", "other": [{"title": "Design", "url": "https://example.com/d"}]}
+        d["developer"] = {"notes": "Copy `.env.example`."}
+        d["sections"] = [{"title": "Credits", "body": "Photos by someone."}]
+        self.assertEqual([], g.problems(d, stack="next-js"))
+        text = self.render(d)
+        self.assertIn("[Website](https://demo.example.com) · [Design](https://example.com/d)", text)
+        order = [text.index(s) for s in ("## Description", "## Getting started as a developer", "Copy `.env.example`.", "## Credits", "## Contributing")]
+        self.assertEqual(sorted(order), order)
+
+    def test_the_project_must_have_a_package_json_a_lockfile_and_a_license(self):
+        for kwargs, expected in (({"package": None}, "no package.json"), ({"lockfile": None}, "no lockfile"), ({"license": None}, "no LICENSE file")):
+            with website(**kwargs) as folder:
+                self.assertIn(expected, "\n".join(g.problems(web_data(), folder, "next-js")))
+
+    def test_the_command_line_renders_and_checks_a_website(self):
+        script = str(Path(g.__file__))
+        with website() as folder:
+            run = lambda *a: subprocess.run([sys.executable, script, str(folder), "--repo", "LukeNeedham/Demo", "--stack", "next-js", *a],
+                                            capture_output=True, text=True)
+            (folder / "readme.yml").write_text(WEB_TEMPLATE.read_text())
+            self.assertEqual(1, run("--check").returncode)
+            self.assertEqual(0, run().returncode)
+            self.assertEqual(self.render(), (folder / "README.md").read_text())
+            self.assertEqual(0, run("--check").returncode)
+            (folder / "README.md").write_text("edited by hand\n")
+            self.assertEqual(1, run("--check").returncode)
+
+    def test_the_default_stack_is_still_the_android_app(self):
+        with website() as folder:
+            (folder / "readme.yml").write_text(WEB_TEMPLATE.read_text())
+            result = subprocess.run([sys.executable, str(Path(g.__file__)), str(folder), "--repo", "LukeNeedham/Demo"], capture_output=True, text=True)
+            self.assertEqual(1, result.returncode)
+            self.assertIn("screenshots", result.stderr)
+
+
 class SdkLevelsTest(unittest.TestCase):
     def levels(self, build, catalog=None):
         with tempfile.TemporaryDirectory() as tmp:

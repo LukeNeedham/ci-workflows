@@ -62,6 +62,23 @@ jobs:
           RUN: ${{ steps.project.outputs.run }}
         run: $RUN build
 
+  # The README.md is rendered from the readme.yml of the site, in the layout for websites (docs/readme.md), so that the format
+  # cannot drift. It is committed to the PR branch when it differs. A site without a readme.yml yet only gets a warning.
+  # The steps are the composite action .github/actions/readme, which android_pr.yml uses too.
+  readme:
+    if: github.event_name == 'pull_request' && github.base_ref == 'main'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: web-pr-readme-${{ github.repository }}-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
+    permissions:
+      contents: write
+    steps:
+      - uses: LukeNeedham/ci-workflows/.github/actions/readme@main
+        with:
+          stack: next-js
+          token: ${{ secrets.GENERATED_COMMIT_TOKEN }}
+
   # Vercel deploys the preview itself (its GitHub integration), so there is no token here: this waits for the deployment
   # that Vercel reports to GitHub for the commit, then fails the job when the preview asks for a login, so that a protected
   # preview is not mistaken for a working one. The comment is one per PR, updated by each push.
@@ -109,7 +126,7 @@ jobs:
   # above has passed, like android_pr.yml does. It uses the owner's token: a merge made with the workflow token starts no
   # workflow. Without the secret it only says so. automerge.py checks the PR again before it merges.
   automerge:
-    needs: [check, preview]
+    needs: [check, readme, preview]
     if: >-
       ${{ !cancelled()
       && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')

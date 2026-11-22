@@ -7,13 +7,18 @@ What comes from the project is not in readme.yml: the screenshots (the PNGs of d
 the app's screenshot package, docs/screenshots.md), the minimum Android version (the minSdk of app/build.gradle.kts)
 and the license (the LICENSE file). Every app has all three.
 
-    python3 generate_readme.py [app_dir] [--repo owner/name] [--check]
+A website (--stack next-js) has its own, smaller format (docs/readme.md, "Websites"): no icon, screenshots or install
+steps, and the project facts are the package manager (from the lockfile), the scripts of package.json, the Node version
+(`engines.node`) and the license.
+
+    python3 generate_readme.py [app_dir] [--repo owner/name] [--stack kmp|next-js] [--check]
 
 --repo defaults to $GITHUB_REPOSITORY, then to the app's git `origin`. --check writes nothing and exits 1 if
 README.md is missing or differs from what readme.yml renders to.
 """
 
 import argparse
+import json
 import os
 import re
 import subprocess
@@ -27,6 +32,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 sys.path.insert(0, str(Path(__file__).resolve().parent / "screenshots"))
 from app_config import SETTINGS
 from check_screenshot_package import package_folders
+import next_js_project
 
 SOURCE = "readme.yml"
 HEADER = f"<!-- Generated from {SOURCE} by LukeNeedham/ci-workflows (docs/readme.md). Edit {SOURCE}, not this file. -->"
@@ -35,6 +41,19 @@ LICENSE_FILE = "LICENSE"
 LINKS = {"play-store": "Google Play", "f-droid": "F-Droid", "web": "Web app"}
 SCREENSHOTS = "docs/screenshots"
 KNOWN = {"name", "tagline", "description", "links", "screenshots", "user", "developer", "sections"}
+# A website: what its visitors see is the site itself, so there are no screenshots and no install steps
+WEB_LINKS = {"web": "Website"}
+WEB_KNOWN = {"name", "tagline", "description", "links", "developer", "sections"}
+STACKS = ("kmp", "next-js")
+# The scripts of package.json that the README lists, in this order, with what each one does
+WEB_SCRIPTS = [
+    ("dev", "the site at http://localhost:3000"),
+    ("lint", "the checks of CI"),
+    ("format", "fix the formatting"),
+    ("typecheck", "the types"),
+    ("test", "unit tests"),
+    ("build", "the production build"),
+]
 BUILD_FILE = "app/build.gradle.kts"
 CATALOG = "gradle/libs.versions.toml"
 # The Android version name of each API level
@@ -126,6 +145,32 @@ def facts(app_dir):
     return Facts(min_sdk, compile_sdk, tuple(screenshot_files(app_dir)), license_name(text) if text else "All rights reserved")
 
 
+@dataclass
+class WebFacts:
+    """What the README of a website says that is not in readme.yml: it comes from the project."""
+    manager: str = "yarn"
+    install: str = "yarn install"
+    run: str = "yarn"
+    scripts: tuple = ()
+    node: str = ""
+    license: str = "All rights reserved"
+
+
+def web_facts(app_dir):
+    """The [WebFacts] of the website in [app_dir]: the package manager (from the lockfile), the scripts of package.json that
+    the README lists, the major Node version (`engines.node`) and the license."""
+    package = json.loads((app_dir / "package.json").read_text())
+    found = next_js_project.detect(app_dir)
+    if found is None:
+        raise SdkError("there is no lockfile (yarn.lock, pnpm-lock.yaml or package-lock.json): the README takes the package manager from it")
+    manager, _, run = found
+    scripts = package.get("scripts") or {}
+    node = re.search(r"\d+", str((package.get("engines") or {}).get("node") or ""))
+    text = license_text(app_dir)
+    return WebFacts(manager, f"{manager} install", run, tuple(name for name, _ in WEB_SCRIPTS if name in scripts),
+                    node.group(0) if node else "", license_name(text) if text else "All rights reserved")
+
+
 def screenshot_files(app_dir):
     """The screenshots of the app, as paths relative to its root, in name order."""
     return sorted(p.relative_to(app_dir).as_posix() for p in (app_dir / SCREENSHOTS).glob("*.png"))
@@ -147,24 +192,27 @@ def is_url(value):
     return isinstance(value, str) and re.fullmatch(r"https://\S+", value.strip()) is not None
 
 
-def problems(data, app_dir=None):
-    """What is wrong with the parsed readme.yml [data], as a list of sentences.
+def problems(data, app_dir=None, stack="kmp"):
+    """What is wrong with the parsed readme.yml [data] of an app of [stack], as a list of sentences.
 
-    With the folder of the app [app_dir], it also checks what the README needs from the project: the screenshots of
-    docs/screenshots/ and the LICENSE file. Without, it checks only the data.
+    With the folder of the app [app_dir], it also checks what the README needs from the project: for an Android app the
+    screenshots of docs/screenshots/, for both the LICENSE file (and, for a website, its package.json). Without, it checks only the data.
     """
     if not isinstance(data, dict):
         return [f"{SOURCE} must be a mapping of fields"]
+    web = stack == "next-js"
+    known, link_titles = (WEB_KNOWN, WEB_LINKS) if web else (KNOWN, LINKS)
     found = []
     for key in data:
         if key == "license":
             found.append(f"`license` is not a field: the license is the one in the {LICENSE_FILE} file of the app")
-        elif key not in KNOWN:
-            found.append(f"unknown field `{key}`")
+        elif key not in known:
+            found.append(f"unknown field `{key}`" + (" (a website has no screenshots and no install steps: see docs/readme.md)"
+                                                     if web and key in ("screenshots", "user") else ""))
     for key in REQUIRED_TEXT:
         if not str(data.get(key) or "").strip():
             found.append(f"`{key}` is required")
-    if "screenshots" in data and data["screenshots"] != "manual":
+    if not web and "screenshots" in data and data["screenshots"] != "manual":
         found.append("`screenshots` can only be `manual` (the screenshots are committed by hand, because the app cannot "
                      "render previews); without it, CI renders them from the app's screenshot package")
     links = data.get("links")
@@ -176,11 +224,11 @@ def problems(data, app_dir=None):
                 for i, link in enumerate(value or []):
                     if not isinstance(link, dict) or not link.get("title") or not is_url(link.get("url")):
                         found.append(f"`links.other[{i}]` needs a `title` and an https `url`")
-            elif key not in LINKS:
-                found.append(f"unknown field `links.{key}` (one of {', '.join(LINKS)}, or `other`)")
+            elif key not in link_titles:
+                found.append(f"unknown field `links.{key}` (one of {', '.join(link_titles)}, or `other`)")
             elif not is_url(value):
                 found.append(f"`links.{key}` must be an https URL")
-    user = data.get("user")
+    user = data.get("user") if not web else None
     if user is not None and not isinstance(user, dict):
         found.append("`user` must be a mapping")
     elif user:
@@ -205,7 +253,16 @@ def problems(data, app_dir=None):
         for line in headings(text or ""):
             found.append(f"`{name}` has the heading `{line}`: it would add a section of its own. Use `###` or deeper, "
                          f"or a `sections` entry")
-    if app_dir is not None:
+    if app_dir is not None and web:
+        if not (app_dir / "package.json").is_file():
+            found.append("the website has no package.json: the README takes its commands and Node version from it")
+        elif next_js_project.detect(app_dir) is None:
+            found.append("the website has no lockfile (yarn.lock, pnpm-lock.yaml or package-lock.json): the README takes its package manager from it")
+        text = license_text(app_dir)
+        if text is None or not text.strip():
+            found.append(f"the website has no {LICENSE_FILE} file: every project has one. For one that had no license, add one "
+                         f"holding `Copyright (c) <year> Luke Needham. All rights reserved.`")
+    elif app_dir is not None:
         manual = data.get("screenshots") == "manual"
         if manual and package_folders(app_dir):
             found.append("`screenshots: manual` but the app has a screenshot package: remove one of them")
@@ -307,6 +364,62 @@ def render(data, repo, facts):
     return "\n".join(out) + "\n"
 
 
+def render_web(data, repo, facts):
+    """The README.md text of a website, for the valid [data] of the GitHub repo [repo] (`owner/name`) and its [WebFacts]."""
+    name = str(data["name"]).strip()
+    repo_name = repo.split("/")[1]
+    links = data.get("links") or {}
+    shown = [(title, links[key].strip()) for key, title in WEB_LINKS.items() if links.get(key)]
+    shown += [(str(o["title"]).strip(), o["url"].strip()) for o in links.get("other") or []]
+    comments = dict(WEB_SCRIPTS)
+    commands = [f"git clone https://github.com/{repo}.git", f"cd {repo_name}", facts.install]
+    lines = [(f"{facts.run} {script}", comments[script]) for script in facts.scripts]
+    width = max([len(c) for c, _ in lines], default=0) + 4
+    commands += [f"{command:<{width}}# {comment}" for command, comment in lines]
+    out = [
+        HEADER,
+        f"# {name}",
+        "",
+        str(data["tagline"]).strip(),
+        "",
+        *([" · ".join(f"[{title}]({url})" for title, url in shown), ""] if shown else []),
+        "## Description",
+        "",
+        str(data["description"]).strip(),
+        "",
+        "## Getting started as a developer",
+        "",
+        f"Requirements: Node.js {facts.node} and {facts.manager}." if facts.node else f"Requirements: Node.js and {facts.manager}.",
+        "",
+        "```",
+        *commands,
+        "```",
+        "",
+        "Every pull request gets a preview on Vercel, which CI links in a comment, and `main` is deployed by Vercel, so do not "
+        "push to `main` for any other reason than to release.",
+        "",
+        "Like all my websites, it follows the shared architecture and conventions (Next.js, TypeScript, Chakra UI, MVVM with "
+        "every page split into a `Page` and a `PageContent`): "
+        "see [ci-workflows](https://github.com/LukeNeedham/ci-workflows/blob/main/docs/next-js-app.md).",
+        "",
+    ]
+    notes = (data.get("developer") or {}).get("notes")
+    if notes:
+        out += [str(notes).strip(), ""]
+    for section in data.get("sections") or []:
+        out += [f"## {str(section['title']).strip()}", "", str(section["body"]).strip(), ""]
+    out += [
+        "## Contributing",
+        "",
+        "Branch from `main`, make the change, and open a pull request. CI must be green before it is merged.",
+        "",
+        "## License",
+        "",
+        f"{facts.license}. See [{LICENSE_FILE}]({LICENSE_FILE}).",
+    ]
+    return "\n".join(out) + "\n"
+
+
 def load(app_dir):
     """The parsed readme.yml of [app_dir], or None if there is none."""
     path = app_dir / SOURCE
@@ -324,10 +437,27 @@ def find_repo(app_dir, given=None):
     return repo
 
 
+def write_web(app_dir, repo):
+    """Renders README.md of the website in [app_dir] from its readme.yml, as the command line does. Returns True when it wrote.
+    For the scaffold of a new website."""
+    data = load(app_dir)
+    found = problems(data, app_dir, "next-js")
+    if found:
+        raise ValueError("\n".join(f"{SOURCE}: {line}" for line in found))
+    text = render_web(data, repo, web_facts(app_dir))
+    readme = app_dir / "README.md"
+    if readme.is_file() and readme.read_text() == text:
+        return False
+    readme.write_text(text)
+    return True
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("app_dir", nargs="?", default=".")
     parser.add_argument("--repo")
+    parser.add_argument("--stack", choices=STACKS, default="kmp",
+                        help="what the project is built with: kmp (an Android app, the default) or next-js (a website)")
     parser.add_argument("--check", action="store_true", help="write nothing; exit 1 if README.md is out of date")
     parser.add_argument("--skip-if-missing", action="store_true",
                         help="an app without a readme.yml yet only gets a warning, and keeps its README.md")
@@ -344,14 +474,14 @@ def main():
             print(f"::warning file=README.md::{message}")
             return
         sys.exit(message)
-    found = problems(data, app_dir)
+    found = problems(data, app_dir, args.stack)
     if found:
         sys.exit("\n".join(f"{SOURCE}: {line}" for line in found))
     try:
-        app_facts = facts(app_dir)
+        app_facts = web_facts(app_dir) if args.stack == "next-js" else facts(app_dir)
     except SdkError as e:
         sys.exit(f"{SOURCE}: {e}")
-    text = render(data, find_repo(app_dir, args.repo), app_facts)
+    text = (render_web if args.stack == "next-js" else render)(data, find_repo(app_dir, args.repo), app_facts)
     readme = app_dir / "README.md"
     current = readme.read_text() if readme.is_file() else None
     if args.check:

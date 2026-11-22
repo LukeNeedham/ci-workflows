@@ -856,8 +856,19 @@ class NextJsScaffold(unittest.TestCase):
             changed = n.scaffold_next_js(folder, "MySite", install=lambda d: (d / "yarn.lock").write_text(""))
 
             self.assertIn("README.md", changed)
-            self.assertIn("How the code is organised", (folder / "README.md").read_text())
-            self.assertTrue((folder / "README.md").read_text().startswith("# MySite\n\n"), "a blank line under the title, as Prettier wants")
+            text = (folder / "README.md").read_text()
+            self.assertIn("Generated from readme.yml", text)
+            self.assertIn("## Getting started as a developer", text)
+            self.assertIn("# MySite\n\nTODO", text)
+
+    def test_the_readme_is_generated_from_the_readme_yml_of_the_site_and_the_check_agrees(self):
+        import generate_readme
+        self.assertIn("readme.yml", self.changed)
+        self.assertEqual([], generate_readme.problems(generate_readme.load(self.dir), self.dir, "next-js"))
+        self.assertEqual(generate_readme.render_web(generate_readme.load(self.dir), "LukeNeedham/My_Site", generate_readme.web_facts(self.dir)),
+                         self.text("README.md"))
+        self.assertIn("# My_Site\n", self.text("README.md"))
+        self.assertIn("yarn lint", self.text("README.md"))
 
     def test_a_readme_with_something_in_it_is_never_replaced(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -953,7 +964,7 @@ class NextJsFirstCommit(unittest.TestCase):
         self.assertIn(".github/workflows/web_pr.yml", changed)
         self.assertIn("package.json", changed)
         self.assertEqual(["web_pr.yml"], sorted(p.name for p in (self.dir / ".github/workflows").iterdir()))
-        for left_out in ("settings.gradle.kts", "gradlew", "app", "readme.yml", "app-icon.png"):
+        for left_out in ("settings.gradle.kts", "gradlew", "app", "app-icon.png"):
             self.assertFalse((self.dir / left_out).exists(), left_out)
 
     def test_an_app_does_not_get_the_website(self):
