@@ -158,6 +158,14 @@ The preview URL is in the comment of the PR as a line of its own:
 The comment is the one with the header `web-preview-link` (`<!-- Sticky Pull Request Commentweb-preview-link -->`), and
 it is updated by every push, so it always has the URL of the newest commit. The AppHub side comes later.
 
+## The production URL
+
+A website's entry in [`apps.json`](../apps.json) has a **`productionUrl`**, the address of its production deployment (`"https://lukeneedham.com"`,
+a full `https` address). It is the one place the URL is written down by hand: AppHub reads it for the **Production** pill of the website's
+card, which opens it. It is optional, as a new website has no domain until you give it one on Vercel: **New App does not set it**, so add it to
+`apps.json` when the domain exists. A website's own code does not copy it: it can take the production domain from Vercel's
+`VERCEL_PROJECT_PRODUCTION_URL` (set on every deployment, without the scheme). Only a `next-js` entry may have one.
+
 ## A new project
 
 From **AppHub's New project**, choosing the stack `next-js` (or *Actions → New App → Run workflow* with `stack` set to

@@ -11,6 +11,6 @@
   {"name": "LyricTutor", "repo": "LukeNeedham/LyricTutor", "stack": "kmp"},
   {"name": "Snake", "repo": "LukeNeedham/Snake", "stack": "kmp"},
   {"name": "PushToTalkAi", "repo": "LukeNeedham/PushToTalkAi", "stack": "kmp"},
-  {"name": "PersonalWebsite", "repo": "LukeNeedham/PersonalWebsite", "stack": "next-js"},
-  {"name": "MatthewPersonalWebsite", "repo": "LukeNeedham/MatthewPersonalWebsite", "stack": "next-js"}
+  {"name": "PersonalWebsite", "repo": "LukeNeedham/PersonalWebsite", "stack": "next-js", "productionUrl": "https://lukeneedham.com"},
+  {"name": "MatthewPersonalWebsite", "repo": "LukeNeedham/MatthewPersonalWebsite", "stack": "next-js", "productionUrl": "https://matthewjneedham.com"}
 ]

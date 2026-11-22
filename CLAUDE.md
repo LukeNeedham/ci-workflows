@@ -13,7 +13,7 @@
   ci-workflows" PR: never copy them by hand and never edit an app's copy. See [`docs/sync.md`](docs/sync.md).
   A new caller or a change to one in `callers/` reaches the apps this way too. The callers hold no settings and an app
   has no options: every project of a stack follows the same standard ([`docs/app-config.md`](docs/app-config.md), or
-  [`docs/next-js-app.md`](docs/next-js-app.md)), so `apps.json` lists only `name`, `repo` and `stack`.
+  [`docs/next-js-app.md`](docs/next-js-app.md)), so `apps.json` lists only `name`, `repo` and `stack`, and for a website its `productionUrl` once it has one.
 - **AppHub link**: this repo is not an app and is not listed in AppHub, so do not paste an AppHub link for PRs here.
   The rule belongs to the consuming apps: when work on an app completes (a PR is open), Claude pastes the PR's AppHub
   link (`https://www.lukeneedham.com/apphub/pr/<repo name>/<number>`) into the chat straight away, as a markdown link
