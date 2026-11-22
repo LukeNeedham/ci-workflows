@@ -95,6 +95,13 @@ carets in the template and `yarn.lock` pins what was installed on the day the pr
 
 There is no cleanup job: Vercel removes the previews of a closed PR itself.
 
+### The first PR of a new website
+
+Vercel makes **the first deployment of a project its production one**, whatever the branch (seen on the first PR of `MatthewPersonalWebsite`),
+so that PR has no deployment named "Preview". [`web_preview.py`](../scripts/web_preview.py) looks at the deployments of the PR's commit, takes a preview
+when there is one, and otherwise the other deployment, which is the one with the code of the PR. Before this, the first PR of a new website waited the
+whole 15 minutes for a preview that never came, and failed. Its code is live on the project's domain until the next push to `main`.
+
 ### Why Vercel's own preview
 
 Vercel's GitHub integration builds each PR and reports the deployment to GitHub, with the URL in its status. CI reads
