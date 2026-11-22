@@ -69,7 +69,7 @@ runs at build time only and writes to `src/generated/` (git-ignored). `src/` onl
 
 **Formatting is Prettier's** (no semicolons, single quotes, 100 columns), checked by `lint`, fixed by `yarn format`.
 `.prettierignore` leaves out the files the sync keeps (`.claude`, `.github`, `CLAUDE.md`): Prettier fails on them, and a reformat would be
-reverted by the next sync.
+reverted by the next sync. It also leaves out the root `README.md`: the scaffold writes it, and a style nit in it must not fail a PR.
 
 **Stack and versions**: Next.js, React and **Chakra UI v3** at their newest, TypeScript 6 (typescript-eslint does not support 7 yet, so
 `typescript` is pinned to `~6.0`), ESLint 10 with `eslint-config-next`, Vitest (which is built on Vite, so `vite` is installed too; it is
@@ -95,6 +95,13 @@ carets in the template and `yarn.lock` pins what was installed on the day the pr
 
 There is no cleanup job: Vercel removes the previews of a closed PR itself.
 
+### The first PR of a new website
+
+Vercel makes **the first deployment of a project its production one**, whatever the branch (seen on the first PR of `MatthewPersonalWebsite`),
+so that PR has no deployment named "Preview". [`web_preview.py`](../scripts/web_preview.py) looks at the deployments of the PR's commit, takes a preview
+when there is one, and otherwise the other deployment, which is the one with the code of the PR. Before this, the first PR of a new website waited the
+whole 15 minutes for a preview that never came, and failed. Its code is live on the project's domain until the next push to `main`.
+
 ### Why Vercel's own preview
 
 Vercel's GitHub integration builds each PR and reports the deployment to GitHub, with the URL in its status. CI reads
@@ -118,6 +125,10 @@ can see unreleased changes.)
    to another repo, or to none, is an error, never taken over.
 2. **Deployment Protection off for previews** (`ssoProtection: null`), so that a preview opens without a login. The answer is read
    back: a setting that did not take (a plan that does not allow it) is an error, not a success.
+3. **GitHub deployments on** (`gitProviderOptions.createDeployments: enabled`, read back too). A project made through the API has them **off**, and
+   then no deployment of it is in GitHub's Deployments API, which is where [`web_preview.py`](../scripts/web_preview.py) finds the URL of the
+   preview of a PR: without this, `web / preview` waits its whole 15 minutes and fails. (Found on `MatthewPersonalWebsite`; an older project
+   such as PersonalWebsite has the default, which is on.)
 
 It runs in two places:
 - **New App** (`stack` `next-js`), after the first commit and before the project is listed in `apps.json`. Without the secret

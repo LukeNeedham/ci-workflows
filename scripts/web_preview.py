@@ -54,11 +54,14 @@ def is_preview_deployment(deployment):
 def preview_url(deployments, statuses_of):
     """The URL and state of the preview of the newest preview deployment in [deployments] (newest first), or (None, state).
     [statuses_of] gets a deployment and returns its statuses, newest first. A deployment whose newest status has no
-    URL yet is still being built: its state ("pending", "in_progress", "queued"... or "failure", "error") is returned."""
+    URL yet is still being built: its state ("pending", "in_progress", "queued"... or "failure", "error") is returned.
+
+    The deployments are those of the commit of the PR. Vercel makes the **first deployment of a project its production one**, whatever the
+    branch, so the first PR of a new website has no "Preview" deployment: when none of the commit is a preview, its other deployment is
+    the one that has the code of the PR, and is taken."""
     state = None
-    for deployment in deployments:
-        if not is_preview_deployment(deployment):
-            continue
+    candidates = [d for d in deployments if is_preview_deployment(d)] or list(deployments)
+    for deployment in candidates:
         statuses = statuses_of(deployment)
         if not statuses:
             state = state or "pending"

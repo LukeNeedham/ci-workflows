@@ -19,8 +19,21 @@ class PreviewUrl(unittest.TestCase):
         statuses = {1: [{"state": "success", "environment_url": "https://a.vercel.app"}]}
         self.assertEqual(("https://a.vercel.app", "success"), w.preview_url([deployment(1)], lambda d: statuses[d["id"]]))
 
-    def test_the_production_deployment_is_not_the_preview(self):
-        self.assertEqual((None, "missing"), w.preview_url([deployment(1, "Production")], lambda d: self.fail("read")))
+    def test_nothing_is_a_preview_when_there_is_no_deployment_of_the_commit(self):
+        self.assertEqual((None, "missing"), w.preview_url([], lambda d: self.fail("read")))
+
+    def test_the_first_deployment_of_a_project_is_its_production_one_and_is_the_preview_of_the_first_pr(self):
+        # Vercel makes the first deployment of a project production, whatever its branch (seen on the first PR of MatthewPersonalWebsite)
+        statuses = [{"state": "success", "environment_url": "https://first.vercel.app"}]
+        self.assertEqual(("https://first.vercel.app", "success"), w.preview_url([deployment(1, "Production")], lambda d: statuses))
+
+    def test_a_preview_is_preferred_to_a_production_deployment_of_the_same_commit(self):
+        statuses = {1: [{"state": "success", "environment_url": "https://prod"}], 2: [{"state": "success", "environment_url": "https://preview"}]}
+        found = w.preview_url([deployment(1, "Production"), deployment(2)], lambda d: statuses[d["id"]])
+        self.assertEqual(("https://preview", "success"), found)
+
+    def test_a_production_deployment_still_being_built_says_so(self):
+        self.assertEqual((None, "in_progress"), w.preview_url([deployment(1, "Production")], lambda d: [{"state": "in_progress"}]))
 
     def test_a_preview_of_a_monorepo_project_counts(self):
         statuses = [{"state": "success", "target_url": "https://b.vercel.app"}]

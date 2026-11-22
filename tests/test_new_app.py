@@ -846,6 +846,36 @@ class NextJsScaffold(unittest.TestCase):
             self.assertIn(relative, self.changed)
         self.assertEqual("Copyright (c) 2026 Luke Needham. All rights reserved.\n", self.text("LICENSE"))
 
+    def test_the_readme_that_github_made_with_the_repo_is_replaced_by_the_one_of_the_template(self):
+        # The repo is created with a README, so that `main` exists: `# Name` and a line under it. It fails the Prettier check of `yarn lint`,
+        # and the template's README (how to run the site, how the code is organised) would never land, as nothing is overwritten
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = Path(tmp)
+            (folder / "README.md").write_text("# MySite\nMySite, a website")
+
+            changed = n.scaffold_next_js(folder, "MySite", install=lambda d: (d / "yarn.lock").write_text(""))
+
+            self.assertIn("README.md", changed)
+            self.assertIn("How the code is organised", (folder / "README.md").read_text())
+            self.assertTrue((folder / "README.md").read_text().startswith("# MySite\n\n"), "a blank line under the title, as Prettier wants")
+
+    def test_a_readme_with_something_in_it_is_never_replaced(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = Path(tmp)
+            (folder / "README.md").write_text("# MySite\n\nMy own words.\n\nMore of them.\n")
+
+            changed = n.scaffold_next_js(folder, "MySite", install=lambda d: (d / "yarn.lock").write_text(""))
+
+            self.assertNotIn("README.md", changed)
+            self.assertIn("My own words.", (folder / "README.md").read_text())
+
+    def test_what_is_a_stub_readme(self):
+        self.assertTrue(n.is_github_readme_stub("# MySite\nMySite, a website", "MySite"))
+        self.assertTrue(n.is_github_readme_stub("# MySite\n", "MySite"))
+        self.assertFalse(n.is_github_readme_stub("# Other\nMySite, a website", "MySite"), "the title is of another project")
+        self.assertFalse(n.is_github_readme_stub("# MySite\n\none\n\ntwo\n", "MySite"), "three lines are no stub")
+        self.assertFalse(n.is_github_readme_stub("", "MySite"))
+
     def test_the_lockfile_is_made_once_and_nothing_is_overwritten(self):
         self.assertEqual([self.dir], self.installed)
         self.assertEqual([], n.scaffold_next_js(self.dir, "My_Site", install=lambda d: self.fail("installed again")))
@@ -883,6 +913,10 @@ class NextJsScaffold(unittest.TestCase):
         ignored = self.text(".prettierignore").splitlines()
         for path in (".claude", ".github", "CLAUDE.md"):
             self.assertIn(path, ignored)
+
+    def test_prettier_does_not_check_the_root_readme(self):
+        # It is written by the scaffold (and the first one GitHub makes fails the check), so a style nit in it must not fail a PR
+        self.assertIn("/README.md", self.text(".prettierignore").splitlines())
 
     def test_every_import_uses_the_alias(self):
         for path in (self.dir / "src").rglob("*.ts*"):
