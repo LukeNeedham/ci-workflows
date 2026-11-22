@@ -31,6 +31,10 @@ UPDATE_PROJECT = "/v9/projects/{id}"
 MAX_NAME = 100
 
 
+# Where the owner of the GitHub account chooses which repos the Vercel GitHub app can see
+GITHUB_APP_SETTINGS = "https://github.com/settings/installations"
+
+
 class VercelError(RuntimeError):
     """A call that failed, with the status and the answer of Vercel in the message."""
 
@@ -88,7 +92,11 @@ def fail(what, status, answer):
     if status in (401, 403):
         hint = " VERCEL_TOKEN is missing, wrong, or may not use this team (VERCEL_TEAM_ID)."
     elif "github" in message.lower() or "install" in (code or "").lower() or "repo" in (code or "").lower():
-        hint = " Install the Vercel GitHub app for this repo (https://github.com/apps/vercel) and run again."
+        hint = (
+            " Vercel cannot see this repo. Either its GitHub app lacks access (give it All repositories, or add this repo: "
+            f"{GITHUB_APP_SETTINGS} > Vercel > Configure > Repository access), or the GitHub connection of your Vercel account has expired "
+            "(Vercel > Account Settings > Authentication: reconnect GitHub)."
+        )
     raise VercelError(f"{what}: {message}.{hint}", status, code)
 
 
