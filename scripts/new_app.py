@@ -254,10 +254,21 @@ def install_dependencies(app_dir):
     subprocess.run(["yarn", "install", "--non-interactive", "--ignore-scripts"], cwd=app_dir, check=True, capture_output=True, text=True)
 
 
+def is_github_readme_stub(text, name):
+    """Whether [text] is the README that GitHub makes when a repo is created with one: the title `# <name>` and at most one line under
+    it (the description). That is no README of the project's own, and it fails the Prettier check of `yarn lint`."""
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    return 1 <= len(lines) <= 2 and lines[0] == f"# {name}"
+
+
 def scaffold_next_js(app_dir, name, tools=TOOLS, year=None, install=install_dependencies):
     """A new Next.js website that builds: `.gitignore`, `LICENSE`, the files of templates/next-js and `yarn.lock`. Nothing
-    that is already there is touched. Returns the paths written."""
+    that is already there is touched, except the stub README that GitHub made with the repo, which the README of the template
+    replaces. Returns the paths written."""
     changed = []
+    readme = app_dir / "README.md"
+    if readme.is_file() and is_github_readme_stub(readme.read_text(), name):
+        readme.unlink()
     write_new(app_dir, ".gitignore", NEXT_JS_GITIGNORE, changed)
     write_new(app_dir, "LICENSE", f"Copyright (c) {year or date.today().year} Luke Needham. All rights reserved.\n", changed)
     render_templates(app_dir, next_js_template_values(name), changed, "next-js", tools)
