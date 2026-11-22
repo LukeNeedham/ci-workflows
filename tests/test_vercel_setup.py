@@ -86,6 +86,43 @@ class EnsureProject(unittest.TestCase):
             v.ensure_project(call, "my-site", "LukeNeedham/MySite")
 
 
+LIST = ("GET", "/v9/projects?limit=100")
+
+
+class FindLinkedProject(unittest.TestCase):
+    def test_a_project_connected_to_the_repo_is_found_whatever_it_is_called(self):
+        other = project(id="prj_9", name="other", link={"org": "LukeNeedham", "repo": "Else"})
+        mine = project(name="personal-website", link={"org": "LukeNeedham", "repo": "PersonalWebsite"})
+        call = FakeVercel({LIST: (200, {"projects": [other, mine]})})
+        self.assertEqual("personal-website", v.find_linked_project(call, "lukeneedham/personalwebsite")["name"])
+
+    def test_no_project_connected_to_the_repo_is_none(self):
+        call = FakeVercel({LIST: (200, {"projects": [project(link={"org": "LukeNeedham", "repo": "Else"}), project(link=None)]})})
+        self.assertIsNone(v.find_linked_project(call, "LukeNeedham/MySite"))
+
+    def test_the_next_page_is_read_when_there_is_one(self):
+        second = ("GET", "/v9/projects?limit=100&until=123")
+        call = FakeVercel({
+            LIST: (200, {"projects": [], "pagination": {"next": 123}}),
+            second: (200, {"projects": [project()], "pagination": {"next": None}}),
+        })
+        self.assertEqual("my-site", v.find_linked_project(call, "LukeNeedham/MySite")["name"])
+
+    def test_a_list_that_fails_is_an_error_and_not_taken_for_no_project(self):
+        call = FakeVercel({LIST: (403, {"error": {"code": "forbidden", "message": "Not authorized"}})})
+        with self.assertRaisesRegex(v.VercelError, "Listing the Vercel projects"):
+            v.find_linked_project(call, "LukeNeedham/MySite")
+
+    def test_the_site_is_set_up_in_its_existing_project_and_no_second_one_is_made(self):
+        existing = project(name="personal-website", link={"org": "LukeNeedham", "repo": "PersonalWebsite"}, ssoProtection=None)
+        call = FakeVercel({LIST: (200, {"projects": [existing]}), ("GET", "/v9/projects/personal-website"): (200, existing)})
+
+        lines = v.set_up(call, "LukeNeedham/PersonalWebsite")
+
+        self.assertEqual("vercel project personal-website already connected to LukeNeedham/PersonalWebsite", lines[0])
+        self.assertFalse([c for c in call.calls if c[0] == "POST"])
+
+
 class OpenPreviews(unittest.TestCase):
     def test_protection_is_turned_off_and_read_back(self):
         call = FakeVercel({PATCH: (200, project()), GET_ID: (200, project(ssoProtection=None))})
@@ -115,7 +152,7 @@ class OpenPreviews(unittest.TestCase):
 class SetUp(unittest.TestCase):
     def test_a_new_site_gets_a_project_and_open_previews(self):
         call = FakeVercel({GET: (404, {}), CREATE: (200, project(**PROTECTED)), PATCH: (200, project()), GET_ID: (200, project())})
-        lines = v.set_up(call, "LukeNeedham/MySite", "my-site")
+        lines = v.set_up(call, "LukeNeedham/MySite", "my-site")  # a name is given: no search
         self.assertEqual(["vercel project my-site created and connected to LukeNeedham/MySite",
                           "vercel previews: Deployment Protection turned off"], lines)
 
@@ -127,7 +164,8 @@ class SetUp(unittest.TestCase):
         self.assertEqual(["GET"], [c[0] for c in call.calls])
 
     def test_the_project_is_named_after_the_repo_by_default(self):
-        call = FakeVercel({("GET", "/v9/projects/personalwebsite"): (200, project(name="personalwebsite", link={"org": "LukeNeedham", "repo": "PersonalWebsite"}))})
+        call = FakeVercel({LIST: (200, {"projects": []}),
+                           ("GET", "/v9/projects/personalwebsite"): (200, project(name="personalwebsite", link={"org": "LukeNeedham", "repo": "PersonalWebsite"}))})
         self.assertIn("vercel project personalwebsite already", v.set_up(call, "LukeNeedham/PersonalWebsite")[0])
 
 
@@ -143,7 +181,7 @@ class NewAppStep(unittest.TestCase):
 
         def make_call(token, team):
             made.append((token, team))
-            return FakeVercel({("GET", "/v9/projects/mysite"): (200, project(name="mysite", link={"org": "LukeNeedham", "repo": "MySite"}, ssoProtection=None))})
+            return FakeVercel({LIST: (200, {"projects": []}), ("GET", "/v9/projects/mysite"): (200, project(name="mysite", link={"org": "LukeNeedham", "repo": "MySite"}, ssoProtection=None))})
 
         lines = n.set_up_vercel("LukeNeedham/MySite", "MySite", "tok", "team_1", make_call)
 

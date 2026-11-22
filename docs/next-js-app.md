@@ -110,8 +110,10 @@ can see unreleased changes.)
 
 [`vercel_setup.py`](../scripts/vercel_setup.py) sets a website up on Vercel, with the REST API, and every step can be repeated:
 
-1. **The project** `<repo name, lower case>`, framework Next.js, **connected to the GitHub repo**, so that every PR gets a preview and
-   `main` is deployed. A project of that name that is connected to another repo, or to none, is an error, never taken over.
+1. **The project**: the one that is **already connected to the repo**, whatever it is called (PersonalWebsite's is `personal-website`), so that
+   no second project is made for a site that has one. Only when there is none is one created, named after the repo (lower case), framework
+   Next.js, **connected to the GitHub repo**, so that every PR gets a preview and `main` is deployed. A project of that name that is connected
+   to another repo, or to none, is an error, never taken over.
 2. **Deployment Protection off for previews** (`ssoProtection: null`), so that a preview opens without a login. The answer is read
    back: a setting that did not take (a plan that does not allow it) is an error, not a success.
 

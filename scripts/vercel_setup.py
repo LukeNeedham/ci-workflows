@@ -3,7 +3,9 @@
 preview and `main` is deployed, and Deployment Protection off for previews, so that a preview opens without a login (web_preview.py
 fails a PR whose preview asks for one).
 
-Every step can be repeated: a project that is there is carried on with, and a setting that is right is left alone.
+Every step can be repeated: a project that is there is carried on with, and a setting that is right is left alone. The project is
+the one that is already connected to the repo, whatever its name (PersonalWebsite is `personal-website` there); only when there is
+none is one created, named after the repo.
 
     VERCEL_TOKEN=... python3 vercel_setup.py LukeNeedham/PersonalWebsite [--project NAME] [--team ID] [--dry-run]
 
@@ -98,6 +100,25 @@ def linked_repo(project):
     return link.get("repo") or None
 
 
+def find_linked_project(call, repo, max_pages=5):
+    """The project that is already connected to the GitHub repo [repo] (owner/name), whatever it is called, or None. Reads the
+    projects the token can see, a page of 100 at a time."""
+    path = "/v9/projects?limit=100"
+    for _ in range(max_pages):
+        status, answer = call("GET", path)
+        if status != 200:
+            fail("Listing the Vercel projects", status, answer)
+        for found in answer.get("projects") or []:
+            connected = linked_repo(found)
+            if connected and connected.lower() == repo.lower():
+                return found
+        after = (answer.get("pagination") or {}).get("next")
+        if not after:
+            return None
+        path = f"/v9/projects?limit=100&until={after}"
+    return None
+
+
 def ensure_project(call, name, repo):
     """The Vercel project [name], connected to the GitHub repo [repo] (owner/name). Creates it when there is none.
     Returns (project, created). A project of this name that is connected to another repo is an error: it is not this site's."""
@@ -142,9 +163,15 @@ def open_previews(call, project):
     return True
 
 
+def target_name(call, repo):
+    """The name of the project to set up for [repo]: the one already connected to it, else the one a new project would get."""
+    linked = find_linked_project(call, repo)
+    return linked["name"] if linked else project_name(repo.split("/")[1])
+
+
 def set_up(call, repo, project=None):
     """Sets up the website [repo] on Vercel. Returns the lines to report, one per step."""
-    name = project or project_name(repo.split("/")[1])
+    name = project or target_name(call, repo)
     found, created = ensure_project(call, name, repo)
     lines = [f"vercel project {found.get('name', name)} " + (f"created and connected to {repo}" if created else f"already connected to {repo}")]
     changed = open_previews(call, found)
@@ -170,7 +197,7 @@ def main():
     call = make_call(token, args.team)
     try:
         if args.dry_run:
-            name = args.project or project_name(args.repo.split("/")[1])
+            name = args.project or target_name(call, args.repo)
             status, found = call("GET", GET_PROJECT.format(id=urllib.parse.quote(name)))
             print(f"vercel project {name}: " + (
                 "not there, would be created" if status == 404 else
