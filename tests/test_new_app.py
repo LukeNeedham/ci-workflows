@@ -877,6 +877,13 @@ class NextJsScaffold(unittest.TestCase):
         self.assertIn("<HomePageContent", page)
         self.assertEqual("import { HomePage }", self.text("src/app/page.tsx").splitlines()[0][:19], "a route renders the page of its feature")
 
+    def test_prettier_leaves_the_files_of_the_sync_alone(self):
+        # The first commit has the synced files, and `yarn lint` runs `prettier --check .`: it fails on the skill and CLAUDE.md,
+        # and a reformat would be reverted by the next sync (found on PersonalWebsite)
+        ignored = self.text(".prettierignore").splitlines()
+        for path in (".claude", ".github", "CLAUDE.md"):
+            self.assertIn(path, ignored)
+
     def test_every_import_uses_the_alias(self):
         for path in (self.dir / "src").rglob("*.ts*"):
             self.assertNotRegex(path.read_text(), r"from '\.\.?/", str(path))
