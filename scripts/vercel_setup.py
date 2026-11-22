@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Sets up a website on Vercel (docs/next-js-app.md): the project, connected to the GitHub repo so that every pull request gets a
-preview and `main` is deployed, and Deployment Protection off for previews, so that a preview opens without a login (web_preview.py
-fails a PR whose preview asks for one).
+preview and `main` is deployed, Deployment Protection off for previews, so that a preview opens without a login (web_preview.py
+fails a PR whose preview asks for one), and GitHub deployments on, so that web_preview.py can find the URL of the preview (a project made
+through the API has them off).
 
 Every step can be repeated: a project that is there is carried on with, and a setting that is right is left alone. The project is
 the one that is already connected to the repo, whatever its name (PersonalWebsite is `personal-website` there); only when there is
@@ -171,6 +172,29 @@ def open_previews(call, project):
     return True
 
 
+def github_deployments_are_on(project):
+    """Whether Vercel registers the deployments of the project with GitHub (`gitProviderOptions.createDeployments`). A project that has no
+    such option has the default, which is on; a project made through the API has it `disabled`, which web_preview.py cannot work with."""
+    return (project.get("gitProviderOptions") or {}).get("createDeployments") != "disabled"
+
+
+def enable_github_deployments(call, project):
+    """Turns `createDeployments` on, so that every deployment of the project shows up in GitHub's Deployments API, where `web_preview.py`
+    finds the URL of the preview of a PR. The other options are kept. Returns whether it changed; the answer is read again."""
+    if github_deployments_are_on(project):
+        return False
+    options = {**(project.get("gitProviderOptions") or {}), "createDeployments": "enabled"}
+    status, answer = call("PATCH", UPDATE_PROJECT.format(id=project["id"]), {"gitProviderOptions": options})
+    if status != 200:
+        fail(f"Turning GitHub deployments on for {project.get('name')}", status, answer)
+    status, again = call("GET", GET_PROJECT.format(id=project["id"]))
+    if status != 200 or not github_deployments_are_on(again):
+        raise VercelError(
+            f"Vercel accepted the change but {project.get('name')} still has GitHub deployments off "
+            f"(gitProviderOptions: {(again or {}).get('gitProviderOptions')}). Turn on Settings > Git > GitHub Deployments in the project.")
+    return True
+
+
 def target_name(call, repo):
     """The name of the project to set up for [repo]: the one already connected to it, else the one a new project would get."""
     linked = find_linked_project(call, repo)
@@ -184,6 +208,9 @@ def set_up(call, repo, project=None):
     lines = [f"vercel project {found.get('name', name)} " + (f"created and connected to {repo}" if created else f"already connected to {repo}")]
     changed = open_previews(call, found)
     lines.append("vercel previews: Deployment Protection " + ("turned off" if changed else "was off already"))
+    # Without this the CI cannot find the preview of a PR: it reads GitHub's Deployments API, which a project made through the API does not fill
+    changed = enable_github_deployments(call, found)
+    lines.append("vercel github deployments: " + ("turned on" if changed else "were on already"))
     return lines
 
 

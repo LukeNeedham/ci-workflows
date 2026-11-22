@@ -125,6 +125,10 @@ can see unreleased changes.)
    to another repo, or to none, is an error, never taken over.
 2. **Deployment Protection off for previews** (`ssoProtection: null`), so that a preview opens without a login. The answer is read
    back: a setting that did not take (a plan that does not allow it) is an error, not a success.
+3. **GitHub deployments on** (`gitProviderOptions.createDeployments: enabled`, read back too). A project made through the API has them **off**, and
+   then no deployment of it is in GitHub's Deployments API, which is where [`web_preview.py`](../scripts/web_preview.py) finds the URL of the
+   preview of a PR: without this, `web / preview` waits its whole 15 minutes and fails. (Found on `MatthewPersonalWebsite`; an older project
+   such as PersonalWebsite has the default, which is on.)
 
 It runs in two places:
 - **New App** (`stack` `next-js`), after the first commit and before the project is listed in `apps.json`. Without the secret

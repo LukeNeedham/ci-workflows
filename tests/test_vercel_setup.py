@@ -158,18 +158,61 @@ class OpenPreviews(unittest.TestCase):
             v.open_previews(call, project(**PROTECTED))
 
 
+OFF = {"gitProviderOptions": {"createDeployments": "disabled", "disableRepositoryDispatchEvents": True}}
+
+
+class GithubDeployments(unittest.TestCase):
+    def test_a_project_made_through_the_api_has_them_off_and_the_default_has_them_on(self):
+        self.assertFalse(v.github_deployments_are_on(project(**OFF)))
+        self.assertTrue(v.github_deployments_are_on(project()))
+        self.assertTrue(v.github_deployments_are_on(project(gitProviderOptions=None)))
+        self.assertTrue(v.github_deployments_are_on(project(gitProviderOptions={"createDeployments": "enabled"})))
+
+    def test_they_are_turned_on_keeping_the_other_options_and_read_back(self):
+        on = project(gitProviderOptions={"createDeployments": "enabled", "disableRepositoryDispatchEvents": True})
+        call = FakeVercel({PATCH: (200, on), GET_ID: (200, on)})
+
+        changed = v.enable_github_deployments(call, project(**OFF))
+
+        self.assertTrue(changed)
+        self.assertEqual(("PATCH", "/v9/projects/prj_1", {"gitProviderOptions": {"createDeployments": "enabled", "disableRepositoryDispatchEvents": True}}),
+                         call.calls[0])
+
+    def test_a_project_that_has_them_on_is_left_alone(self):
+        call = FakeVercel({})
+        self.assertFalse(v.enable_github_deployments(call, project()))
+        self.assertEqual([], call.calls)
+
+    def test_a_setting_that_did_not_take_is_an_error(self):
+        call = FakeVercel({PATCH: (200, project(**OFF)), GET_ID: (200, project(**OFF))})
+        with self.assertRaisesRegex(v.VercelError, "still has GitHub deployments off"):
+            v.enable_github_deployments(call, project(**OFF))
+
+    def test_a_new_site_has_them_turned_on_by_the_setup(self):
+        on = project(gitProviderOptions={"createDeployments": "enabled"})
+        call = FakeVercel({GET: (404, {}), CREATE: (200, project(**OFF)), GET_ID: (200, on), PATCH: (200, on)})
+        # the project is made with them off, and public previews already: only the GitHub deployments change
+        call.answers[CREATE] = (200, project(**OFF, ssoProtection=None))
+
+        lines = v.set_up(call, "LukeNeedham/MySite", "my-site")
+
+        self.assertEqual("vercel github deployments: turned on", lines[-1])
+
+
 class SetUp(unittest.TestCase):
     def test_a_new_site_gets_a_project_and_open_previews(self):
         call = FakeVercel({GET: (404, {}), CREATE: (200, project(**PROTECTED)), PATCH: (200, project()), GET_ID: (200, project())})
         lines = v.set_up(call, "LukeNeedham/MySite", "my-site")  # a name is given: no search
         self.assertEqual(["vercel project my-site created and connected to LukeNeedham/MySite",
-                          "vercel previews: Deployment Protection turned off"], lines)
+                          "vercel previews: Deployment Protection turned off",
+                          "vercel github deployments: were on already"], lines)
 
     def test_running_it_again_changes_nothing(self):
         call = FakeVercel({GET: (200, project(ssoProtection=None))})
         lines = v.set_up(call, "LukeNeedham/MySite", "my-site")
         self.assertEqual(["vercel project my-site already connected to LukeNeedham/MySite",
-                          "vercel previews: Deployment Protection was off already"], lines)
+                          "vercel previews: Deployment Protection was off already",
+                          "vercel github deployments: were on already"], lines)
         self.assertEqual(["GET"], [c[0] for c in call.calls])
 
     def test_the_project_is_named_after_the_repo_by_default(self):
