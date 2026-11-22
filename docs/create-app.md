@@ -18,7 +18,7 @@ values as in [`apps.json`](../apps.json), [sync.md](sync.md#appsjson)):
 | `stack` | What the first commit holds | Left to do |
 |---|---|---|
 | `kmp` | The first sync and the Android app below | The Claude GitHub App |
-| `next-js` | The first sync of the stack (`next-js-conventions`, `web_pr.yml`, the `CLAUDE.md` block) and the minimal site of [`templates/next-js/`](../templates/next-js) with a `yarn.lock` made on the spot ([next-js-app.md](next-js-app.md)): no Android app, no Gradle, no shared library | Connecting the repo to Vercel and turning Deployment Protection off for previews, and the Claude GitHub App |
+| `next-js` | The first sync of the stack (`next-js-conventions`, `web_pr.yml`, the `CLAUDE.md` block) and the minimal site of [`templates/next-js/`](../templates/next-js) with a `yarn.lock` made on the spot ([next-js-app.md](next-js-app.md)): no Android app, no Gradle, no shared library. **Then the site is set up on Vercel** (the project, connected to the repo, and previews without a login: [next-js-app.md](next-js-app.md#vercel-setup)) | The Claude GitHub App. And the Vercel setup, if this repo has no `VERCEL_TOKEN` |
 
 A dispatch without a valid `stack` fails at once with the values it takes, so an old caller cannot create the wrong kind of
 project. The stack is also written into the project's entry in `apps.json`. The rest of this page is the `kmp` app unless it says otherwise.
@@ -119,6 +119,7 @@ and a name that is taken (a repo, or an entry of `apps.json`), unless *resume* i
 |---|---|---|
 | `SYNC_TOKEN` | The first commit, the secret, and the line of `apps.json` | The token of [sync.md](sync.md#the-token-one-time-setup): Contents, Workflows and Secrets on **All repositories**, which covers a repo made later; Contents on this repo. **It is not given the power to create repos** |
 | `GENERATED_COMMIT_TOKEN` | Handed on to the new app | Already there for the sync |
+| `VERCEL_TOKEN`, `VERCEL_TEAM_ID` | *Optional, `next-js` only.* Setting the website up on Vercel | [next-js-app.md](next-js-app.md#vercel-setup). Without the token the step is skipped and said so in the run summary |
 | `NEW_APP_TOKEN` | *Optional.* Creating the repo from the workflow | Only for running the workflow by hand without making the repo first. Left out, the workflow needs the repo to exist. A token that can create repos is better kept off this repo: a caller that makes the repo itself does not need it |
 
 **Outside this repo**, the caller has two tokens:

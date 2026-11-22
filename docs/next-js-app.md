@@ -106,6 +106,29 @@ project, which CI cannot change without a token. The check requests the preview 
 gets a 401 or a redirect to the login of Vercel, with a comment saying what to change. (The price: anyone who has the URL
 can see unreleased changes.)
 
+## Vercel setup
+
+[`vercel_setup.py`](../scripts/vercel_setup.py) sets a website up on Vercel, with the REST API, and every step can be repeated:
+
+1. **The project** `<repo name, lower case>`, framework Next.js, **connected to the GitHub repo**, so that every PR gets a preview and
+   `main` is deployed. A project of that name that is connected to another repo, or to none, is an error, never taken over.
+2. **Deployment Protection off for previews** (`ssoProtection: null`), so that a preview opens without a login. The answer is read
+   back: a setting that did not take (a plan that does not allow it) is an error, not a success.
+
+It runs in two places:
+- **New App** (`stack` `next-js`), after the first commit and before the project is listed in `apps.json`. Without the secret
+  `VERCEL_TOKEN` the step is skipped and the run summary says what is left to do by hand.
+- **[Vercel Setup](../.github/workflows/vercel_setup.yml)** (*Actions → Vercel Setup → Run workflow*, with the repo and an optional
+  dry run) for a website that exists, such as PersonalWebsite.
+
+**One-time setup, once for all the websites:**
+1. The **Vercel GitHub app** is installed for the account, with access to all repositories (https://github.com/apps/vercel), so that Vercel
+   can see a repo that was created a moment ago. Vercel refuses to connect a repo it cannot see, and the error says so.
+2. A **Vercel token** (https://vercel.com/account/tokens, scope: the account or team of the sites), kept as the secret `VERCEL_TOKEN`
+   of *this* repo (*Settings → Secrets and variables → Actions*). For a team, the team's id (Team Settings → General) is the secret
+   `VERCEL_TEAM_ID`; a personal account has none. The token is only ever sent to `api.vercel.com`, and is masked in the logs. It can
+   create and change the projects of the account: keep it here and nowhere else.
+
 ## For AppHub
 
 The preview URL is in the comment of the PR as a line of its own:
@@ -123,13 +146,13 @@ From **AppHub's New project**, choosing the stack `next-js` (or *Actions → New
 `next-js`; [create-app.md](create-app.md)), which makes the repo, pushes the first commit and adds the entry to `apps.json`.
 The first commit holds the sync of this stack and the minimal site of [`templates/next-js/`](../templates/next-js): one page,
 `HomePage` and `HomePageContent`, with the view model, the theme, the lint, typecheck and test setup and a `yarn.lock`, so
-the first pull request already builds. What is left is yours:
+the first pull request already builds. **The run also sets the site up on Vercel** ([below](#vercel-setup)), so what is left is yours:
 
-1. Connect the repo to a project on [Vercel](https://vercel.com/new) and turn Deployment Protection off for previews.
-2. Start a session on the repo and write the site.
+1. Start a session on the repo and write the site.
 
 To bring an **existing** website: add it to [`apps.json`](../apps.json) with `"stack": "next-js"` and run *Sync Apps* for it.
-Its first sync PR adds the callers, the skill and the `CLAUDE.md` block; the project itself is the project's own.
+Its first sync PR adds the callers, the skill and the `CLAUDE.md` block; the project itself is the project's own. Run
+*Vercel Setup* for it if its Vercel project is not set up the way the standard needs ([below](#vercel-setup)).
 
 ## Changing the template
 

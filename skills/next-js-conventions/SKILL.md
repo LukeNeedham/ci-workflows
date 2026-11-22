@@ -43,9 +43,9 @@ The long guide is `docs/next-js-app.md` in that repo. If you can reach GitHub, r
 - **The preview is Vercel's own**: the repo is connected to a Vercel project, which deploys every PR. CI waits for that
   deployment (no Vercel token) and posts the URL in a PR comment with the header `web-preview-link`. The URL is also in the comment as
   `<!-- preview-url: https://... -->`, which AppHub reads.
-- **The preview must open without logging in to Vercel.** Deployment Protection (*Vercel Authentication*) is turned off for
-  previews in the project's settings on Vercel, which is a one-time setting of the project. CI requests the preview anonymously
-  and fails the PR, saying so, when Vercel asks for a login.
+- **The preview must open without logging in to Vercel.** Deployment Protection (*Vercel Authentication*) is off for previews in the
+  project's settings on Vercel. ci-workflows sets that up (New App does it for a new site, and *Vercel Setup* for an existing one), so
+  never change it by hand. CI requests the preview anonymously and fails the PR, saying so, when Vercel asks for a login.
 - Production is deployed by Vercel itself when `main` changes: do not merge to `main` for any other reason.
 
 ## Finishing work

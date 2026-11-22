@@ -1,0 +1,162 @@
+"""Tests for vercel_setup.py, and its step in new_app.py. Run: python3 -m unittest discover -s tests"""
+
+import unittest
+
+import _paths  # noqa: F401
+import new_app as n
+import vercel_setup as v
+
+
+class FakeVercel:
+    """A `call` that answers from a table of (method, path) -> (status, json) and records what it was asked. A list is taken one at a time."""
+
+    def __init__(self, answers):
+        self.answers = answers
+        self.calls = []
+
+    def __call__(self, method, path, body=None):
+        self.calls.append((method, path, body))
+        answer = self.answers.get((method, path), (404, {"error": {"code": "not_found", "message": "Not found"}}))
+        if isinstance(answer, list):
+            answer = answer.pop(0) if len(answer) > 1 else answer[0]
+        return answer
+
+
+def project(**fields):
+    return {"id": "prj_1", "name": "my-site", "link": {"type": "github", "org": "LukeNeedham", "repo": "MySite"}, **fields}
+
+
+GET = ("GET", "/v9/projects/my-site")
+CREATE = ("POST", "/v11/projects")
+PATCH = ("PATCH", "/v9/projects/prj_1")
+GET_ID = ("GET", "/v9/projects/prj_1")
+PROTECTED = {"ssoProtection": {"deploymentType": "all_except_custom_domains"}}
+
+
+class Names(unittest.TestCase):
+    def test_the_project_name_is_what_vercel_accepts(self):
+        self.assertEqual("my-site", v.project_name("My_Site".replace("_", "-")))
+        self.assertEqual("my_site", v.project_name("My_Site"))
+        self.assertEqual("lt-companion", v.project_name("LT-Companion"))
+        self.assertEqual("a--b", v.project_name("a-----b"), "never three dashes")
+        self.assertEqual(100, len(v.project_name("x" * 150)))
+
+    def test_a_name_that_is_all_punctuation_is_refused(self):
+        with self.assertRaises(ValueError):
+            v.project_name("---")
+
+
+class EnsureProject(unittest.TestCase):
+    def test_a_missing_project_is_created_connected_to_the_repo_as_next_js(self):
+        call = FakeVercel({GET: (404, {}), CREATE: (200, project())})
+
+        found, created = v.ensure_project(call, "my-site", "LukeNeedham/MySite")
+
+        self.assertTrue(created)
+        self.assertEqual({"name": "my-site", "framework": "nextjs", "gitRepository": {"type": "github", "repo": "LukeNeedham/MySite"}},
+                         call.calls[-1][2])
+
+    def test_a_project_that_is_there_and_connected_to_the_repo_is_not_touched(self):
+        call = FakeVercel({GET: (200, project())})
+        found, created = v.ensure_project(call, "my-site", "lukeneedham/mysite")
+        self.assertFalse(created)
+        self.assertEqual([("GET", "/v9/projects/my-site", None)], call.calls)
+
+    def test_a_project_of_the_name_that_belongs_to_another_repo_is_an_error(self):
+        call = FakeVercel({GET: (200, project(link={"type": "github", "org": "Someone", "repo": "Else"}))})
+        with self.assertRaisesRegex(v.VercelError, "connected to Someone/Else, not LukeNeedham/MySite"):
+            v.ensure_project(call, "my-site", "LukeNeedham/MySite")
+
+    def test_a_project_connected_to_no_repo_is_an_error_and_not_taken_over(self):
+        call = FakeVercel({GET: (200, project(link=None))})
+        with self.assertRaisesRegex(v.VercelError, "connected to no repo"):
+            v.ensure_project(call, "my-site", "LukeNeedham/MySite")
+        self.assertEqual(1, len(call.calls))
+
+    def test_a_refused_connection_says_to_install_the_github_app(self):
+        error = {"error": {"code": "invalid_git_repository", "message": "Could not find the GitHub repository"}}
+        call = FakeVercel({GET: (404, {}), CREATE: (400, error)})
+        with self.assertRaisesRegex(v.VercelError, "Install the Vercel GitHub app") as e:
+            v.ensure_project(call, "my-site", "LukeNeedham/MySite")
+        self.assertEqual(400, e.exception.status)
+
+    def test_a_bad_token_says_so(self):
+        call = FakeVercel({GET: (403, {"error": {"code": "forbidden", "message": "Not authorized"}})})
+        with self.assertRaisesRegex(v.VercelError, "VERCEL_TOKEN"):
+            v.ensure_project(call, "my-site", "LukeNeedham/MySite")
+
+
+class OpenPreviews(unittest.TestCase):
+    def test_protection_is_turned_off_and_read_back(self):
+        call = FakeVercel({PATCH: (200, project()), GET_ID: (200, project(ssoProtection=None))})
+
+        changed = v.open_previews(call, project(**PROTECTED))
+
+        self.assertTrue(changed)
+        self.assertEqual(("PATCH", "/v9/projects/prj_1", {"ssoProtection": None}), call.calls[0])
+
+    def test_a_project_that_is_open_already_is_left_alone(self):
+        call = FakeVercel({})
+        self.assertFalse(v.open_previews(call, project(ssoProtection=None)))
+        self.assertFalse(v.open_previews(call, project()))
+        self.assertEqual([], call.calls)
+
+    def test_a_setting_that_did_not_take_is_an_error_not_a_success(self):
+        call = FakeVercel({PATCH: (200, project()), GET_ID: (200, project(**PROTECTED))})
+        with self.assertRaisesRegex(v.VercelError, "still has Deployment Protection on"):
+            v.open_previews(call, project(**PROTECTED))
+
+    def test_a_refusal_of_the_plan_is_an_error(self):
+        call = FakeVercel({PATCH: (402, {"error": {"code": "payment_required", "message": "Upgrade your plan"}})})
+        with self.assertRaisesRegex(v.VercelError, "Upgrade your plan"):
+            v.open_previews(call, project(**PROTECTED))
+
+
+class SetUp(unittest.TestCase):
+    def test_a_new_site_gets_a_project_and_open_previews(self):
+        call = FakeVercel({GET: (404, {}), CREATE: (200, project(**PROTECTED)), PATCH: (200, project()), GET_ID: (200, project())})
+        lines = v.set_up(call, "LukeNeedham/MySite", "my-site")
+        self.assertEqual(["vercel project my-site created and connected to LukeNeedham/MySite",
+                          "vercel previews: Deployment Protection turned off"], lines)
+
+    def test_running_it_again_changes_nothing(self):
+        call = FakeVercel({GET: (200, project(ssoProtection=None))})
+        lines = v.set_up(call, "LukeNeedham/MySite", "my-site")
+        self.assertEqual(["vercel project my-site already connected to LukeNeedham/MySite",
+                          "vercel previews: Deployment Protection was off already"], lines)
+        self.assertEqual(["GET"], [c[0] for c in call.calls])
+
+    def test_the_project_is_named_after_the_repo_by_default(self):
+        call = FakeVercel({("GET", "/v9/projects/personalwebsite"): (200, project(name="personalwebsite", link={"org": "LukeNeedham", "repo": "PersonalWebsite"}))})
+        self.assertIn("vercel project personalwebsite already", v.set_up(call, "LukeNeedham/PersonalWebsite")[0])
+
+
+class NewAppStep(unittest.TestCase):
+    def test_without_a_token_the_step_is_skipped_and_says_what_is_left(self):
+        lines = n.set_up_vercel("LukeNeedham/MySite", "MySite", None, None, lambda *a: self.fail("called"))
+        self.assertEqual(1, len(lines))
+        self.assertIn("no VERCEL_TOKEN", lines[0])
+        self.assertIn("Deployment Protection", lines[0])
+
+    def test_with_a_token_the_site_is_set_up_with_the_team(self):
+        made = []
+
+        def make_call(token, team):
+            made.append((token, team))
+            return FakeVercel({("GET", "/v9/projects/mysite"): (200, project(name="mysite", link={"org": "LukeNeedham", "repo": "MySite"}, ssoProtection=None))})
+
+        lines = n.set_up_vercel("LukeNeedham/MySite", "MySite", "tok", "team_1", make_call)
+
+        self.assertEqual([("tok", "team_1")], made)
+        self.assertTrue(lines[0].startswith("vercel project mysite"))
+
+    def test_the_next_steps_leave_out_vercel_when_it_is_done(self):
+        by_hand = n.next_steps("MySite", "next-js")
+        done = n.next_steps("MySite", "next-js", vercel_done=True)
+        self.assertIn("Connect the repo to a project on Vercel", by_hand)
+        self.assertNotIn("Vercel", done)
+        self.assertIn("Claude GitHub App", done)
+
+
+if __name__ == "__main__":
+    unittest.main()

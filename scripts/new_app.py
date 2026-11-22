@@ -11,6 +11,8 @@ What it does, in this order (see docs/create-app.md):
      in `commonMain`; `App`, `MainActivity` and the manifest in `androidMain`). The push starts the main build, which is the
      first check that the template still builds
   3. writes the Actions secret GENERATED_COMMIT_TOKEN into the repo
+  3b. a next-js website only: sets it up on Vercel (vercel_setup.py): the project, connected to the repo, and Deployment Protection
+     off for previews. Skipped, and said so, when there is no VERCEL_TOKEN
   4. adds the app to apps.json of this repo, with a commit to `main`. This is last, so that the sync it starts finds
      the app up to date and opens no PR
 
@@ -25,6 +27,7 @@ Needs PyYAML, PyNaCl (for the secret) and keytool (any JDK). Environment variabl
                          own token, does not need it: the workflow is then run with --resume
   SYNC_TOKEN             the token of sync_apps.py (contents, workflows and secrets of the apps; contents of this repo)
   GENERATED_COMMIT_TOKEN the secret that every app holds (docs/sync.md)
+  VERCEL_TOKEN           optional: a Vercel token, to set a website up on Vercel (docs/next-js-app.md). VERCEL_TEAM_ID is the team, if any
 
     python3 scripts/new_app.py LyricTutor --stack kmp        create the app LukeNeedham/LyricTutor
     python3 scripts/new_app.py MySite --stack next-js        create a Next.js website
@@ -49,6 +52,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import sync_apps
+import vercel_setup
 
 TOOLS = sync_apps.TOOLS
 OWNER = "LukeNeedham"
@@ -372,7 +376,7 @@ def push_first_commit(repo, name, token, work, common_version, stack, keystore=m
 
 
 def create_app(name, stack, private=False, resume=False, create_token=None, sync_token=None, commit_token=None,
-               push=push_first_commit, make_caller=caller):
+               push=push_first_commit, make_caller=caller, vercel_token=None, vercel_team=None, make_vercel_call=vercel_setup.make_call):
     """The whole job for a project of [stack] (there is no default). Returns the lines to report, one per step. [push] and
     [make_caller] are for the tests."""
     check_name(name)
@@ -411,19 +415,33 @@ def create_app(name, stack, private=False, resume=False, create_token=None, sync
     secret = sync_apps.sync_secret({"repo": repo}, sync_token, commit_token, dry_run=False)
     lines.append(f"secret {sync_apps.COMMIT_TOKEN_SECRET} " + ("set" if secret else "not set (no token for it)"))
 
+    if stack == "next-js":
+        lines += set_up_vercel(repo, name, vercel_token, vercel_team, make_vercel_call)
+
     added = register_app(make_caller(sync_token), name, repo, stack)
     lines.append(f"apps.json: {name} " + ("added" if added else "was already listed"))
     return lines
 
 
-def next_steps(name, stack):
+def set_up_vercel(repo, name, token, team, make_call=vercel_setup.make_call):
+    """The Vercel step of a website: the lines to report. Without a token it is skipped and says what is left to do by hand."""
+    if not token:
+        return ["vercel: not set up (no VERCEL_TOKEN): connect the repo to Vercel and turn Deployment Protection off for previews yourself"]
+    return vercel_setup.set_up(make_call(token, team), repo)
+
+
+def next_steps(name, stack, vercel_done=False):
     """What is left for the user, as a Markdown list for the run summary."""
     if stack == "next-js":
+        by_hand = (
+            "" if vercel_done else
+            f"- **Connect the repo to a project on Vercel** (https://vercel.com/new), and in the project's settings turn **Deployment "
+            f"Protection** off for previews: CI fails the pull request when the preview asks for a login (docs/next-js-app.md)\n"
+        )
         return (
             f"### Next\n\n"
             f"- Open the repo: https://github.com/{OWNER}/{name}\n"
-            f"- **Connect the repo to a project on Vercel** (https://vercel.com/new), and in the project's settings turn **Deployment "
-            f"Protection** off for previews: CI fails the pull request when the preview asks for a login (docs/next-js-app.md)\n"
+            f"{by_hand}"
             f"- Give the Claude GitHub App access to the repo, unless its installation covers all repositories: "
             f"https://github.com/apps/claude/installations/select_target\n"
             f"- Start a Claude Code session on it: https://claude.ai/code/new?repo={OWNER}%2F{name}\n"
@@ -461,7 +479,7 @@ def main():
               f"push the first commit to {DEFAULT_BRANCH}, set {sync_apps.COMMIT_TOKEN_SECRET} and add the app to {APPS_FILE}")
         return
 
-    tokens = {k: os.environ.get(k) for k in ("NEW_APP_TOKEN", "SYNC_TOKEN", "GENERATED_COMMIT_TOKEN")}
+    tokens = {k: os.environ.get(k) for k in ("NEW_APP_TOKEN", "SYNC_TOKEN", "GENERATED_COMMIT_TOKEN", "VERCEL_TOKEN")}
     for value in tokens.values():
         if value:
             print(f"::add-mask::{value}")
@@ -469,6 +487,7 @@ def main():
         lines = create_app(
             args.name, args.stack, args.private, args.resume,
             create_token=tokens["NEW_APP_TOKEN"], sync_token=tokens["SYNC_TOKEN"], commit_token=tokens["GENERATED_COMMIT_TOKEN"],
+            vercel_token=tokens["VERCEL_TOKEN"], vercel_team=os.environ.get("VERCEL_TEAM_ID"),
         )
     except (RuntimeError, subprocess.CalledProcessError) as e:
         print(f"::error::{e}")
@@ -478,7 +497,7 @@ def main():
     summary = os.environ.get("GITHUB_STEP_SUMMARY")
     if summary:
         with open(summary, "a") as f:
-            f.write(f"### New app {args.name}\n\n" + "\n".join(f"- {l}" for l in lines) + "\n\n" + next_steps(args.name, args.stack))
+            f.write(f"### New app {args.name}\n\n" + "\n".join(f"- {l}" for l in lines) + "\n\n" + next_steps(args.name, args.stack, vercel_done=any(l.startswith("vercel project") for l in lines)))
 
 
 if __name__ == "__main__":
