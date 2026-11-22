@@ -76,9 +76,18 @@ class EnsureProject(unittest.TestCase):
     def test_a_refused_connection_says_to_install_the_github_app(self):
         error = {"error": {"code": "invalid_git_repository", "message": "Could not find the GitHub repository"}}
         call = FakeVercel({GET: (404, {}), CREATE: (400, error)})
-        with self.assertRaisesRegex(v.VercelError, "Install the Vercel GitHub app") as e:
+        with self.assertRaisesRegex(v.VercelError, "All repositories") as e:
             v.ensure_project(call, "my-site", "LukeNeedham/MySite")
         self.assertEqual(400, e.exception.status)
+
+    def test_the_message_names_the_page_where_the_access_is_given(self):
+        error = {"error": {"code": "repo_not_found", "message": 'The repository "MySite" couldn\'t be found.'}}
+        call = FakeVercel({GET: (404, {}), CREATE: (400, error)})
+        with self.assertRaises(v.VercelError) as e:
+            v.ensure_project(call, "my-site", "LukeNeedham/MySite")
+        self.assertIn(v.GITHUB_APP_SETTINGS, str(e.exception))
+        self.assertIn("repo_not_found", str(e.exception))
+        self.assertIn("reconnect GitHub", str(e.exception), "an expired connection of the Vercel account gives the same error")
 
     def test_a_bad_token_says_so(self):
         call = FakeVercel({GET: (403, {"error": {"code": "forbidden", "message": "Not authorized"}})})
@@ -187,6 +196,21 @@ class NewAppStep(unittest.TestCase):
 
         self.assertEqual([("tok", "team_1")], made)
         self.assertTrue(lines[0].startswith("vercel project mysite"))
+
+    def test_a_failure_says_the_repo_is_made_and_how_to_carry_on(self):
+        error = {"error": {"code": "repo_not_found", "message": "The repository could not be found"}}
+
+        def make_call(token, team):
+            return FakeVercel({LIST: (200, {"projects": []}), ("GET", "/v9/projects/mysite"): (404, {}), CREATE: (400, error)})
+
+        with self.assertRaises(v.VercelError) as e:
+            n.set_up_vercel("LukeNeedham/MySite", "MySite", "tok", None, make_call)
+
+        text = str(e.exception)
+        self.assertIn("repo and its first commit are made", text)
+        self.assertIn("run New App again for MySite with resume on", text)
+        self.assertIn("All repositories", text)
+        self.assertEqual(400, e.exception.status)
 
     def test_the_next_steps_leave_out_vercel_when_it_is_done(self):
         by_hand = n.next_steps("MySite", "next-js")

@@ -126,8 +126,11 @@ It runs in two places:
   dry run) for a website that exists, such as PersonalWebsite.
 
 **One-time setup, once for all the websites:**
-1. The **Vercel GitHub app** is installed for the account, with access to all repositories (https://github.com/apps/vercel), so that Vercel
-   can see a repo that was created a moment ago. Vercel refuses to connect a repo it cannot see, and the error says so.
+1. The **Vercel GitHub app** is installed for the account, with access to **all repositories** (https://github.com/apps/vercel; check it at
+   https://github.com/settings/installations > Vercel > Configure > Repository access), so that Vercel can see a repo that was created a moment
+   ago. With only selected repositories, a new website fails at the Vercel step with `repo_not_found`: the repo and its first commit are made, so
+   fix the access and run *New App* again with **resume** on, which carries on from there. The same error comes when **the GitHub connection of the
+   Vercel account has expired** (Vercel > Account Settings > Authentication: reconnect GitHub; Vercel's own call to GitHub then answers `Bad credentials`).
 2. A **Vercel token** (https://vercel.com/account/tokens, scope: the account or team of the sites), kept as the secret `VERCEL_TOKEN`
    of *this* repo (*Settings → Secrets and variables → Actions*). For a team, the team's id (Team Settings → General) is the secret
    `VERCEL_TEAM_ID`; a personal account has none. The token is only ever sent to `api.vercel.com`, and is masked in the logs. It can

@@ -427,7 +427,13 @@ def set_up_vercel(repo, name, token, team, make_call=vercel_setup.make_call):
     """The Vercel step of a website: the lines to report. Without a token it is skipped and says what is left to do by hand."""
     if not token:
         return ["vercel: not set up (no VERCEL_TOKEN): connect the repo to Vercel and turn Deployment Protection off for previews yourself"]
-    return vercel_setup.set_up(make_call(token, team), repo)
+    try:
+        return vercel_setup.set_up(make_call(token, team), repo)
+    except vercel_setup.VercelError as e:
+        # The repo and its first commit are made by now, and every step can be repeated: say how to carry on
+        raise vercel_setup.VercelError(
+            f"{e} The repo and its first commit are made: fix this, then run New App again for {repo.split('/')[1]} with resume on "
+            "(Actions > New App > Run workflow), and it carries on from here (docs/create-app.md).", e.status, e.code) from None
 
 
 def next_steps(name, stack, vercel_done=False):
