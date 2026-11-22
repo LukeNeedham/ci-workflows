@@ -163,13 +163,28 @@ class AppsFile(unittest.TestCase):
     apps = json.loads((TOOLS / "apps.json").read_text())
 
     def test_an_entry_is_just_a_name_a_repo_and_a_stack(self):
-        # Nothing is configured per app: every app of a stack is built the same way. The stack is always written out
+        # Nothing is configured per app: every app of a stack is built the same way. The stack is always written out.
+        # The one extra is the production URL of a website, which a person sets once its domain exists (docs/next-js-app.md)
         self.assertTrue(self.apps)
         for entry in self.apps:
-            self.assertEqual({"name", "repo", "stack"}, set(entry), entry)
+            self.assertLessEqual({"name", "repo", "stack"}, set(entry), entry)
+            self.assertLessEqual(set(entry), {"name", "repo", "stack", "productionUrl"}, entry)
             self.assertIn(entry["stack"], ("kmp", "next-js"), entry)
             self.assertRegex(entry["repo"], r"^[\w.-]+/[\w.-]+$")
             self.assertTrue(entry["name"])
+
+    def test_a_production_url_is_a_web_address_of_a_website(self):
+        for entry in self.apps:
+            if "productionUrl" in entry:
+                self.assertEqual("next-js", entry["stack"], f'{entry["repo"]}: only a website has a production URL')
+                self.assertRegex(entry["productionUrl"], r"^https?://[^/\s]+(/\S*)?$", entry["repo"])
+
+    def test_the_websites_have_their_production_url_where_it_is_known(self):
+        urls = {a["repo"]: a.get("productionUrl") for a in self.apps if a["stack"] == "next-js"}
+        self.assertEqual("https://lukeneedham.com", urls["LukeNeedham/PersonalWebsite"])
+        self.assertEqual("https://matthewjneedham.com", urls["LukeNeedham/MatthewPersonalWebsite"])
+
+    def test_names_are_unique_ignoring_case(self):
         # Names are compared exactly, so two entries must not differ only by case
         self.assertEqual(len(self.apps), len({a["repo"].lower() for a in self.apps}))
 
