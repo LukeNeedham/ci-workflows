@@ -1,6 +1,6 @@
-# Creating an app repo
+# Creating a project repo
 
-A new app repo is created and set up with no LLM. Claude cannot create repos (the integration gets a 403), so this
+A new project repo (an app or a website) is created and set up with no LLM. Claude cannot create repos (the integration gets a 403), so this
 replaces creating the repo by hand in the browser. It is split in two, so that **this repo holds no token that can create
 repos**:
 
@@ -9,6 +9,19 @@ repos**:
 2. **The setup of the repo is done here**, by **[`new_app.yml`](../.github/workflows/new_app.yml)**, which runs
    [`scripts/new_app.py`](../scripts/new_app.py) with the secrets this repo already has for the [sync](sync.md). The caller
    starts it, from the Actions tab or with the dispatch API, with *resume* on, as the repo is there already.
+
+## The stack
+
+**The caller says what kind of project it is**, with the input `stack`, which is required and has no default (the same two
+values as in [`apps.json`](../apps.json), [sync.md](sync.md#appsjson)):
+
+| `stack` | What the first commit holds | Left to do |
+|---|---|---|
+| `kmp` | The first sync and the Android app below | The Claude GitHub App |
+| `next-js` | The first sync of the stack (`next-js-conventions`, `web_pr.yml`, the `CLAUDE.md` block) and the minimal site of [`templates/next-js/`](../templates/next-js) with a `yarn.lock` made on the spot ([next-js-app.md](next-js-app.md)): no Android app, no Gradle, no shared library | Connecting the repo to Vercel and turning Deployment Protection off for previews, and the Claude GitHub App |
+
+A dispatch without a valid `stack` fails at once with the values it takes, so an old caller cannot create the wrong kind of
+project. The stack is also written into the project's entry in `apps.json`. The rest of this page is the `kmp` app unless it says otherwise.
 
 ## What it does
 
@@ -138,8 +151,8 @@ account: keep it with the caller, not in this repo.
 ## Running it yourself
 
 ```
-NEW_APP_TOKEN=... SYNC_TOKEN=... GENERATED_COMMIT_TOKEN=... python3 scripts/new_app.py LyricTutor [--private] [--resume]
-python3 scripts/new_app.py LyricTutor --dry-run        # check the name, change nothing
+NEW_APP_TOKEN=... SYNC_TOKEN=... GENERATED_COMMIT_TOKEN=... python3 scripts/new_app.py LyricTutor --stack kmp [--private] [--resume]
+python3 scripts/new_app.py MySite --stack next-js --dry-run   # check the name and the stack, change nothing
 python3 -m unittest discover -s tests                  # the tests (need pyyaml; `keytool` for the keystore test)
 ```
 
@@ -148,7 +161,7 @@ Without `NEW_APP_TOKEN` the repo has to exist: pass `--resume`.
 ## Starting the dispatch from another program
 
 `POST /repos/LukeNeedham/ci-workflows/actions/workflows/new_app.yml/dispatches` with `{"ref": "main", "inputs": {"name":
-"LyricTutor", "resume": "true"}}` (inputs are strings) and a token that may write Actions on this repo. It answers `204`
+"LyricTutor", "stack": "kmp", "resume": "true"}}` (inputs are strings) and a token that may write Actions on this repo. It answers `204`
 with no run id: the run is found in
 `GET /repos/LukeNeedham/ci-workflows/actions/workflows/new_app.yml/runs?event=workflow_dispatch`, newest first, by its
 `display_title`, which is `New App <name>` (the `run-name` of the workflow). A caller that may start the same app twice

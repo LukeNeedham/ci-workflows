@@ -16,9 +16,24 @@ The long guide is `docs/next-js-app.md` in that repo. If you can reach GitHub, r
   Kotlin conventions apply here.
 - The project has a **lockfile** (`yarn.lock`, `pnpm-lock.yaml` or `package-lock.json`): CI installs exactly what it says and
   finds the package manager from it. The Node version is `engines.node` in `package.json`.
-- `package.json` has the scripts `lint` and `build`. A `test` script is run when there is one.
+- `package.json` has the scripts `lint` and `build`; `typecheck` and `test` are run when there are such scripts (a new project has both).
 - **Claude cannot run the site's CI.** Run `lint` and `build` locally when `node_modules` is available; otherwise push and read
   the PR's checks.
+
+## Architecture (the standard of `docs/next-js-app.md`)
+- Layers: `src/app/` (routes only), `src/domain/` (`model/`, `provider/`, no UI), `src/presentation/` (`common/`, `theme/`,
+  `feature/<name>/`).
+- **Every page is `XPage` plus a stateless `XPageContent`, always**, each in its own file in `presentation/feature/<x>/`, next to
+  `useXViewModel.ts` and `XUiState.ts`. `XPage` is a client component that gets `{ uiState, ...actions }` from `useXViewModel`
+  and hands them down, with no UI of its own. `XPageContent` is all of the page's UI: no hooks, no `'use client'`, takes the
+  `XUiState` and one callback per user action (state down, events up). A route file only renders `<XPage />`. A reusable
+  piece (card, row) is a plain component in its own file, not a page. Never `XView` or `XScreen`.
+- **Imports use the alias `@/`**, never `../` (ESLint fails it).
+- Routes live in `UrlProvider`, never typed out in a component. Providers are plain objects, not classes with an instance.
+- Text is sized by the theme's named `textStyles` (`mainTitle`, `subTitle`, `body`, `fine`), never in a component.
+- `scripts/` runs at build time only and writes to the git-ignored `src/generated/`; `src/` never reads files or builds content.
+- Prettier formats (no semicolons, single quotes); `yarn lint` checks it and `yarn format` fixes it.
+- Test `XPageContent` by rendering it with a state and clicking, and the view model with `renderHook`.
 
 ## CI
 - One caller, `.github/workflows/web_pr.yml`, synced from ci-workflows. It lints, tests (if there is a `test` script) and builds

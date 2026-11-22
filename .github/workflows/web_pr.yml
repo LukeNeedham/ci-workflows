@@ -14,8 +14,8 @@ on:
         required: false
 
 jobs:
-  # Lint, and build with what the lockfile says. The package manager is found from the lockfile, the Node version is the
-  # engines.node of package.json.
+  # Lint, typecheck and test (when the project has those scripts), and build with what the lockfile says. The package
+  # manager is found from the lockfile, the Node version is the engines.node of package.json.
   check:
     if: github.event_name == 'pull_request' && github.base_ref == 'main'
     runs-on: ubuntu-latest
@@ -44,6 +44,12 @@ jobs:
         env:
           RUN: ${{ steps.project.outputs.run }}
         run: $RUN lint
+
+      - name: Typecheck
+        if: steps.project.outputs.has-typecheck == 'true'
+        env:
+          RUN: ${{ steps.project.outputs.run }}
+        run: $RUN typecheck
 
       - name: Test
         if: steps.project.outputs.has-test == 'true'

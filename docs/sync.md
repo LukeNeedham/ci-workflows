@@ -60,7 +60,7 @@ A run fails (and GitHub emails you) if any app failed, after trying all of them.
 
 These are the only fields: every project of a stack gets the same, and nothing is configured per project.
 
-**A new project:** add it here with its stack (this is also the list "all consuming apps" means), then run *Sync Apps*
+**A new project:** create it from AppHub's New project, or *New App* ([create-app.md](create-app.md)), which adds the entry; or add it here with its stack (this is also the list "all consuming apps" means), then run *Sync Apps*
 for it. Its first sync PR adds the callers, the skill and the `CLAUDE.md` block.
 
 ## The token (one-time setup)

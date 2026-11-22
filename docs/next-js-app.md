@@ -13,12 +13,59 @@ Nothing is configured per project: every `next-js` project follows the same stan
 | Framework | Next.js with React and TypeScript |
 | Lockfile | One of `yarn.lock`, `pnpm-lock.yaml`, `package-lock.json`, committed. CI finds the package manager from it, and installs exactly what it says |
 | Node | The version in `engines.node` of `package.json` |
-| Scripts | `lint` and `build`. `test` is run when the project has it |
+| Scripts | `lint` and `build`. `typecheck` and `test` are run when the project has them (the scaffold has both) |
 | Branch | PRs go to `main` |
 | Hosting | The repo is connected to a project on [Vercel](https://vercel.com), which deploys every PR as a preview and `main` as production |
 
 What does not apply: `app-icon.png`, `readme.yml`, the screenshots and previews of Compose, the conventions check, the
 releases, the APK links, the `common` library and the `lukeneedham-conventions` skill. The README is the project's own.
+
+## The architecture
+
+The standard follows the pattern of the Kotlin apps ([pages.md](pages.md)), in Next.js. The first project, PersonalWebsite,
+has the layers; the new-project scaffold ([`templates/next-js/`](../templates/next-js)) is the reference.
+
+```
+src/
+  app/           the routes, and nothing else; layout.tsx and providers.tsx
+  domain/        what the site knows, with no UI: model/ (plain types) and provider/ (objects that hand out data)
+  presentation/  common/ (shared), theme/ (the Chakra system) and feature/<name>/ (one folder per page)
+```
+
+**Every page is `XPage` and `XPageContent`**, each in its own file in `presentation/feature/<x>/`, next to
+`useXViewModel.ts` and `XUiState.ts`. This is the one way to build a page, as in the Kotlin apps:
+
+| | `XPage` | `XPageContent` |
+|---|---|---|
+| Job | Connects the page to the app: gets the state and the actions from `useXViewModel`, and hands them down. **No UI of its own** | **All of the page's UI** |
+| State | Stateful: a client component (`'use client'`) | **Stateless**: no hooks, no `'use client'` of its own. State down, events up |
+| Takes | What the route gives it (the params) | `XUiState` and **one callback per user action**, such as `onButtonClick` |
+
+- A route file (`src/app/<x>/page.tsx`) only renders `<XPage />`. It has no UI and no logic.
+- `useXViewModel` is the view model: a hook that returns `{ uiState, ...actions }` and knows nothing of how the page looks.
+  `XUiState` is a plain interface. A page with no state of its own has no view model, and `XPage` passes what it reads from a provider.
+- `XPageContent` is easy to test: render it with a state and click. The view model is tested with `renderHook`. The scaffold has both tests.
+- A reusable piece (a card, a row) is **not** a page: it is a plain component in its own file. Never `XView` or `XScreen`.
+
+**One way to import: the alias `@/`** (the folder `src/`), never a relative path that climbs out of a folder (`../`). ESLint
+fails it (`no-restricted-imports`).
+
+**Routes and shared data are in one place.** `UrlProvider` has every route of the site, so a path is never typed out in a component. A
+provider is a plain object (`export const UrlProvider = { ... }`), not a class with an instance.
+
+**Text is never sized in a component**: the theme (`presentation/theme/system.ts`) has named `textStyles` (`mainTitle`,
+`subTitle`, `body`, `fine`), and a component picks one with `textStyle`.
+
+**Build time and runtime are kept apart.** A `scripts/` folder, if the site has one (PersonalWebsite renders its blog from markdown),
+runs at build time only and writes to `src/generated/` (git-ignored). `src/` only imports the output, and never reads files or builds content.
+
+**Static by default.** A route with a known set of pages is built ahead (`generateStaticParams` with `dynamicParams = false`).
+
+**Formatting is Prettier's** (no semicolons, single quotes, 100 columns), checked by `lint`, fixed by `yarn format`.
+
+**Stack and versions**: Next.js, React and **Chakra UI v3** at their newest, TypeScript 6 (typescript-eslint does not support 7 yet, so
+`typescript` is pinned to `~6.0`), ESLint 10 with `eslint-config-next`, Vitest with Testing Library, Prettier and `yarn`. The versions are
+carets in the template and `yarn.lock` pins what was installed on the day the project was created.
 
 ## What the sync gives it
 
@@ -32,7 +79,7 @@ releases, the APK links, the `common` library and the `lukeneedham-conventions` 
 
 [`web_pr.yml`](../.github/workflows/web_pr.yml) runs on every PR into `main`:
 
-1. **`check`**: installs from the lockfile, runs `lint`, `test` (if the project has the script) and `build`.
+1. **`check`**: installs from the lockfile, runs `lint`, `typecheck` and `test` (if the project has the scripts) and `build`.
 2. **`preview`**: waits for the preview that Vercel deploys for the commit, checks that it **opens without a login**, and
    posts one comment per PR (header `web-preview-link`) with the URL. The AppHub link is posted once, as for the apps.
 3. **`automerge`**: merges the sync PR once the jobs have passed ([sync.md](sync.md#merging-the-prs)).
@@ -65,9 +112,23 @@ it is updated by every push, so it always has the URL of the newest commit. The 
 
 ## A new project
 
-1. Create the repo, connect it to a Vercel project, and turn Deployment Protection off for previews.
-2. Add it to [`apps.json`](../apps.json) with `"stack": "next-js"` and run *Sync Apps* for it.
-3. Merge the sync PR (it merges itself once its checks pass).
+From **AppHub's New project**, choosing the stack `next-js` (or *Actions → New App → Run workflow* with `stack` set to
+`next-js`; [create-app.md](create-app.md)), which makes the repo, pushes the first commit and adds the entry to `apps.json`.
+The first commit holds the sync of this stack and the minimal site of [`templates/next-js/`](../templates/next-js): one page,
+`HomePage` and `HomePageContent`, with the view model, the theme, the lint, typecheck and test setup and a `yarn.lock`, so
+the first pull request already builds. What is left is yours:
+
+1. Connect the repo to a project on [Vercel](https://vercel.com/new) and turn Deployment Protection off for previews.
+2. Start a session on the repo and write the site.
+
+To bring an **existing** website: add it to [`apps.json`](../apps.json) with `"stack": "next-js"` and run *Sync Apps* for it.
+Its first sync PR adds the callers, the skill and the `CLAUDE.md` block; the project itself is the project's own.
+
+## Changing the template
+
+[`templates/next-js/`](../templates/next-js) is checked by running the scaffold into a folder and running `yarn install`,
+`lint`, `typecheck`, `test` and `build` there, which only needs the network and Node 24. A change to the template, or to the
+versions in its `package.json`, has to pass all of that before it is merged: the tests of `tests/` check its rules, not that it builds.
 
 ## Changing the standard
 

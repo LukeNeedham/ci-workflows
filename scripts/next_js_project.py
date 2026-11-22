@@ -5,7 +5,7 @@ lockfile, and whether it has a `test` script. Sets step outputs; a project has n
     python3 next_js_project.py [project directory]
 
 Outputs: `manager` (yarn, pnpm or npm), `install` (the command that installs exactly what the lockfile says),
-`run` (the command prefix that runs a script, such as `yarn` or `npm run`), `has-test` ("true" or "false").
+`run` (the command prefix that runs a script, such as `yarn` or `npm run`), `has-typecheck` and `has-test` ("true" or "false").
 Exits 1 when there is no lockfile or no package.json: a project without a lockfile does not build the same twice.
 """
 
@@ -51,6 +51,7 @@ def main():
     output("manager", manager)
     output("install", install)
     output("run", run)
+    output("has-typecheck", "true" if has_script(project, "typecheck") else "false")
     output("has-test", "true" if has_script(project, "test") else "false")
 
 
