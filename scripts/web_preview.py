@@ -7,7 +7,9 @@ environment "Preview", with a status that has the URL). This reads that, so CI n
 
     python3 web_preview.py --repo R --pr N --sha SHA --body-file comment.md [--timeout SECONDS]
 
-Sets the step outputs `url` and `public` ("true" or "false"), and writes the comment to --body-file. The comment holds the
+Sets the step outputs `url` and `public` ("true" or "false"), and writes the comment to --body-file and says so with the output
+`comment` ("true"): the workflow posts the comment on that, whatever else happened (a hashFiles() test of the file would not do: it
+only sees the workspace, and this file is not in it). The comment holds the
 URL as `<!-- preview-url: URL -->` on a line of its own, so that AppHub can read it from the PR (docs/next-js-app.md).
 Uses GH_TOKEN for the GitHub API. Exits 1 when there is no preview, and 2 when the preview asks for a login.
 """
@@ -104,6 +106,12 @@ def comment_body(url, sha, public):
     return f"### 🌐 Preview\n\n- **Commit:** `{commit}`\n- **Preview:** {url}\n\n<!-- {URL_MARKER}: {url} -->\n"
 
 
+def write_comment(path, body):
+    """Writes the comment to [path] and sets the output `comment`, which the step that posts it waits for."""
+    Path(path).write_text(body)
+    output("comment", "true")
+
+
 def waiting_body(sha, state):
     return f"### ⏳ Preview not ready\n\n- **Commit:** `{sha[:7]}`\n- **Vercel:** {state}\n"
 
@@ -131,7 +139,7 @@ def main():
 
     url, state = find(args.repo, args.sha, args.timeout)
     if not url:
-        Path(args.body_file).write_text(waiting_body(args.sha, state))
+        write_comment(args.body_file, waiting_body(args.sha, state))
         error(f"No preview deployment of {args.sha[:7]} succeeded on Vercel (state: {state}). Is the repo connected to a Vercel project?",
               "No preview")
         sys.exit(1)
@@ -139,7 +147,7 @@ def main():
     public = is_public(url)
     output("url", url)
     output("public", "true" if public else "false")
-    Path(args.body_file).write_text(comment_body(url, args.sha, public))
+    write_comment(args.body_file, comment_body(url, args.sha, public))
     if not public:
         error(f"{url} asks for a login. Turn off Deployment Protection for previews in the Vercel project (docs/next-js-app.md).",
               "Preview is not public")

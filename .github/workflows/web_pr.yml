@@ -99,7 +99,7 @@ jobs:
         run: python3 "$CI_SCRIPTS/web_preview.py" --repo "$REPO" --pr "$PR" --sha "$SHA" --body-file "$RUNNER_TEMP/preview.md"
 
       - name: Link the preview on PR
-        if: ${{ !cancelled() && hashFiles(format('{0}/preview.md', runner.temp)) != '' }}
+        if: ${{ !cancelled() && steps.preview.outputs.comment == 'true' }}
         uses: marocchino/sticky-pull-request-comment@v3
         with:
           header: web-preview-link

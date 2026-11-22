@@ -94,6 +94,27 @@ class Comment(unittest.TestCase):
         self.assertIn("<!-- preview-url: https://a.vercel.app -->", body)
 
 
+class WriteComment(unittest.TestCase):
+    def test_the_comment_is_written_and_the_workflow_is_told_by_an_output(self):
+        import os
+        with tempfile.TemporaryDirectory() as d:
+            out = Path(d) / "out"
+            saved = os.environ.get("GITHUB_OUTPUT")
+            os.environ["GITHUB_OUTPUT"] = str(out)
+            try:
+                w.write_comment(Path(d) / "comment.md", "hello")
+            finally:
+                os.environ.pop("GITHUB_OUTPUT") if saved is None else os.environ.__setitem__("GITHUB_OUTPUT", saved)
+            self.assertEqual("hello", (Path(d) / "comment.md").read_text())
+            self.assertEqual("comment=true\n", out.read_text())
+
+    def test_the_workflow_does_not_test_the_file_with_hashfiles(self):
+        # hashFiles() only sees the workspace, and the comment is in the runner's temp folder: such a test is always false
+        workflow = (Path(w.__file__).resolve().parent.parent / ".github/workflows/web_pr.yml").read_text()
+        self.assertNotIn("hashFiles", workflow)
+        self.assertIn("steps.preview.outputs.comment == 'true'", workflow)
+
+
 class Project(unittest.TestCase):
     def setUp(self):
         self._tmp = tempfile.TemporaryDirectory()
