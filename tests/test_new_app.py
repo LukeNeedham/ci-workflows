@@ -914,6 +914,10 @@ class NextJsScaffold(unittest.TestCase):
         for path in (".claude", ".github", "CLAUDE.md"):
             self.assertIn(path, ignored)
 
+    def test_prettier_does_not_check_the_root_readme(self):
+        # It is written by the scaffold (and the first one GitHub makes fails the check), so a style nit in it must not fail a PR
+        self.assertIn("/README.md", self.text(".prettierignore").splitlines())
+
     def test_every_import_uses_the_alias(self):
         for path in (self.dir / "src").rglob("*.ts*"):
             self.assertNotRegex(path.read_text(), r"from '\.\.?/", str(path))

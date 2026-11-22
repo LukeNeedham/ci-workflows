@@ -69,7 +69,7 @@ runs at build time only and writes to `src/generated/` (git-ignored). `src/` onl
 
 **Formatting is Prettier's** (no semicolons, single quotes, 100 columns), checked by `lint`, fixed by `yarn format`.
 `.prettierignore` leaves out the files the sync keeps (`.claude`, `.github`, `CLAUDE.md`): Prettier fails on them, and a reformat would be
-reverted by the next sync.
+reverted by the next sync. It also leaves out the root `README.md`: the scaffold writes it, and a style nit in it must not fail a PR.
 
 **Stack and versions**: Next.js, React and **Chakra UI v3** at their newest, TypeScript 6 (typescript-eslint does not support 7 yet, so
 `typescript` is pinned to `~6.0`), ESLint 10 with `eslint-config-next`, Vitest (which is built on Vite, so `vite` is installed too; it is
