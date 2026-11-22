@@ -6,7 +6,9 @@ are meant**, and "update all consuming apps to the latest library version" is ev
 
 **The list is [`apps.json`](../apps.json)**, which the [sync](sync.md) also reads: one entry per project, its `name`, its
 `repo` and its `stack`, which is always written out, with no default: `kmp` (Kotlin Multiplatform: an Android app that also
-builds for iOS and the web) or `next-js` (a website only, [next-js-app.md](next-js-app.md)). Nothing else is configured per
+builds for iOS and the web) or `next-js` (a website only, [next-js-app.md](next-js-app.md)). A `next-js` entry can also have a
+`productionUrl`, the address of its production deployment (`https://lukeneedham.com`): AppHub's pill for the website opens it, and nothing
+else reads it. It is optional, because a new website has no domain yet: add it when it has one. Nothing else is configured per
 project ([app-config.md](app-config.md)): every project of a stack gets that stack's workflow callers and skill by the sync.
 
 Every `kmp` app in this list must have `app-icon.png` at its repo root ([app-icon.md](app-icon.md)); the app hub
