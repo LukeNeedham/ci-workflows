@@ -38,6 +38,7 @@ SOURCE = "readme.yml"
 HEADER = f"<!-- Generated from {SOURCE} by LukeNeedham/ci-workflows (docs/readme.md). Edit {SOURCE}, not this file. -->"
 REQUIRED_TEXT = ["name", "tagline", "description"]
 LICENSE_FILE = "LICENSE"
+CREDITS_FILE = "CREDITS.md"
 LINKS = {"play-store": "Google Play", "f-droid": "F-Droid", "web": "Web app"}
 SCREENSHOTS = "docs/screenshots"
 KNOWN = {"name", "tagline", "description", "links", "screenshots", "user", "developer", "sections"}
@@ -156,6 +157,7 @@ class WebFacts:
     node: str = ""
     license: str = "All rights reserved"
     production_url: str = ""
+    credits: bool = False
 
 
 def production_url(repo, apps_file=APPS_FILE):
@@ -181,7 +183,7 @@ def web_facts(app_dir, repo=None, apps_file=APPS_FILE):
     text = license_text(app_dir)
     return WebFacts(manager, f"{manager} install", run, tuple(name for name, _ in WEB_SCRIPTS if name in scripts),
                     node.group(0) if node else "", license_name(text) if text else "All rights reserved",
-                    production_url(repo, apps_file))
+                    production_url(repo, apps_file), (app_dir / CREDITS_FILE).is_file())
 
 
 def screenshot_files(app_dir):
@@ -274,6 +276,11 @@ def problems(data, app_dir=None, stack="kmp"):
             found.append("the website has no package.json: the README takes its commands and Node version from it")
         elif next_js_project.detect(app_dir) is None:
             found.append("the website has no lockfile (yarn.lock, pnpm-lock.yaml or package-lock.json): the README takes its package manager from it")
+        if (app_dir / CREDITS_FILE).is_file():
+            for i, section in enumerate(s for s in data.get("sections") or [] if isinstance(s, dict)):
+                if str(section.get("title", "")).strip().lower() == "credits":
+                    found.append(f"`sections[{i}]` is `Credits`, but the site has a {CREDITS_FILE} file, which the README links to: "
+                                 f"put the credits there")
         text = license_text(app_dir)
         if text is None or not text.strip():
             found.append(f"the website has no {LICENSE_FILE} file: every project has one. For one that had no license, add one "
@@ -424,6 +431,8 @@ def render_web(data, repo, facts):
         out += [str(notes).strip(), ""]
     for section in data.get("sections") or []:
         out += [f"## {str(section['title']).strip()}", "", str(section["body"]).strip(), ""]
+    if facts.credits:
+        out += ["## Credits", "", f"See [{CREDITS_FILE}]({CREDITS_FILE}).", ""]
     out += [
         "## Contributing",
         "",

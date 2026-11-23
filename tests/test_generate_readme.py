@@ -291,6 +291,19 @@ class WebsiteReadmeTest(unittest.TestCase):
         order = [text.index(s) for s in ("## Description", "## Getting started as a developer", "Copy `.env.example`.", "## Credits", "## Contributing")]
         self.assertEqual(sorted(order), order)
 
+    def test_credits_are_a_file_that_the_readme_links_to_when_it_exists(self):
+        self.assertNotIn("Credits", self.render())
+        with website() as folder:
+            (folder / "CREDITS.md").write_text("Icons by someone.\n")
+            d = web_data()
+            d["sections"] = [{"title": "Roadmap", "body": "Soon."}]
+            text = g.render_web(d, "LukeNeedham/Demo", g.web_facts(folder))
+            self.assertIn("## Credits\n\nSee [CREDITS.md](CREDITS.md).\n\n## Contributing", text)
+            self.assertLess(text.index("## Roadmap"), text.index("## Credits"))
+            self.assertEqual([], g.problems(d, folder, "next-js"))
+            d["sections"] = [{"title": "credits", "body": "Icons."}]
+            self.assertIn("put the credits there", "\n".join(g.problems(d, folder, "next-js")))
+
     def test_the_production_link_is_the_production_url_of_the_site_in_apps_json(self):
         with tempfile.TemporaryDirectory() as tmp, website() as folder:
             apps = Path(tmp) / "apps.json"

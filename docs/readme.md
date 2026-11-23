@@ -99,7 +99,7 @@ its format is its own and smaller: [`readme-template-web.yml`](readme-template-w
 stale. Unknown fields, `#`/`##` headings in the text and a `license` field are errors, as for the apps.
 
 The layout, in this order: the name as the one `#` heading and the tagline (with the `links` under it), `## Description`,
-`## Getting started as a developer`, any `sections`, `## Contributing` and `## License`. **What comes from the project:** the package
+`## Getting started as a developer`, any `sections`, `## Credits` (only when the site has a `CREDITS.md` file at the repo root: the README just links to it, and a `sections` entry titled Credits is then an error), `## Contributing` and `## License`. **What comes from the project:** the package
 manager (from the lockfile: `yarn.lock`, `pnpm-lock.yaml` or `package-lock.json`), the commands (the `dev`, `lint`, `format`,
 `typecheck`, `test` and `build` scripts of `package.json`, the ones it has), the Node version (`engines.node`) and the license
 (the `LICENSE` file, which is required) and the production address (`productionUrl` in `apps.json`). The architecture is not described: it is the same for every site ([next-js-app.md](next-js-app.md)).
