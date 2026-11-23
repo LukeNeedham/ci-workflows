@@ -59,7 +59,7 @@ class GenerateReadmeTest(unittest.TestCase):
         text = render()
         headings = [l[3:] for l in text.splitlines() if l.startswith("## ")]
         self.assertEqual(["Description", "Screenshots", "Getting started as a user", "Getting started as a developer",
-                          "Contributing", "License"], headings)
+                          "License"], headings)
         self.assertLess(text.index("app-icon.png"), text.index("# Demo App"))
         self.assertIn("git clone https://github.com/LukeNeedham/Demo.git", text)
         self.assertIn("Edit readme.yml", text)
@@ -90,7 +90,7 @@ class GenerateReadmeTest(unittest.TestCase):
         d["developer"] = {"notes": "Create local.properties."}
         text = render(d)
         self.assertLess(text.index("shared architecture and conventions"), text.index("Create local.properties."))
-        self.assertLess(text.index("Create local.properties."), text.index("## Contributing"))
+        self.assertLess(text.index("Create local.properties."), text.index("## License"))
         d["developer"] = {"notes": "x", "structure": ["y"]}
         self.assertIn("`developer` can only have `notes`", "\n".join(g.problems(d)))
 
@@ -101,8 +101,12 @@ class GenerateReadmeTest(unittest.TestCase):
         text = render(d)
         self.assertIn('<img src="docs/screenshots/PullRequestPage.png" width="240" alt="Pull Request Page">', text)
         order = [text.index(s) for s in ("## Description", "## Screenshots", "## Getting started as a user",
-                                         "Create local.properties.", "## Privacy", "## Contributing")]
+                                         "Create local.properties.", "## Privacy", "## License")]
         self.assertEqual(sorted(order), order)
+
+    def test_there_is_no_contributing_section(self):
+        self.assertNotIn("Contributing", render())
+        self.assertNotIn("Contributing", WebsiteReadmeTest().render())
 
     def test_the_install_step_can_be_replaced(self):
         d = data()
@@ -249,7 +253,7 @@ class WebsiteReadmeTest(unittest.TestCase):
     def test_the_layout_has_no_icon_screenshots_or_install_steps(self):
         text = self.render()
         headings = [l[3:] for l in text.splitlines() if l.startswith("## ")]
-        self.assertEqual(["Description", "Getting started as a developer", "Contributing", "License"], headings)
+        self.assertEqual(["Description", "Getting started as a developer", "License"], headings)
         for left_out in ("app-icon", "Screenshots", "Android", "AppHub", "Getting started as a user"):
             self.assertNotIn(left_out, text)
         self.assertTrue(text.startswith("<!-- Generated from readme.yml"))
@@ -290,7 +294,7 @@ class WebsiteReadmeTest(unittest.TestCase):
         text = self.render(d)
         self.assertIn("[Design](https://example.com/d)", text)
         self.assertNotIn("Website](", text, "the site has no productionUrl")
-        order = [text.index(s) for s in ("## Description", "## Getting started as a developer", "Copy `.env.example`.", "## Credits", "## Contributing")]
+        order = [text.index(s) for s in ("## Description", "## Getting started as a developer", "Copy `.env.example`.", "## Credits", "## License")]
         self.assertEqual(sorted(order), order)
 
     def test_credits_are_a_file_that_the_readme_links_to_when_it_exists(self):
@@ -300,7 +304,7 @@ class WebsiteReadmeTest(unittest.TestCase):
             d = web_data()
             d["sections"] = [{"title": "Roadmap", "body": "Soon."}]
             text = w.render(d, "LukeNeedham/Demo", w.facts(folder))
-            self.assertIn("## Credits\n\nSee [CREDITS.md](CREDITS.md).\n\n## Contributing", text)
+            self.assertIn("## Credits\n\nSee [CREDITS.md](CREDITS.md).\n\n## License", text)
             self.assertLess(text.index("## Roadmap"), text.index("## Credits"))
             self.assertEqual([], g.problems(d, folder, "next-js"))
             d["sections"] = [{"title": "credits", "body": "Icons."}]

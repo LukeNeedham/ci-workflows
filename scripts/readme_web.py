@@ -134,10 +134,6 @@ def render(data, repo, facts):
     if facts.credits:
         out += ["## Credits", "", f"See [{CREDITS_FILE}]({CREDITS_FILE}).", ""]
     out += [
-        "## Contributing",
-        "",
-        "Branch from `main`, make the change, and open a pull request. CI must be green before it is merged.",
-        "",
         "## License",
         "",
         f"{facts.license}. See [{LICENSE_FILE}]({LICENSE_FILE}).",

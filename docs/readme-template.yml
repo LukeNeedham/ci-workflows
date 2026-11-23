@@ -38,7 +38,7 @@ description: |                  # required: what the app is and who it is for, w
 #   notes: |                    # optional: only what is specific to developing THIS app (a secret, a local setup step, a
 #     Create `local.properties` with your API key.   # quirk). The generic setup is generated.
 
-# sections:                     # optional: extra sections, shown between the developer section and Contributing
+# sections:                     # optional: extra sections, shown between the developer section and License
 #   - title: Privacy
 #     body: |
 #       The app collects nothing.
