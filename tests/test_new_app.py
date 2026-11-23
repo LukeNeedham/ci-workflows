@@ -768,7 +768,7 @@ class RenderedApp(unittest.TestCase):
 
         data = generate_readme.load(self.dir)
         self.assertEqual("LyricTutor", data["name"])
-        facts = generate_readme.facts(self.dir)
+        facts = generate_readme.facts(self.dir, stack="kmp")
         self.assertEqual((23, 36, "All rights reserved"), (facts.min_sdk, facts.compile_sdk, facts.license))
         # The one thing missing is what CI makes on the first PR: the images of the screenshots
         missing = generate_readme.problems(data, self.dir)
@@ -865,7 +865,7 @@ class NextJsScaffold(unittest.TestCase):
         import generate_readme
         self.assertIn("readme.yml", self.changed)
         self.assertEqual([], generate_readme.problems(generate_readme.load(self.dir), self.dir, "next-js"))
-        self.assertEqual(generate_readme.render_web(generate_readme.load(self.dir), "LukeNeedham/My_Site", generate_readme.web_facts(self.dir)),
+        self.assertEqual(generate_readme.render(generate_readme.load(self.dir), "LukeNeedham/My_Site", generate_readme.facts(self.dir, "LukeNeedham/My_Site", "next-js"), "next-js"),
                          self.text("README.md"))
         self.assertIn("# My_Site\n", self.text("README.md"))
         self.assertIn("yarn lint", self.text("README.md"))

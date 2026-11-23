@@ -9,6 +9,8 @@ import yaml
 
 import _paths  # noqa: F401
 import generate_readme as g
+import readme_kmp as k
+import readme_web as w
 
 TEMPLATE = Path(__file__).resolve().parent.parent / "docs" / "readme-template.yml"
 BUILD = 'android {\n    compileSdk = 36\n    defaultConfig {\n        minSdk = 26 // why\n    }\n}\n'
@@ -40,11 +42,11 @@ def data():
 
 
 def facts(**kwargs):
-    return g.Facts(**{"min_sdk": 26, "compile_sdk": 36, "screenshots": SHOTS, "license": "MIT", **kwargs})
+    return k.Facts(**{"min_sdk": 26, "compile_sdk": 36, "screenshots": SHOTS, "license": "MIT", **kwargs})
 
 
 def render(d=None, **kwargs):
-    return g.render(d or data(), "LukeNeedham/Demo", facts(**kwargs))
+    return k.render(d or data(), "LukeNeedham/Demo", facts(**kwargs))
 
 
 class GenerateReadmeTest(unittest.TestCase):
@@ -194,7 +196,7 @@ class GenerateReadmeTest(unittest.TestCase):
         self.assertEqual(2, text.count("<img src=\"docs/screenshots/"))
 
     def test_the_number_in_the_image_name_orders_the_images_and_is_not_in_the_alt_text(self):
-        self.assertEqual("Pull Request Page", g.alt_text("docs/screenshots/02-PullRequestPage.png"))
+        self.assertEqual("Pull Request Page", k.alt_text("docs/screenshots/02-PullRequestPage.png"))
         text = render(screenshots=("docs/screenshots/01-HomePage.png", "docs/screenshots/02-SettingsPage.png"))
         self.assertLess(text.index("01-HomePage.png"), text.index("02-SettingsPage.png"))
         self.assertIn('alt="Home Page"', text)
@@ -237,7 +239,7 @@ def web_data():
 class WebsiteReadmeTest(unittest.TestCase):
     def render(self, d=None, **folder):
         with website(**folder) as path:
-            return g.render_web(d or web_data(), "LukeNeedham/Demo", g.web_facts(path))
+            return w.render(d or web_data(), "LukeNeedham/Demo", w.facts(path))
 
     def test_the_template_is_valid(self):
         self.assertEqual([], g.problems(web_data(), stack="next-js"))
@@ -297,7 +299,7 @@ class WebsiteReadmeTest(unittest.TestCase):
             (folder / "CREDITS.md").write_text("Icons by someone.\n")
             d = web_data()
             d["sections"] = [{"title": "Roadmap", "body": "Soon."}]
-            text = g.render_web(d, "LukeNeedham/Demo", g.web_facts(folder))
+            text = w.render(d, "LukeNeedham/Demo", w.facts(folder))
             self.assertIn("## Credits\n\nSee [CREDITS.md](CREDITS.md).\n\n## Contributing", text)
             self.assertLess(text.index("## Roadmap"), text.index("## Credits"))
             self.assertEqual([], g.problems(d, folder, "next-js"))
@@ -309,20 +311,20 @@ class WebsiteReadmeTest(unittest.TestCase):
             apps = Path(tmp) / "apps.json"
             apps.write_text('[{"name": "Demo", "repo": "LukeNeedham/Demo", "stack": "next-js", "productionUrl": "https://demo.example.com"},'
                             ' {"name": "Other", "repo": "LukeNeedham/Other", "stack": "next-js"}]')
-            self.assertEqual("https://demo.example.com", g.production_url("lukeneedham/demo", apps))
-            self.assertEqual("", g.production_url("LukeNeedham/Other", apps), "listed, but with no productionUrl")
-            self.assertEqual("", g.production_url("LukeNeedham/Unlisted", apps))
+            self.assertEqual("https://demo.example.com", w.production_url("lukeneedham/demo", apps))
+            self.assertEqual("", w.production_url("LukeNeedham/Other", apps), "listed, but with no productionUrl")
+            self.assertEqual("", w.production_url("LukeNeedham/Unlisted", apps))
             d = web_data()
             d["links"] = {"other": [{"title": "Design", "url": "https://example.com/d"}]}
-            text = g.render_web(d, "LukeNeedham/Demo", g.web_facts(folder, "LukeNeedham/Demo", apps))
+            text = w.render(d, "LukeNeedham/Demo", w.facts(folder, "LukeNeedham/Demo", apps))
             self.assertIn("[Website](https://demo.example.com) · [Design](https://example.com/d)\n\n## Description", text)
             self.assertLess(text.index("# Demo Site"), text.index("[Website]"))
 
     def test_every_website_of_apps_json_with_a_production_url_gets_it_in_its_readme(self):
-        apps = json.loads(g.APPS_FILE.read_text())
+        apps = json.loads(w.APPS_FILE.read_text())
         for app in apps:
             if app["stack"] == "next-js" and "productionUrl" in app:
-                self.assertEqual(app["productionUrl"], g.production_url(app["repo"]))
+                self.assertEqual(app["productionUrl"], w.production_url(app["repo"]))
 
     def test_the_project_must_have_a_package_json_a_lockfile_and_a_license(self):
         for kwargs, expected in (({"package": None}, "no package.json"), ({"lockfile": None}, "no lockfile"), ({"license": None}, "no LICENSE file")):
@@ -359,7 +361,7 @@ class SdkLevelsTest(unittest.TestCase):
             if catalog is not None:
                 (app / "gradle").mkdir()
                 (app / "gradle" / "libs.versions.toml").write_text(catalog)
-            return g.sdk_levels(app)
+            return k.sdk_levels(app)
 
     def test_literals_with_comments(self):
         self.assertEqual((26, 36), self.levels(BUILD))
@@ -375,10 +377,10 @@ class SdkLevelsTest(unittest.TestCase):
         self.assertEqual((23, 36), self.levels(build, '[versions]\ncompileSdk = "36"\nmin-sdk = "23"\n'))
 
     def test_an_unreadable_min_sdk_is_an_error_not_a_guess(self):
-        with self.assertRaises(g.SdkError):
+        with self.assertRaises(k.SdkError):
             self.levels("android {\n compileSdk = 36\n}\n")
-        with tempfile.TemporaryDirectory() as tmp, self.assertRaises(g.SdkError):
-            g.sdk_levels(Path(tmp))
+        with tempfile.TemporaryDirectory() as tmp, self.assertRaises(k.SdkError):
+            k.sdk_levels(Path(tmp))
 
     def test_an_unreadable_compile_sdk_is_just_missing(self):
         self.assertEqual((26, None), self.levels("android {\n defaultConfig { minSdk = 26 }\n}\n"))
@@ -400,7 +402,7 @@ class CommandLineTest(unittest.TestCase):
             (app / "app" / "build.gradle.kts").write_text(BUILD)
             self.assertEqual(1, run("--check").returncode)
             self.assertEqual(0, run().returncode)
-            self.assertEqual(g.render(data(), "LukeNeedham/Demo", facts(screenshots=("docs/screenshots/HomePage.png",))), (app / "README.md").read_text())
+            self.assertEqual(k.render(data(), "LukeNeedham/Demo", facts(screenshots=("docs/screenshots/HomePage.png",))), (app / "README.md").read_text())
             self.assertEqual(0, run("--check").returncode)
             (app / "README.md").write_text("edited by hand\n")
             self.assertEqual(1, run("--check").returncode)

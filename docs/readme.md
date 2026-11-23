@@ -8,7 +8,7 @@ picked up and understood the same way. The layout lives **here**; the content li
 
 1. The app has **`readme.yml`**, written by hand ([skeleton](readme-template.yml)): the name, tagline, description,
    and a few optional parts (links, install and developer notes, extra sections). **Only what is specific to the app.**
-2. [`scripts/generate_readme.py`](../scripts/generate_readme.py) renders **`README.md`** from it in the standard
+2. [`scripts/generate_readme.py`](../scripts/generate_readme.py) (the caller, with what both stacks share; the layout and the project facts of each stack are in its delegate, [`readme_kmp.py`](../scripts/readme_kmp.py) for the apps and [`readme_web.py`](../scripts/readme_web.py) for the websites) renders **`README.md`** from it in the standard
    layout. **What every app shares comes from the script, and from the project itself:**
    - the **minimum Android version**, read from `minSdk` in `app/build.gradle.kts` (and the platform to install, from
      `compileSdk`), so it can never be out of date, and the build fails if it cannot be read;

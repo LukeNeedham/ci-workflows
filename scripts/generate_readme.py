@@ -1,107 +1,53 @@
 #!/usr/bin/env python3
 """Renders an app's README.md from its readme.yml, in the standard layout of docs/readme.md.
 
-The layout lives here, the content in the app. Needs PyYAML.
+The layout lives here, the content in the app. Needs PyYAML. This file is the caller: the command line, the checks that
+both stacks share (the license, the fields every readme.yml has) and the choice of the delegate of the stack, which
+has that stack's own fields, facts from the project and layout:
 
-What comes from the project is not in readme.yml: the screenshots (the PNGs of docs/screenshots/, which CI renders from
-the app's screenshot package, docs/screenshots.md), the minimum Android version (the minSdk of app/build.gradle.kts)
-and the license (the LICENSE file). Every app has all three.
-
-A website (--stack next-js) has its own, smaller format (docs/readme.md, "Websites"): no icon, screenshots or install
-steps, and the project facts are the package manager (from the lockfile), the scripts of package.json, the Node version
-(`engines.node`) and the license.
+- `readme_kmp.py`, an Android app (`--stack kmp`, the default). What comes from the project is not in readme.yml: the
+  screenshots (the PNGs of docs/screenshots/, which CI renders from the app's screenshot package, docs/screenshots.md),
+  the minimum Android version (the minSdk of app/build.gradle.kts) and the license (the LICENSE file).
+- `readme_web.py`, a website (`--stack next-js`). A smaller format (docs/readme.md, "Websites"): no icon, screenshots or
+  install steps; the project facts are the package manager (from the lockfile), the scripts of package.json, the Node
+  version (`engines.node`), the production address (`productionUrl` in apps.json), CREDITS.md and the license.
 
     python3 generate_readme.py [app_dir] [--repo owner/name] [--stack kmp|next-js] [--check]
 
 --repo defaults to $GITHUB_REPOSITORY, then to the app's git `origin`. --check writes nothing and exits 1 if
 README.md is missing or differs from what readme.yml renders to.
+
+A delegate is a module with `problems(data, app_dir=None)`, `facts(app_dir, repo)` and `render(data, repo, facts)`.
 """
 
 import argparse
-import json
+import importlib
 import os
 import re
 import subprocess
 import sys
-from dataclasses import dataclass
 from pathlib import Path
 
 import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-sys.path.insert(0, str(Path(__file__).resolve().parent / "screenshots"))
-from app_config import SETTINGS
-from check_screenshot_package import package_folders
-import next_js_project
 
 SOURCE = "readme.yml"
 HEADER = f"<!-- Generated from {SOURCE} by LukeNeedham/ci-workflows (docs/readme.md). Edit {SOURCE}, not this file. -->"
 REQUIRED_TEXT = ["name", "tagline", "description"]
 LICENSE_FILE = "LICENSE"
-CREDITS_FILE = "CREDITS.md"
-LINKS = {"play-store": "Google Play", "f-droid": "F-Droid", "web": "Web app"}
-SCREENSHOTS = "docs/screenshots"
-KNOWN = {"name", "tagline", "description", "links", "screenshots", "user", "developer", "sections"}
-# A website: what its visitors see is the site itself, so there are no screenshots and no install steps
-WEB_LINKS = {}  # the production site is not a field: it is the `productionUrl` of the site in apps.json
-WEB_KNOWN = {"name", "tagline", "description", "links", "developer", "sections"}
-STACKS = ("kmp", "next-js")
-# The scripts of package.json that the README lists, in this order, with what each one does
-WEB_SCRIPTS = [
-    ("dev", "the site at http://localhost:3000"),
-    ("lint", "the checks of CI"),
-    ("format", "fix the formatting"),
-    ("typecheck", "the types"),
-    ("test", "unit tests"),
-    ("build", "the production build"),
-]
-BUILD_FILE = "app/build.gradle.kts"
-CATALOG = "gradle/libs.versions.toml"
-APPS_FILE = Path(__file__).resolve().parent.parent / "apps.json"
-# The Android version name of each API level
-ANDROID_VERSIONS = {21: "5.0", 22: "5.1", 23: "6.0", 24: "7.0", 25: "7.1", 26: "8.0", 27: "8.1", 28: "9", 29: "10",
-                    30: "11", 31: "12", 32: "12L", 33: "13", 34: "14", 35: "15", 36: "16"}
+# The stack of a project (`stack` in apps.json) and the module that delegates for it
+DELEGATES = {"kmp": "readme_kmp", "next-js": "readme_web"}
+STACKS = tuple(DELEGATES)
 
 
-class SdkError(Exception):
-    pass
+class FactsError(Exception):
+    """What the README needs from the project cannot be read: the message says what to fix."""
 
 
-def _level(build, catalog, key):
-    """The API level that [key] (`minSdk`, `compileSdk`) is set to in the Gradle file text [build], or None."""
-    build = re.sub(r"//.*", "", build)
-    for pattern in (rf"\b{key}\s*=\s*(\d+)\b", rf"\b{key}Version\s*\(\s*(\d+)\s*\)", rf"\b{key}\b[^\n]*?\brelease\((\d+)"):
-        match = re.search(pattern, build)
-        if match:
-            return int(match.group(1))
-    match = re.search(rf"\b{key}\s*=\s*libs\.versions\.([A-Za-z0-9_.]+?)\.get\(\)", build)
-    if match and catalog:
-        wanted = re.sub(r"[-_.]", "", match.group(1)).lower()
-        for name, value in re.findall(r'^\s*([A-Za-z0-9_.-]+)\s*=\s*"(\d+)"', catalog, re.M):
-            if re.sub(r"[-_.]", "", name).lower() == wanted:
-                return int(value)
-    return None
-
-
-def sdk_levels(app_dir):
-    """(minSdk, compileSdk) of the app, from app/build.gradle.kts. compileSdk is None when it cannot be read; an
-    unreadable minSdk is an [SdkError], because the README must not guess it."""
-    build_file = app_dir / BUILD_FILE
-    if not build_file.is_file():
-        raise SdkError(f"{BUILD_FILE} does not exist: the README takes the minimum Android version from it")
-    catalog_file = app_dir / CATALOG
-    catalog = catalog_file.read_text() if catalog_file.is_file() else ""
-    build = build_file.read_text()
-    minimum = _level(build, catalog, "minSdk")
-    if minimum is None:
-        raise SdkError(f"cannot read minSdk from {BUILD_FILE}: set it as `minSdk = 26` (or from the version catalog)")
-    return minimum, _level(build, catalog, "compileSdk")
-
-
-def android_version(api):
-    """`26` -> `Android 8.0 (API 26)`"""
-    name = ANDROID_VERSIONS.get(api)
-    return f"Android {name} (API {api})" if name else f"Android API {api}"
+def delegate(stack):
+    """The module of [stack], which has `problems`, `facts` and `render`. Imported here and not at the top: it imports this file."""
+    return importlib.import_module(DELEGATES[stack])
 
 
 def license_text(app_dir):
@@ -131,66 +77,6 @@ def license_name(text):
     return next((line.strip() for line in text.splitlines() if line.strip()), "See LICENSE")
 
 
-@dataclass
-class Facts:
-    """What the README says that is not in readme.yml: it comes from the project."""
-    min_sdk: int
-    compile_sdk: int = None
-    screenshots: tuple = ()
-    license: str = "All rights reserved"
-
-
-def facts(app_dir):
-    """The [Facts] of the app. Raises [SdkError] when the minimum Android version cannot be read."""
-    min_sdk, compile_sdk = sdk_levels(app_dir)
-    text = license_text(app_dir)
-    return Facts(min_sdk, compile_sdk, tuple(screenshot_files(app_dir)), license_name(text) if text else "All rights reserved")
-
-
-@dataclass
-class WebFacts:
-    """What the README of a website says that is not in readme.yml: it comes from the project."""
-    manager: str = "yarn"
-    install: str = "yarn install"
-    run: str = "yarn"
-    scripts: tuple = ()
-    node: str = ""
-    license: str = "All rights reserved"
-    production_url: str = ""
-    credits: bool = False
-
-
-def production_url(repo, apps_file=APPS_FILE):
-    """The `productionUrl` of the project [repo] (`owner/name`) in apps.json of ci-workflows, or "" when it has none (or is not listed yet)."""
-    if not repo or not Path(apps_file).is_file():
-        return ""
-    for app in json.loads(Path(apps_file).read_text()):
-        if app.get("repo", "").lower() == repo.lower():
-            return str(app.get("productionUrl") or "")
-    return ""
-
-
-def web_facts(app_dir, repo=None, apps_file=APPS_FILE):
-    """The [WebFacts] of the website [repo] in [app_dir]: the package manager (from the lockfile), the scripts of package.json that
-    the README lists, the major Node version (`engines.node`), the license, and its production address (apps.json of ci-workflows)."""
-    package = json.loads((app_dir / "package.json").read_text())
-    found = next_js_project.detect(app_dir)
-    if found is None:
-        raise SdkError("there is no lockfile (yarn.lock, pnpm-lock.yaml or package-lock.json): the README takes the package manager from it")
-    manager, _, run = found
-    scripts = package.get("scripts") or {}
-    node = re.search(r"\d+", str((package.get("engines") or {}).get("node") or ""))
-    text = license_text(app_dir)
-    return WebFacts(manager, f"{manager} install", run, tuple(name for name, _ in WEB_SCRIPTS if name in scripts),
-                    node.group(0) if node else "", license_name(text) if text else "All rights reserved",
-                    production_url(repo, apps_file), (app_dir / CREDITS_FILE).is_file())
-
-
-def screenshot_files(app_dir):
-    """The screenshots of the app, as paths relative to its root, in name order."""
-    return sorted(p.relative_to(app_dir).as_posix() for p in (app_dir / SCREENSHOTS).glob("*.png"))
-
-
 def headings(text):
     """The lines of the Markdown [text] that are a `#` or `##` heading (outside code), which would add a section of
     their own to the README."""
@@ -207,29 +93,23 @@ def is_url(value):
     return isinstance(value, str) and re.fullmatch(r"https://\S+", value.strip()) is not None
 
 
-def problems(data, app_dir=None, stack="kmp"):
-    """What is wrong with the parsed readme.yml [data] of an app of [stack], as a list of sentences.
-
-    With the folder of the app [app_dir], it also checks what the README needs from the project: for an Android app the
-    screenshots of docs/screenshots/, for both the LICENSE file (and, for a website, its package.json). Without, it checks only the data.
-    """
+def common_problems(data, known, link_titles, hints=None, link_hints=None):
+    """What is wrong with the fields that every readme.yml has, in the parsed [data], as a list of sentences: the field names
+    ([known]), the required text, `links` (the keys of [link_titles], and `other`), `developer` and `sections`, and that free text
+    cannot add a section of its own. [hints] adds a sentence to the unknown-field error of a key, and [link_hints] replaces the
+    error of a key of `links`. A stack's own fields are checked by its delegate."""
     if not isinstance(data, dict):
         return [f"{SOURCE} must be a mapping of fields"]
-    web = stack == "next-js"
-    known, link_titles = (WEB_KNOWN, WEB_LINKS) if web else (KNOWN, LINKS)
+    hints, link_hints = hints or {}, link_hints or {}
     found = []
     for key in data:
         if key == "license":
             found.append(f"`license` is not a field: the license is the one in the {LICENSE_FILE} file of the app")
         elif key not in known:
-            found.append(f"unknown field `{key}`" + (" (a website has no screenshots and no install steps: see docs/readme.md)"
-                                                     if web and key in ("screenshots", "user") else ""))
+            found.append(f"unknown field `{key}`" + (f" ({hints[key]})" if key in hints else ""))
     for key in REQUIRED_TEXT:
         if not str(data.get(key) or "").strip():
             found.append(f"`{key}` is required")
-    if not web and "screenshots" in data and data["screenshots"] != "manual":
-        found.append("`screenshots` can only be `manual` (the screenshots are committed by hand, because the app cannot "
-                     "render previews); without it, CI renders them from the app's screenshot package")
     links = data.get("links")
     if links is not None and not isinstance(links, dict):
         found.append("`links` must be a mapping")
@@ -239,24 +119,13 @@ def problems(data, app_dir=None, stack="kmp"):
                 for i, link in enumerate(value or []):
                     if not isinstance(link, dict) or not link.get("title") or not is_url(link.get("url")):
                         found.append(f"`links.other[{i}]` needs a `title` and an https `url`")
-            elif web and key == "web":
-                found.append("`links.web` is not a field: the production address is the `productionUrl` of the site in apps.json of ci-workflows")
+            elif key in link_hints:
+                found.append(link_hints[key])
             elif key not in link_titles:
                 found.append(f"unknown field `links.{key}` (one of {', '.join(link_titles)}, or `other`)" if link_titles
                              else f"unknown field `links.{key}` (only `other`)")
             elif not is_url(value):
                 found.append(f"`links.{key}` must be an https URL")
-    user = data.get("user") if not web else None
-    if user is not None and not isinstance(user, dict):
-        found.append("`user` must be a mapping")
-    elif user:
-        for key in user:
-            if key not in ("install", "steps"):
-                found.append(f"unknown field `user.{key}`")
-        if user.get("steps") is not None and not isinstance(user["steps"], list):
-            found.append("`user.steps` must be a list")
-        if user.get("install") is not None and not str(user["install"]).strip():
-            found.append("`user.install` must not be empty")
     developer = data.get("developer")
     if developer is not None and (not isinstance(developer, dict) or set(developer) - {"notes"}):
         found.append("`developer` can only have `notes`: what is specific to this app")
@@ -271,178 +140,32 @@ def problems(data, app_dir=None, stack="kmp"):
         for line in headings(text or ""):
             found.append(f"`{name}` has the heading `{line}`: it would add a section of its own. Use `###` or deeper, "
                          f"or a `sections` entry")
-    if app_dir is not None and web:
-        if not (app_dir / "package.json").is_file():
-            found.append("the website has no package.json: the README takes its commands and Node version from it")
-        elif next_js_project.detect(app_dir) is None:
-            found.append("the website has no lockfile (yarn.lock, pnpm-lock.yaml or package-lock.json): the README takes its package manager from it")
-        if (app_dir / CREDITS_FILE).is_file():
-            for i, section in enumerate(s for s in data.get("sections") or [] if isinstance(s, dict)):
-                if str(section.get("title", "")).strip().lower() == "credits":
-                    found.append(f"`sections[{i}]` is `Credits`, but the site has a {CREDITS_FILE} file, which the README links to: "
-                                 f"put the credits there")
-        text = license_text(app_dir)
-        if text is None or not text.strip():
-            found.append(f"the website has no {LICENSE_FILE} file: every project has one. For one that had no license, add one "
-                         f"holding `Copyright (c) <year> Luke Needham. All rights reserved.`")
-    elif app_dir is not None:
-        manual = data.get("screenshots") == "manual"
-        if manual and package_folders(app_dir):
-            found.append("`screenshots: manual` but the app has a screenshot package: remove one of them")
-        if not screenshot_files(app_dir):
-            found.append("the app has no screenshots in docs/screenshots/: every app has at least one. "
-                         + ("It says `screenshots: manual`, so commit one into docs/screenshots/" if manual else
-                            "Add a screenshot package (docs/screenshots.md in LukeNeedham/ci-workflows), or, for an app "
-                            "that cannot render previews, set `screenshots: manual` and commit one into docs/screenshots/"))
-        text = license_text(app_dir)
-        if text is None or not text.strip():
-            found.append(f"the app has no {LICENSE_FILE} file: every app has one. For an app that had no license, add one "
-                         f"holding `Copyright (c) <year> Luke Needham. All rights reserved.`")
     return found
 
 
-def alt_text(path):
-    """`docs/screenshots/02-PullRequest.png` -> `Pull Request` (the number only orders the images)"""
-    return re.sub(r"(?<=[a-z0-9])(?=[A-Z])", " ", re.sub(r"^\d+-", "", Path(path).stem))
+def missing_license(app_dir, what):
+    """The problem with the LICENSE file of [app_dir] (`app` or `website`), as a list of at most one sentence."""
+    text = license_text(app_dir)
+    if text is None or not text.strip():
+        return [f"the {what} has no {LICENSE_FILE} file: every {'app' if what == 'app' else 'project'} has one. For one that had no license, "
+                f"add one holding `Copyright (c) <year> Luke Needham. All rights reserved.`"]
+    return []
 
 
-def render(data, repo, facts):
-    """The README.md text for the valid [data] of the GitHub repo [repo] (`owner/name`) and the [Facts] of the app."""
-    name = str(data["name"]).strip()
-    repo_name = repo.split("/")[1]
-    links = data.get("links") or {}
-    shown = [(title, links[key].strip()) for key, title in LINKS.items() if links.get(key)]
-    shown += [(str(o["title"]).strip(), o["url"].strip()) for o in links.get("other") or []]
-    stores = [f"[{title}]({url})" for title, url in shown if title in ("Google Play", "F-Droid")]
-    user = data.get("user") or {}
-    install = str(user.get("install") or "").strip() or (
-        f"Install it from {' or '.join(stores)}, or get the latest build from the [AppHub](https://www.lukeneedham.com/apphub) app "
-        f"or the [Releases](https://github.com/{repo}/releases) page."
-        if stores else
-        f"Install the latest build from the [AppHub](https://www.lukeneedham.com/apphub) app, or download the APK "
-        f"from the [Releases](https://github.com/{repo}/releases) page."
-    )
-    steps = [
-        install,
-        *[str(s).strip() for s in user.get("steps") or []],
-    ]
-    out = [
-        HEADER,
-        '<p align="center">',
-        f'  <img src="app-icon.png" width="128" alt="{name} icon">',
-        "</p>",
-        "",
-        f"# {name}",
-        "",
-        str(data["tagline"]).strip(),
-        "",
-        *([" · ".join(f"[{title}]({url})" for title, url in shown), ""] if shown else []),
-        "## Description",
-        "",
-        str(data["description"]).strip(),
-        "",
-    ]
-    if facts.screenshots:
-        out += ["## Screenshots", "", *[f'<img src="{s}" width="240" alt="{alt_text(s)}">' for s in facts.screenshots], ""]
-    out += [
-        "## Getting started as a user",
-        "",
-        *[f"{i}. {s}" for i, s in enumerate(steps, 1)],
-        "",
-        f"Requires {android_version(facts.min_sdk)} or newer.",
-        "",
-        "## Getting started as a developer",
-        "",
-        f"Requirements: JDK {SETTINGS['java-version']} and the Android SDK"
-        f"{f' (platform {facts.compile_sdk})' if facts.compile_sdk else ''}, for example through Android Studio.",
-        "",
-        "```",
-        f"git clone https://github.com/{repo}.git",
-        f"cd {repo_name}",
-        "./gradlew assembleDebug    # the APK is in app/build/outputs/apk/debug/",
-        "./gradlew test             # unit tests",
-        "```",
-        "",
-        "Every pull request is built by CI, which comments on it with a link to install the APK.",
-        "",
-        "Like all my apps, it follows the shared architecture and conventions (single activity, Jetpack Compose, "
-        "Navigation 3, MVVM with every page split into a `Page` and a `PageContent`, Koin): "
-        "see [ci-workflows](https://github.com/LukeNeedham/ci-workflows/blob/main/docs/new-app.md).",
-        "",
-    ]
-    notes = (data.get("developer") or {}).get("notes")
-    if notes:
-        out += [str(notes).strip(), ""]
-    for section in data.get("sections") or []:
-        out += [f"## {str(section['title']).strip()}", "", str(section["body"]).strip(), ""]
-    out += [
-        "## Contributing",
-        "",
-        "Branch from `main`, make the change, and open a pull request. CI must be green before it is merged.",
-        "",
-        "## License",
-        "",
-        f"{facts.license}. See [{LICENSE_FILE}]({LICENSE_FILE}).",
-    ]
-    return "\n".join(out) + "\n"
+def problems(data, app_dir=None, stack="kmp"):
+    """What is wrong with the parsed readme.yml [data] of a project of [stack], as a list of sentences. With the folder of the
+    project [app_dir], it also checks what the README needs from the project. Without, it checks only the data."""
+    return delegate(stack).problems(data, app_dir)
 
 
-def render_web(data, repo, facts):
-    """The README.md text of a website, for the valid [data] of the GitHub repo [repo] (`owner/name`) and its [WebFacts]."""
-    name = str(data["name"]).strip()
-    repo_name = repo.split("/")[1]
-    links = data.get("links") or {}
-    shown = [("Website", facts.production_url)] if facts.production_url else []
-    shown += [(str(o["title"]).strip(), o["url"].strip()) for o in links.get("other") or []]
-    comments = dict(WEB_SCRIPTS)
-    commands = [f"git clone https://github.com/{repo}.git", f"cd {repo_name}", facts.install]
-    lines = [(f"{facts.run} {script}", comments[script]) for script in facts.scripts]
-    width = max([len(c) for c, _ in lines], default=0) + 4
-    commands += [f"{command:<{width}}# {comment}" for command, comment in lines]
-    out = [
-        HEADER,
-        f"# {name}",
-        "",
-        str(data["tagline"]).strip(),
-        "",
-        *([" · ".join(f"[{title}]({url})" for title, url in shown), ""] if shown else []),
-        "## Description",
-        "",
-        str(data["description"]).strip(),
-        "",
-        "## Getting started as a developer",
-        "",
-        f"Requirements: Node.js {facts.node} and {facts.manager}." if facts.node else f"Requirements: Node.js and {facts.manager}.",
-        "",
-        "```",
-        *commands,
-        "```",
-        "",
-        "Every pull request gets a preview on Vercel, which CI links in a comment, and `main` is deployed by Vercel, so do not "
-        "push to `main` for any other reason than to release.",
-        "",
-        "Like all my websites, it follows the shared architecture and conventions (Next.js, TypeScript, Chakra UI, MVVM with "
-        "every page split into a `Page` and a `PageContent`): "
-        "see [ci-workflows](https://github.com/LukeNeedham/ci-workflows/blob/main/docs/next-js-app.md).",
-        "",
-    ]
-    notes = (data.get("developer") or {}).get("notes")
-    if notes:
-        out += [str(notes).strip(), ""]
-    for section in data.get("sections") or []:
-        out += [f"## {str(section['title']).strip()}", "", str(section["body"]).strip(), ""]
-    if facts.credits:
-        out += ["## Credits", "", f"See [{CREDITS_FILE}]({CREDITS_FILE}).", ""]
-    out += [
-        "## Contributing",
-        "",
-        "Branch from `main`, make the change, and open a pull request. CI must be green before it is merged.",
-        "",
-        "## License",
-        "",
-        f"{facts.license}. See [{LICENSE_FILE}]({LICENSE_FILE}).",
-    ]
-    return "\n".join(out) + "\n"
+def facts(app_dir, repo=None, stack="kmp"):
+    """What the README of the project in [app_dir] says that is not in readme.yml. Raises [FactsError] when it cannot be read."""
+    return delegate(stack).facts(app_dir, repo)
+
+
+def render(data, repo, facts, stack="kmp"):
+    """The README.md text for the valid [data] of the GitHub repo [repo] (`owner/name`) and its [facts]."""
+    return delegate(stack).render(data, repo, facts)
 
 
 def load(app_dir):
@@ -462,14 +185,14 @@ def find_repo(app_dir, given=None):
     return repo
 
 
-def write_web(app_dir, repo):
-    """Renders README.md of the website in [app_dir] from its readme.yml, as the command line does. Returns True when it wrote.
+def write(app_dir, repo, stack):
+    """Renders README.md of the project in [app_dir] from its readme.yml, as the command line does. Returns True when it wrote.
     For the scaffold of a new website."""
     data = load(app_dir)
-    found = problems(data, app_dir, "next-js")
+    found = problems(data, app_dir, stack)
     if found:
         raise ValueError("\n".join(f"{SOURCE}: {line}" for line in found))
-    text = render_web(data, repo, web_facts(app_dir, repo))
+    text = render(data, repo, facts(app_dir, repo, stack), stack)
     readme = app_dir / "README.md"
     if readme.is_file() and readme.read_text() == text:
         return False
@@ -494,7 +217,8 @@ def main():
         sys.exit(f"{SOURCE} is not valid YAML: {e}\nA value with a colon followed by a space (`Optional: add a token`) or "
                  f"starting with a quote, `*` or `&` has to be wrapped in quotes.")
     if data is None:
-        message = f"There is no {SOURCE}. Write one from docs/readme-template.yml in LukeNeedham/ci-workflows; CI then generates README.md from it."
+        template = "docs/readme-template-web.yml" if args.stack == "next-js" else "docs/readme-template.yml"
+        message = f"There is no {SOURCE}. Write one from {template} in LukeNeedham/ci-workflows; CI then generates README.md from it."
         if args.skip_if_missing:
             print(f"::warning file=README.md::{message}")
             return
@@ -502,11 +226,12 @@ def main():
     found = problems(data, app_dir, args.stack)
     if found:
         sys.exit("\n".join(f"{SOURCE}: {line}" for line in found))
+    repo = find_repo(app_dir, args.repo)
     try:
-        app_facts = web_facts(app_dir, find_repo(app_dir, args.repo)) if args.stack == "next-js" else facts(app_dir)
-    except SdkError as e:
+        app_facts = facts(app_dir, repo, args.stack)
+    except FactsError as e:
         sys.exit(f"{SOURCE}: {e}")
-    text = (render_web if args.stack == "next-js" else render)(data, find_repo(app_dir, args.repo), app_facts)
+    text = render(data, repo, app_facts, args.stack)
     readme = app_dir / "README.md"
     current = readme.read_text() if readme.is_file() else None
     if args.check:
@@ -521,4 +246,6 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    # The delegates import this file by name: run it as that module, so that there is one copy of it
+    import generate_readme
+    generate_readme.main()
