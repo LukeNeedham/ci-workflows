@@ -15,9 +15,8 @@ tagline: One line saying what the site is.
 description: |
   What the site is and who it is for, in a paragraph or two separated by a blank line.
 
-# links:                        # optional: shown under the tagline
-#   web: https://demo.example.com    # the production site
-#   other:
+# links:                        # optional: shown under the tagline, after the production site, which is not written here: the
+#   other:                       # generator takes it from the `productionUrl` of the site in apps.json of ci-workflows
 #     - title: Source of the design
 #       url: https://example.com/design
 

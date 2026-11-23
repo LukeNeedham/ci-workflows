@@ -42,7 +42,7 @@ LINKS = {"play-store": "Google Play", "f-droid": "F-Droid", "web": "Web app"}
 SCREENSHOTS = "docs/screenshots"
 KNOWN = {"name", "tagline", "description", "links", "screenshots", "user", "developer", "sections"}
 # A website: what its visitors see is the site itself, so there are no screenshots and no install steps
-WEB_LINKS = {"web": "Website"}
+WEB_LINKS = {}  # the production site is not a field: it is the `productionUrl` of the site in apps.json
 WEB_KNOWN = {"name", "tagline", "description", "links", "developer", "sections"}
 STACKS = ("kmp", "next-js")
 # The scripts of package.json that the README lists, in this order, with what each one does
@@ -56,6 +56,7 @@ WEB_SCRIPTS = [
 ]
 BUILD_FILE = "app/build.gradle.kts"
 CATALOG = "gradle/libs.versions.toml"
+APPS_FILE = Path(__file__).resolve().parent.parent / "apps.json"
 # The Android version name of each API level
 ANDROID_VERSIONS = {21: "5.0", 22: "5.1", 23: "6.0", 24: "7.0", 25: "7.1", 26: "8.0", 27: "8.1", 28: "9", 29: "10",
                     30: "11", 31: "12", 32: "12L", 33: "13", 34: "14", 35: "15", 36: "16"}
@@ -154,11 +155,22 @@ class WebFacts:
     scripts: tuple = ()
     node: str = ""
     license: str = "All rights reserved"
+    production_url: str = ""
 
 
-def web_facts(app_dir):
-    """The [WebFacts] of the website in [app_dir]: the package manager (from the lockfile), the scripts of package.json that
-    the README lists, the major Node version (`engines.node`) and the license."""
+def production_url(repo, apps_file=APPS_FILE):
+    """The `productionUrl` of the project [repo] (`owner/name`) in apps.json of ci-workflows, or "" when it has none (or is not listed yet)."""
+    if not repo or not Path(apps_file).is_file():
+        return ""
+    for app in json.loads(Path(apps_file).read_text()):
+        if app.get("repo", "").lower() == repo.lower():
+            return str(app.get("productionUrl") or "")
+    return ""
+
+
+def web_facts(app_dir, repo=None, apps_file=APPS_FILE):
+    """The [WebFacts] of the website [repo] in [app_dir]: the package manager (from the lockfile), the scripts of package.json that
+    the README lists, the major Node version (`engines.node`), the license, and its production address (apps.json of ci-workflows)."""
     package = json.loads((app_dir / "package.json").read_text())
     found = next_js_project.detect(app_dir)
     if found is None:
@@ -168,7 +180,8 @@ def web_facts(app_dir):
     node = re.search(r"\d+", str((package.get("engines") or {}).get("node") or ""))
     text = license_text(app_dir)
     return WebFacts(manager, f"{manager} install", run, tuple(name for name, _ in WEB_SCRIPTS if name in scripts),
-                    node.group(0) if node else "", license_name(text) if text else "All rights reserved")
+                    node.group(0) if node else "", license_name(text) if text else "All rights reserved",
+                    production_url(repo, apps_file))
 
 
 def screenshot_files(app_dir):
@@ -224,8 +237,11 @@ def problems(data, app_dir=None, stack="kmp"):
                 for i, link in enumerate(value or []):
                     if not isinstance(link, dict) or not link.get("title") or not is_url(link.get("url")):
                         found.append(f"`links.other[{i}]` needs a `title` and an https `url`")
+            elif web and key == "web":
+                found.append("`links.web` is not a field: the production address is the `productionUrl` of the site in apps.json of ci-workflows")
             elif key not in link_titles:
-                found.append(f"unknown field `links.{key}` (one of {', '.join(link_titles)}, or `other`)")
+                found.append(f"unknown field `links.{key}` (one of {', '.join(link_titles)}, or `other`)" if link_titles
+                             else f"unknown field `links.{key}` (only `other`)")
             elif not is_url(value):
                 found.append(f"`links.{key}` must be an https URL")
     user = data.get("user") if not web else None
@@ -369,7 +385,7 @@ def render_web(data, repo, facts):
     name = str(data["name"]).strip()
     repo_name = repo.split("/")[1]
     links = data.get("links") or {}
-    shown = [(title, links[key].strip()) for key, title in WEB_LINKS.items() if links.get(key)]
+    shown = [("Website", facts.production_url)] if facts.production_url else []
     shown += [(str(o["title"]).strip(), o["url"].strip()) for o in links.get("other") or []]
     comments = dict(WEB_SCRIPTS)
     commands = [f"git clone https://github.com/{repo}.git", f"cd {repo_name}", facts.install]
@@ -444,7 +460,7 @@ def write_web(app_dir, repo):
     found = problems(data, app_dir, "next-js")
     if found:
         raise ValueError("\n".join(f"{SOURCE}: {line}" for line in found))
-    text = render_web(data, repo, web_facts(app_dir))
+    text = render_web(data, repo, web_facts(app_dir, repo))
     readme = app_dir / "README.md"
     if readme.is_file() and readme.read_text() == text:
         return False
@@ -478,7 +494,7 @@ def main():
     if found:
         sys.exit("\n".join(f"{SOURCE}: {line}" for line in found))
     try:
-        app_facts = web_facts(app_dir) if args.stack == "next-js" else facts(app_dir)
+        app_facts = web_facts(app_dir, find_repo(app_dir, args.repo)) if args.stack == "next-js" else facts(app_dir)
     except SdkError as e:
         sys.exit(f"{SOURCE}: {e}")
     text = (render_web if args.stack == "next-js" else render)(data, find_repo(app_dir, args.repo), app_facts)

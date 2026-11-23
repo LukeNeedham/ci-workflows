@@ -1,3 +1,4 @@
+import json
 import subprocess
 import sys
 import tempfile
@@ -274,18 +275,41 @@ class WebsiteReadmeTest(unittest.TestCase):
         self.assertIn("unknown field `user`", found)
         d = web_data()
         d["links"] = {"play-store": "https://play.google.com/x"}
-        self.assertIn("unknown field `links.play-store` (one of web, or `other`)", "\n".join(g.problems(d, stack="next-js")))
+        self.assertIn("unknown field `links.play-store` (only `other`)", "\n".join(g.problems(d, stack="next-js")))
+        d["links"] = {"web": "https://demo.example.com"}
+        self.assertIn("`links.web` is not a field: the production address is the `productionUrl`", "\n".join(g.problems(d, stack="next-js")))
 
     def test_links_notes_and_sections(self):
         d = web_data()
-        d["links"] = {"web": "https://demo.example.com", "other": [{"title": "Design", "url": "https://example.com/d"}]}
+        d["links"] = {"other": [{"title": "Design", "url": "https://example.com/d"}]}
         d["developer"] = {"notes": "Copy `.env.example`."}
         d["sections"] = [{"title": "Credits", "body": "Photos by someone."}]
         self.assertEqual([], g.problems(d, stack="next-js"))
         text = self.render(d)
-        self.assertIn("[Website](https://demo.example.com) · [Design](https://example.com/d)", text)
+        self.assertIn("[Design](https://example.com/d)", text)
+        self.assertNotIn("Website](", text, "the site has no productionUrl")
         order = [text.index(s) for s in ("## Description", "## Getting started as a developer", "Copy `.env.example`.", "## Credits", "## Contributing")]
         self.assertEqual(sorted(order), order)
+
+    def test_the_production_link_is_the_production_url_of_the_site_in_apps_json(self):
+        with tempfile.TemporaryDirectory() as tmp, website() as folder:
+            apps = Path(tmp) / "apps.json"
+            apps.write_text('[{"name": "Demo", "repo": "LukeNeedham/Demo", "stack": "next-js", "productionUrl": "https://demo.example.com"},'
+                            ' {"name": "Other", "repo": "LukeNeedham/Other", "stack": "next-js"}]')
+            self.assertEqual("https://demo.example.com", g.production_url("lukeneedham/demo", apps))
+            self.assertEqual("", g.production_url("LukeNeedham/Other", apps), "listed, but with no productionUrl")
+            self.assertEqual("", g.production_url("LukeNeedham/Unlisted", apps))
+            d = web_data()
+            d["links"] = {"other": [{"title": "Design", "url": "https://example.com/d"}]}
+            text = g.render_web(d, "LukeNeedham/Demo", g.web_facts(folder, "LukeNeedham/Demo", apps))
+            self.assertIn("[Website](https://demo.example.com) · [Design](https://example.com/d)\n\n## Description", text)
+            self.assertLess(text.index("# Demo Site"), text.index("[Website]"))
+
+    def test_every_website_of_apps_json_with_a_production_url_gets_it_in_its_readme(self):
+        apps = json.loads(g.APPS_FILE.read_text())
+        for app in apps:
+            if app["stack"] == "next-js" and "productionUrl" in app:
+                self.assertEqual(app["productionUrl"], g.production_url(app["repo"]))
 
     def test_the_project_must_have_a_package_json_a_lockfile_and_a_license(self):
         for kwargs, expected in (({"package": None}, "no package.json"), ({"lockfile": None}, "no lockfile"), ({"license": None}, "no LICENSE file")):

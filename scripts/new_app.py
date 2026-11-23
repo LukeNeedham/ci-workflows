@@ -278,7 +278,7 @@ def scaffold_next_js(app_dir, name, tools=TOOLS, year=None, install=install_depe
         changed.append("yarn.lock")
     # The README is written here too, so that the first PR already has it (CI renders the same one, and the next ones when readme.yml changes)
     if not readme.exists():
-        generate_readme.write_web(app_dir, f"{OWNER}/{name}")
+        generate_readme.write_web(app_dir, f"{OWNER}/{name}")  # not in apps.json yet, so no production link until it has a productionUrl
         changed.append("README.md")
     return changed
 
