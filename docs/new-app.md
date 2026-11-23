@@ -130,8 +130,8 @@ Write the app's **`readme.yml`** by hand, from [readme-template.yml](readme-temp
 description (with the highlights of what the app does; no feature list), plus `links` (Play Store, F-Droid, the production
 web deploy) if it has any and anything specific to developing the app. **Not the minimum Android version, the license, the
 setup or the architecture**: the generator reads the minimum Android version from `minSdk` of the project and the license from
-the **`LICENSE` file** (a new app is made with one, `Copyright (c) <year> Luke Needham. All rights reserved.`, and the README
-has a License section when it exists), supplies the generic setup, and the architecture is the same in every app (below). CI renders
+the **`LICENSE` file, which every app has** (an app without a license gets `Copyright (c) <year> Luke Needham. All rights
+reserved.`), supplies the generic setup, and the architecture is the same in every app (below). CI renders
 `README.md` from it in the standard layout ([readme.md](readme.md)) and commits it to the PR branch, so never edit
 `README.md`. The icon in it is the CI-generated `app-icon.png`, so there is nothing to add for it.
 

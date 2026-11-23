@@ -6,7 +6,7 @@ is the pattern and how it works. The README side is [readme.md](readme.md).
 
 **Once an app has a `readme.yml`, it has at least one screenshot, and CI fails without one.** (An app that has no
 `readme.yml` yet only gets a warning and nothing is rendered, so merging a change here never turns the CI of an app that is
-not migrated red; its migration PR adds the `readme.yml` and the package together.) A missing `screenshot` package, an empty one (no
+not migrated red; its migration PR adds the `readme.yml`, the package and the `LICENSE` together.) A missing `screenshot` package, an empty one (no
 Kotlin files), one without an `order.txt` or without a `@Preview`, and an app with no screenshot at all each fail the
 `screenshots` job, with a message that says what is missing. The only exception is an app that cannot render previews,
 such as the Krillion WebView wrapper (no Compose, so no `@Preview`). It opts out in its `readme.yml` with

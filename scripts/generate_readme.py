@@ -2,15 +2,15 @@
 """Renders an app's README.md from its readme.yml, in the standard layout of docs/readme.md.
 
 The layout lives here, the content in the app. Needs PyYAML. This file is the caller: the command line, the checks that
-both stacks share (the license helpers, the fields every readme.yml has) and the choice of the delegate of the stack, which
+both stacks share (the license, the fields every readme.yml has) and the choice of the delegate of the stack, which
 has that stack's own fields, facts from the project and layout:
 
 - `readme_kmp.py`, an Android app (`--stack kmp`, the default). What comes from the project is not in readme.yml: the
   screenshots (the PNGs of docs/screenshots/, which CI renders from the app's screenshot package, docs/screenshots.md),
-  the minimum Android version (the minSdk of app/build.gradle.kts) and, if there is a LICENSE file, the license.
+  the minimum Android version (the minSdk of app/build.gradle.kts) and the license (the LICENSE file).
 - `readme_web.py`, a website (`--stack next-js`). A smaller format (docs/readme.md, "Websites"): no icon, screenshots or
   install steps; the project facts are the package manager (from the lockfile), the scripts of package.json, the Node
-  version (`engines.node`), the production address (`productionUrl` in apps.json), and the CREDITS.md and LICENSE files, which each add a section when they exist.
+  version (`engines.node`), the production address (`productionUrl` in apps.json), CREDITS.md and the license.
 
     python3 generate_readme.py [app_dir] [--repo owner/name] [--stack kmp|next-js] [--check]
 
@@ -54,26 +54,6 @@ def license_text(app_dir):
     """The text of the LICENSE file of the app, or None when there is none."""
     path = app_dir / LICENSE_FILE
     return path.read_text(errors="ignore") if path.is_file() else None
-
-
-def license_of(app_dir):
-    """The name of the license of the app in [app_dir], from its LICENSE file, or None when it has no (or an empty) one: then
-    the README has no License section, as it has no Credits section without a CREDITS.md."""
-    text = license_text(app_dir)
-    return license_name(text) if text and text.strip() else None
-
-
-def license_section(license):
-    """The lines of the `## License` section for the license named [license], none when it is None (no LICENSE file)."""
-    return ["## License", "", f"{license}. See [{LICENSE_FILE}]({LICENSE_FILE})."] if license else []
-
-
-def end_of(out, license):
-    """The README text made of the lines [out] (which end with a blank line), with the License section after them if there is one."""
-    lines = out + license_section(license)
-    while lines[-1] == "":
-        lines.pop()
-    return "\n".join(lines) + "\n"
 
 
 def license_name(text):
@@ -161,6 +141,15 @@ def common_problems(data, known, link_titles, hints=None, link_hints=None):
             found.append(f"`{name}` has the heading `{line}`: it would add a section of its own. Use `###` or deeper, "
                          f"or a `sections` entry")
     return found
+
+
+def missing_license(app_dir, what):
+    """The problem with the LICENSE file of [app_dir] (`app` or `website`), as a list of at most one sentence."""
+    text = license_text(app_dir)
+    if text is None or not text.strip():
+        return [f"the {what} has no {LICENSE_FILE} file: every {'app' if what == 'app' else 'project'} has one. For one that had no license, "
+                f"add one holding `Copyright (c) <year> Luke Needham. All rights reserved.`"]
+    return []
 
 
 def problems(data, app_dir=None, stack="kmp"):

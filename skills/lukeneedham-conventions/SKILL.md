@@ -70,8 +70,8 @@ below are enough.
   **not** hold the minimum Android version (read from `minSdk`), the license, the generic setup or the architecture.
   Skeleton: `docs/readme-template.yml`. If it is missing, write it once from the template; update it in the same PR as
   any change a reader would notice.
-- **A `LICENSE` file in the root adds a License section** to the README, which names the license and links to it (no file, no
-  section). A new app is made with one holding `Copyright (c) <year> Luke Needham. All rights reserved.`
+- **Every app has a `LICENSE` file**, which the README names and links. An app with no license gets one holding
+  `Copyright (c) <year> Luke Needham. All rights reserved.`
 
 ## Pages and screenshots
 - **The content of a bottom sheet is always its own composable, in its own file, with its own preview** (`docs/pages.md`):

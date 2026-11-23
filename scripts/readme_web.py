@@ -7,7 +7,8 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import next_js_project
-from generate_readme import HEADER, FactsError, common_problems, end_of, license_of
+from generate_readme import (HEADER, LICENSE_FILE, FactsError, common_problems, license_name, license_text,
+                             missing_license)
 
 CREDITS_FILE = "CREDITS.md"
 # A website: what its visitors see is the site itself, so there are no screenshots and no install steps
@@ -33,7 +34,7 @@ class Facts:
     run: str = "yarn"
     scripts: tuple = ()
     node: str = ""
-    license: str = None  # the name of the license, or None without a LICENSE file
+    license: str = "All rights reserved"
     production_url: str = ""
     credits: bool = False
 
@@ -58,14 +59,15 @@ def facts(app_dir, repo=None, apps_file=APPS_FILE):
     manager, _, run = found
     scripts = package.get("scripts") or {}
     node = re.search(r"\d+", str((package.get("engines") or {}).get("node") or ""))
+    text = license_text(app_dir)
     return Facts(manager, f"{manager} install", run, tuple(name for name, _ in SCRIPTS if name in scripts),
-                 node.group(0) if node else "", license_of(app_dir), production_url(repo, apps_file),
-                 (app_dir / CREDITS_FILE).is_file())
+                    node.group(0) if node else "", license_name(text) if text else "All rights reserved",
+                    production_url(repo, apps_file), (app_dir / CREDITS_FILE).is_file())
 
 
 def problems(data, app_dir=None):
     """What is wrong with the parsed readme.yml [data] of a website, as a list of sentences. With the folder of the site [app_dir],
-    it also checks what the README needs from the project: its package.json and lockfile, and that CREDITS.md is
+    it also checks what the README needs from the project: its package.json and lockfile, a LICENSE file, and that CREDITS.md is
     not also a section. Without, it checks only the data."""
     found = common_problems(
         data, KNOWN, LINKS,
@@ -82,7 +84,7 @@ def problems(data, app_dir=None):
             if str(section.get("title", "")).strip().lower() == "credits":
                 found.append(f"`sections[{i}]` is `Credits`, but the site has a {CREDITS_FILE} file, which the README links to: "
                              f"put the credits there")
-    return found
+    return found + missing_license(app_dir, "website")
 
 
 def render(data, repo, facts):
@@ -131,4 +133,9 @@ def render(data, repo, facts):
         out += [f"## {str(section['title']).strip()}", "", str(section["body"]).strip(), ""]
     if facts.credits:
         out += ["## Credits", "", f"See [{CREDITS_FILE}]({CREDITS_FILE}).", ""]
-    return end_of(out, facts.license)
+    out += [
+        "## License",
+        "",
+        f"{facts.license}. See [{LICENSE_FILE}]({LICENSE_FILE}).",
+    ]
+    return "\n".join(out) + "\n"
