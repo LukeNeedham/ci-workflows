@@ -15,7 +15,7 @@ picked up and understood the same way. The layout lives **here**; the content li
    - the **license**, named from the `LICENSE` file at the repo root (**required**: an app that had no license gets
      one saying `Copyright (c) <year> Luke Needham. All rights reserved.`), so the README cannot disagree with it;
    - the icon, the screenshots (the PNGs of `docs/screenshots/`), the install step, the generic developer setup (the
-     requirements, with the JDK of the shared settings, the clone, build and test commands, CI) and "Contributing";
+     requirements, with the JDK of the shared settings, the clone, build and test commands, CI);
    - **the architecture is not described in the README**: it is the same in every app and enforced by the shared
      conventions of this repo ([pages.md](pages.md), [app-conventions.md](app-conventions.md), the Claude skill), so the
      generated developer section only points to them.
@@ -43,8 +43,7 @@ In this order (the title block and the sections are always there, so they cannot
    build and test commands, CI, and a pointer to the shared architecture and conventions), then **`developer.notes`:
    only what is specific to this app** (a secret, a local setup step, a quirk)
 6. Any `sections` of the app (Privacy, Roadmap, Credits, Known issues), as `## <title>`
-7. `## Contributing`
-8. `## License`: the name of the license in the `LICENSE` file (recognised by its wording: MIT, Apache 2.0, GPL, BSD, "All rights
+7. `## License`: the name of the license in the `LICENSE` file (recognised by its wording: MIT, Apache 2.0, GPL, BSD, "All rights
    reserved"; otherwise its first line), linking to the file
 
 ## Fields of readme.yml
@@ -99,7 +98,7 @@ its format is its own and smaller: [`readme-template-web.yml`](readme-template-w
 stale. Unknown fields, `#`/`##` headings in the text and a `license` field are errors, as for the apps.
 
 The layout, in this order: the name as the one `#` heading and the tagline (with the `links` under it), `## Description`,
-`## Getting started as a developer`, any `sections`, `## Credits` (only when the site has a `CREDITS.md` file at the repo root: the README just links to it, and a `sections` entry titled Credits is then an error), `## Contributing` and `## License`. **What comes from the project:** the package
+`## Getting started as a developer`, any `sections`, `## Credits` (only when the site has a `CREDITS.md` file at the repo root: the README just links to it, and a `sections` entry titled Credits is then an error) and `## License`. **What comes from the project:** the package
 manager (from the lockfile: `yarn.lock`, `pnpm-lock.yaml` or `package-lock.json`), the commands (the `dev`, `lint`, `format`,
 `typecheck`, `test` and `build` scripts of `package.json`, the ones it has), the Node version (`engines.node`) and the license
 (the `LICENSE` file, which is required) and the production address (`productionUrl` in `apps.json`). The architecture is not described: it is the same for every site ([next-js-app.md](next-js-app.md)).

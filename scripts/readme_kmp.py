@@ -194,10 +194,6 @@ def render(data, repo, facts):
     for section in data.get("sections") or []:
         out += [f"## {str(section['title']).strip()}", "", str(section["body"]).strip(), ""]
     out += [
-        "## Contributing",
-        "",
-        "Branch from `main`, make the change, and open a pull request. CI must be green before it is merged.",
-        "",
         "## License",
         "",
         f"{facts.license}. See [{LICENSE_FILE}]({LICENSE_FILE}).",
