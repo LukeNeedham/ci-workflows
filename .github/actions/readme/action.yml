@@ -2,9 +2,13 @@ name: README
 description: >
   Renders README.md, at the root of the app, from its readme.yml in the standard layout, and commits it to the branch
   of the pull request when it differs. An app without a readme.yml yet only gets a warning. Used by the `readme` job
-  of android_pr.yml; see docs/readme.md. The job needs `contents: write`.
+  of android_pr.yml and web_pr.yml; see docs/readme.md. The job needs `contents: write`.
 
 inputs:
+  stack:
+    description: 'What the project is built with: kmp (an Android app) or next-js (a website, with its own layout)'
+    required: false
+    default: kmp
   token:
     description: 'The token to push the generated files with; empty: the workflow token. See checkout-pr-branch'
     required: false
@@ -21,9 +25,10 @@ runs:
       shell: bash
       env:
         REPO: ${{ github.repository }}
+        STACK: ${{ inputs.stack }}
       run: |
         pip install --quiet pyyaml
-        python3 "$CI_SCRIPTS/generate_readme.py" . --repo "$REPO" --skip-if-missing
+        python3 "$CI_SCRIPTS/generate_readme.py" . --repo "$REPO" --stack "$STACK" --skip-if-missing
 
     - name: Commit README.md if it changed
       shell: bash

@@ -1,0 +1,30 @@
+# The data of a website's README.md. Copy this to readme.yml at the repo root, replace the values, delete the comments.
+# CI renders README.md from it (docs/readme.md, "Websites"): the layout is shared, only the content below is the site's.
+# Write it by hand. Never edit README.md: it is overwritten.
+#
+# What the project already says is not here, because the generator reads it: the package manager (the lockfile), the
+# commands (the scripts of package.json), the Node version (`engines.node`) and the license (the LICENSE file). Write
+# only what is specific to this site.
+#
+# A value with a colon followed by a space, or starting with a quote, `*` or `&`, has to be in quotes.
+# Text fields are Markdown, but without `#` and `##` headings: those are the sections of the layout.
+
+name: Demo Site
+tagline: One line saying what the site is.
+
+description: |
+  What the site is and who it is for, in a paragraph or two separated by a blank line.
+
+# links:                        # optional: shown under the tagline, after the production site, which is not written here: the
+#   other:                       # generator takes it from the `productionUrl` of the site in apps.json of ci-workflows
+#     - title: Source of the design
+#       url: https://example.com/design
+
+# developer:
+#   notes: |                    # optional: only what is specific to developing THIS site (an environment variable, a
+#     Copy `.env.example` to `.env.local`.   # build-time step, a quirk). The generic setup is generated.
+
+# sections:                     # optional: extra sections, shown between the developer section and Contributing
+#   - title: Roadmap
+#     body: |
+#       Something that is not credits (those are the CREDITS.md file, which the README links to).

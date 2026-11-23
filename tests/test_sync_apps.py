@@ -98,7 +98,9 @@ class SyncApp(unittest.TestCase):
         claude = (self.dir / "CLAUDE.md").read_text()
         self.assertIn("no Android app", claude)
         self.assertIn("preview URL", claude)
-        self.assertNotIn("readme.yml", claude)
+        self.assertIn("docs/readme-template-web.yml", claude)
+        self.assertNotIn("docs/readme-template.yml", claude)
+        self.assertNotIn("screenshot package", claude)
         self.assertNotIn("XPageContent", claude)
         self.assertEqual([], s.sync_app(self.dir, "next-js"), "a second run changes nothing")
 
@@ -189,6 +191,16 @@ class SyncApp(unittest.TestCase):
     def test_the_block_tells_claude_the_readme_standard(self):
         s.sync_claude_md(self.dir, "kmp")
         self.assertIn("docs/readme-template.yml", (self.dir / "CLAUDE.md").read_text())
+
+    def test_the_readme_source_of_a_website_is_reported_in_its_own_format(self):
+        self.assertEqual("readme.yml is missing", s.readme_note(self.dir, "next-js"))
+        self.write("readme.yml", (TOOLS / "docs/readme-template-web.yml").read_text())
+        self.write("package.json", "{}")
+        self.write("yarn.lock", "")
+        self.write("LICENSE", "Copyright (c) 2026 Luke Needham. All rights reserved.\n")
+        self.assertEqual("", s.readme_note(self.dir, "next-js"), "no screenshot package is asked of a website")
+        self.write("readme.yml", (TOOLS / "docs/readme-template.yml").read_text() + "\nscreenshots: manual\n")
+        self.assertIn("a website has no screenshots", s.readme_note(self.dir, "next-js"))
 
     def test_the_readme_source_is_reported_but_nothing_is_written(self):
         self.assertEqual("readme.yml is missing", s.readme_note(self.dir))

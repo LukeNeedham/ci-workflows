@@ -8,7 +8,7 @@ picked up and understood the same way. The layout lives **here**; the content li
 
 1. The app has **`readme.yml`**, written by hand ([skeleton](readme-template.yml)): the name, tagline, description,
    and a few optional parts (links, install and developer notes, extra sections). **Only what is specific to the app.**
-2. [`scripts/generate_readme.py`](../scripts/generate_readme.py) renders **`README.md`** from it in the standard
+2. [`scripts/generate_readme.py`](../scripts/generate_readme.py) (the caller, with what both stacks share; the layout and the project facts of each stack are in its delegate, [`readme_kmp.py`](../scripts/readme_kmp.py) for the apps and [`readme_web.py`](../scripts/readme_web.py) for the websites) renders **`README.md`** from it in the standard
    layout. **What every app shares comes from the script, and from the project itself:**
    - the **minimum Android version**, read from `minSdk` in `app/build.gradle.kts` (and the platform to install, from
      `compileSdk`), so it can never be out of date, and the build fails if it cannot be read;
@@ -79,6 +79,33 @@ Copyright (c) 2026 Luke Needham. All rights reserved.
 An open-source app has the full text of its license (MIT, Apache 2.0 and so on). The file is handwritten and committed
 with the app's first `readme.yml`; CI never writes it.
 
+## Websites
+
+A website (stack `next-js`, [next-js-app.md](next-js-app.md)) is generated the same way, with the same script (`--stack next-js`), but
+its format is its own and smaller: [`readme-template-web.yml`](readme-template-web.yml) is the skeleton. The `readme` job of
+[`web_pr.yml`](../.github/workflows/web_pr.yml) runs the same composite action, and a site with no `readme.yml` only gets a warning.
+
+| Field | Required | Meaning |
+|---|---|---|
+| `name`, `tagline` | yes | The site's name and one line on what it is |
+| `description` | yes | What the site is and who it is for; a paragraph or two |
+| `links` | no | Only `other`, a list of `title` and `url`. Shown under the tagline, after the production site |
+| `developer.notes` | no | Only what is specific to developing this site (an environment variable, a build-time step, a quirk) |
+| `sections` | no | Extra sections: a list of `title` and `body` |
+
+**The production address is not written in `readme.yml`**: the README links "Website" under the tagline to the `productionUrl` of the site in
+[`apps.json`](../apps.json) ([consuming-apps.md](consuming-apps.md)), the one place that has it, and the link is left out when the site has none.
+`links.web` is an error. There is no `screenshots`, `user` or icon: a visitor uses the site itself, so there is nothing to install, and a screenshot of it would go
+stale. Unknown fields, `#`/`##` headings in the text and a `license` field are errors, as for the apps.
+
+The layout, in this order: the name as the one `#` heading and the tagline (with the `links` under it), `## Description`,
+`## Getting started as a developer`, any `sections`, `## Credits` (only when the site has a `CREDITS.md` file at the repo root: the README just links to it, and a `sections` entry titled Credits is then an error), `## Contributing` and `## License`. **What comes from the project:** the package
+manager (from the lockfile: `yarn.lock`, `pnpm-lock.yaml` or `package-lock.json`), the commands (the `dev`, `lint`, `format`,
+`typecheck`, `test` and `build` scripts of `package.json`, the ones it has), the Node version (`engines.node`) and the license
+(the `LICENSE` file, which is required) and the production address (`productionUrl` in `apps.json`). The architecture is not described: it is the same for every site ([next-js-app.md](next-js-app.md)).
+
+`README.md` is ignored by Prettier (`/README.md` in `.prettierignore`), because it is generated, and `readme.yml` is not.
+
 ## Running it yourself
 
 Not needed, since CI does it, but to see the result before pushing (from the app's repo root):
@@ -88,6 +115,7 @@ pip install pyyaml
 git clone --depth 1 https://github.com/LukeNeedham/ci-workflows /tmp/ci-workflows
 python3 /tmp/ci-workflows/scripts/generate_readme.py .            # writes README.md
 python3 /tmp/ci-workflows/scripts/generate_readme.py . --check    # writes nothing, exits 1 if README.md is out of date
+python3 /tmp/ci-workflows/scripts/generate_readme.py . --stack next-js    # a website (the default stack is kmp)
 ```
 
 ## Rollout and reporting

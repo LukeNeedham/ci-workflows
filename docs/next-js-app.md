@@ -17,8 +17,12 @@ Nothing is configured per project: every `next-js` project follows the same stan
 | Branch | PRs go to `main` |
 | Hosting | The repo is connected to a project on [Vercel](https://vercel.com), which deploys every PR as a preview and `main` as production |
 
-What does not apply: `app-icon.png`, `readme.yml`, the screenshots and previews of Compose, the conventions check, the
-releases, the APK links, the `common` library and the `lukeneedham-conventions` skill. The README is the project's own.
+What does not apply: `app-icon.png`, the screenshots and previews of Compose, the conventions check, the
+releases, the APK links, the `common` library and the `lukeneedham-conventions` skill.
+
+**The README is generated**, as in the Kotlin apps, from a handwritten `readme.yml` at the repo root, in a layout of its own for
+websites ([readme.md](readme.md#websites)): no icon, no screenshots and no install steps, and the commands, the Node version and the
+license read from the project. Never edit `README.md`; the `readme` job of `web_pr.yml` renders it on every PR and commits it to the PR branch.
 
 ## The architecture
 
@@ -69,7 +73,8 @@ runs at build time only and writes to `src/generated/` (git-ignored). `src/` onl
 
 **Formatting is Prettier's** (no semicolons, single quotes, 100 columns), checked by `lint`, fixed by `yarn format`.
 `.prettierignore` leaves out the files the sync keeps (`.claude`, `.github`, `CLAUDE.md`): Prettier fails on them, and a reformat would be
-reverted by the next sync. It also leaves out the root `README.md`: the scaffold writes it, and a style nit in it must not fail a PR.
+reverted by the next sync. It also leaves out the root `README.md`: CI generates it from `readme.yml`, so a style nit in it must not fail a PR
+(a project that was made before this has the line added by hand: the sync does not touch `.prettierignore`, it is the project's own). `readme.yml` is Prettier's, though.
 
 **Stack and versions**: Next.js, React and **Chakra UI v3** at their newest, TypeScript 6 (typescript-eslint does not support 7 yet, so
 `typescript` is pinned to `~6.0`), ESLint 10 with `eslint-config-next`, Vitest (which is built on Vite, so `vite` is installed too; it is
@@ -89,9 +94,11 @@ carets in the template and `yarn.lock` pins what was installed on the day the pr
 [`web_pr.yml`](../.github/workflows/web_pr.yml) runs on every PR into `main`:
 
 1. **`check`**: installs from the lockfile, runs `lint`, `typecheck` and `test` (if the project has the scripts) and `build`.
-2. **`preview`**: waits for the preview that Vercel deploys for the commit, checks that it **opens without a login**, and
+2. **`readme`**: renders `README.md` from `readme.yml` ([readme.md](readme.md#websites)) and commits it to the PR branch when it differs.
+   A site with no `readme.yml` yet only gets a warning.
+3. **`preview`**: waits for the preview that Vercel deploys for the commit, checks that it **opens without a login**, and
    posts one comment per PR (header `web-preview-link`) with the URL. The AppHub link is posted once, as for the apps.
-3. **`automerge`**: merges the sync PR once the jobs have passed ([sync.md](sync.md#merging-the-prs)).
+4. **`automerge`**: merges the sync PR once the jobs have passed ([sync.md](sync.md#merging-the-prs)).
 
 There is no cleanup job: Vercel removes the previews of a closed PR itself.
 
@@ -170,7 +177,7 @@ card, which opens it. It is optional, as a new website has no domain until you g
 
 From **AppHub's New project**, choosing the stack `next-js` (or *Actions → New App → Run workflow* with `stack` set to
 `next-js`; [create-app.md](create-app.md)), which makes the repo, pushes the first commit and adds the entry to `apps.json`.
-The first commit holds the sync of this stack and the minimal site of [`templates/next-js/`](../templates/next-js): one page,
+The first commit holds the sync of this stack and the minimal site of [`templates/next-js/`](../templates/next-js), with its `readme.yml` (a placeholder to replace) and the `README.md` rendered from it: one page,
 `HomePage` and `HomePageContent`, with the view model, the theme, the lint, typecheck and test setup and a `yarn.lock`, so
 the first pull request already builds. **The run also sets the site up on Vercel** ([below](#vercel-setup)), so what is left is yours:
 

@@ -1,3 +1,4 @@
+import json
 import subprocess
 import sys
 import tempfile
@@ -8,6 +9,8 @@ import yaml
 
 import _paths  # noqa: F401
 import generate_readme as g
+import readme_kmp as k
+import readme_web as w
 
 TEMPLATE = Path(__file__).resolve().parent.parent / "docs" / "readme-template.yml"
 BUILD = 'android {\n    compileSdk = 36\n    defaultConfig {\n        minSdk = 26 // why\n    }\n}\n'
@@ -39,11 +42,11 @@ def data():
 
 
 def facts(**kwargs):
-    return g.Facts(**{"min_sdk": 26, "compile_sdk": 36, "screenshots": SHOTS, "license": "MIT", **kwargs})
+    return k.Facts(**{"min_sdk": 26, "compile_sdk": 36, "screenshots": SHOTS, "license": "MIT", **kwargs})
 
 
 def render(d=None, **kwargs):
-    return g.render(d or data(), "LukeNeedham/Demo", facts(**kwargs))
+    return k.render(d or data(), "LukeNeedham/Demo", facts(**kwargs))
 
 
 class GenerateReadmeTest(unittest.TestCase):
@@ -193,7 +196,7 @@ class GenerateReadmeTest(unittest.TestCase):
         self.assertEqual(2, text.count("<img src=\"docs/screenshots/"))
 
     def test_the_number_in_the_image_name_orders_the_images_and_is_not_in_the_alt_text(self):
-        self.assertEqual("Pull Request Page", g.alt_text("docs/screenshots/02-PullRequestPage.png"))
+        self.assertEqual("Pull Request Page", k.alt_text("docs/screenshots/02-PullRequestPage.png"))
         text = render(screenshots=("docs/screenshots/01-HomePage.png", "docs/screenshots/02-SettingsPage.png"))
         self.assertLess(text.index("01-HomePage.png"), text.index("02-SettingsPage.png"))
         self.assertIn('alt="Home Page"', text)
@@ -202,6 +205,151 @@ class GenerateReadmeTest(unittest.TestCase):
         text = "\n".join(g.problems({"name": "X", "extra": 1}))
         for expected in ("unknown field `extra`", "`tagline` is required", "`description` is required"):
             self.assertIn(expected, text)
+
+
+WEB_TEMPLATE = TEMPLATE.parent / "readme-template-web.yml"
+PACKAGE = '{"scripts": {"dev": "next dev", "build": "next build", "lint": "eslint .", "format": "prettier --write .", "test": "vitest run"}, "engines": {"node": "24.x"}}'
+
+
+class website:
+    """A folder with the files that the README of a website needs from the project: package.json, a lockfile and a LICENSE."""
+
+    def __init__(self, lockfile="yarn.lock", package=PACKAGE, license="MIT License\n"):
+        self.lockfile, self.package, self.license = lockfile, package, license
+
+    def __enter__(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        folder = Path(self.tmp.name)
+        if self.package is not None:
+            (folder / "package.json").write_text(self.package)
+        if self.lockfile:
+            (folder / self.lockfile).write_text("")
+        if self.license is not None:
+            (folder / "LICENSE").write_text(self.license)
+        return folder
+
+    def __exit__(self, *exc):
+        self.tmp.cleanup()
+
+
+def web_data():
+    return yaml.safe_load(WEB_TEMPLATE.read_text())
+
+
+class WebsiteReadmeTest(unittest.TestCase):
+    def render(self, d=None, **folder):
+        with website(**folder) as path:
+            return w.render(d or web_data(), "LukeNeedham/Demo", w.facts(path))
+
+    def test_the_template_is_valid(self):
+        self.assertEqual([], g.problems(web_data(), stack="next-js"))
+        with website() as folder:
+            self.assertEqual([], g.problems(web_data(), folder, "next-js"))
+
+    def test_the_layout_has_no_icon_screenshots_or_install_steps(self):
+        text = self.render()
+        headings = [l[3:] for l in text.splitlines() if l.startswith("## ")]
+        self.assertEqual(["Description", "Getting started as a developer", "Contributing", "License"], headings)
+        for left_out in ("app-icon", "Screenshots", "Android", "AppHub", "Getting started as a user"):
+            self.assertNotIn(left_out, text)
+        self.assertTrue(text.startswith("<!-- Generated from readme.yml"))
+        self.assertIn("# Demo Site\n\nOne line", text)
+        self.assertTrue(text.rstrip().endswith("MIT. See [LICENSE](LICENSE)."))
+
+    def test_the_commands_come_from_the_package_manager_and_the_scripts_of_the_project(self):
+        text = self.render()
+        self.assertIn("Requirements: Node.js 24 and yarn.", text)
+        for line in ("git clone https://github.com/LukeNeedham/Demo.git", "cd Demo", "yarn install", "yarn dev ", "yarn lint ",
+                     "yarn format ", "yarn test ", "yarn build "):
+            self.assertIn(line, text)
+        self.assertNotIn("yarn typecheck", text, "the project has no such script")
+        npm = self.render(lockfile="package-lock.json")
+        self.assertIn("npm install", npm)
+        self.assertIn("npm run build", npm)
+        self.assertIn("Requirements: Node.js and pnpm.", self.render(lockfile="pnpm-lock.yaml", package='{"scripts": {}}'))
+
+    def test_a_website_has_its_own_fields(self):
+        d = web_data()
+        d["screenshots"] = "manual"
+        d["user"] = {"steps": ["x"]}
+        found = "\n".join(g.problems(d, stack="next-js"))
+        self.assertIn("unknown field `screenshots` (a website has no screenshots", found)
+        self.assertIn("unknown field `user`", found)
+        d = web_data()
+        d["links"] = {"play-store": "https://play.google.com/x"}
+        self.assertIn("unknown field `links.play-store` (only `other`)", "\n".join(g.problems(d, stack="next-js")))
+        d["links"] = {"web": "https://demo.example.com"}
+        self.assertIn("`links.web` is not a field: the production address is the `productionUrl`", "\n".join(g.problems(d, stack="next-js")))
+
+    def test_links_notes_and_sections(self):
+        d = web_data()
+        d["links"] = {"other": [{"title": "Design", "url": "https://example.com/d"}]}
+        d["developer"] = {"notes": "Copy `.env.example`."}
+        d["sections"] = [{"title": "Credits", "body": "Photos by someone."}]
+        self.assertEqual([], g.problems(d, stack="next-js"))
+        text = self.render(d)
+        self.assertIn("[Design](https://example.com/d)", text)
+        self.assertNotIn("Website](", text, "the site has no productionUrl")
+        order = [text.index(s) for s in ("## Description", "## Getting started as a developer", "Copy `.env.example`.", "## Credits", "## Contributing")]
+        self.assertEqual(sorted(order), order)
+
+    def test_credits_are_a_file_that_the_readme_links_to_when_it_exists(self):
+        self.assertNotIn("Credits", self.render())
+        with website() as folder:
+            (folder / "CREDITS.md").write_text("Icons by someone.\n")
+            d = web_data()
+            d["sections"] = [{"title": "Roadmap", "body": "Soon."}]
+            text = w.render(d, "LukeNeedham/Demo", w.facts(folder))
+            self.assertIn("## Credits\n\nSee [CREDITS.md](CREDITS.md).\n\n## Contributing", text)
+            self.assertLess(text.index("## Roadmap"), text.index("## Credits"))
+            self.assertEqual([], g.problems(d, folder, "next-js"))
+            d["sections"] = [{"title": "credits", "body": "Icons."}]
+            self.assertIn("put the credits there", "\n".join(g.problems(d, folder, "next-js")))
+
+    def test_the_production_link_is_the_production_url_of_the_site_in_apps_json(self):
+        with tempfile.TemporaryDirectory() as tmp, website() as folder:
+            apps = Path(tmp) / "apps.json"
+            apps.write_text('[{"name": "Demo", "repo": "LukeNeedham/Demo", "stack": "next-js", "productionUrl": "https://demo.example.com"},'
+                            ' {"name": "Other", "repo": "LukeNeedham/Other", "stack": "next-js"}]')
+            self.assertEqual("https://demo.example.com", w.production_url("lukeneedham/demo", apps))
+            self.assertEqual("", w.production_url("LukeNeedham/Other", apps), "listed, but with no productionUrl")
+            self.assertEqual("", w.production_url("LukeNeedham/Unlisted", apps))
+            d = web_data()
+            d["links"] = {"other": [{"title": "Design", "url": "https://example.com/d"}]}
+            text = w.render(d, "LukeNeedham/Demo", w.facts(folder, "LukeNeedham/Demo", apps))
+            self.assertIn("[Website](https://demo.example.com) · [Design](https://example.com/d)\n\n## Description", text)
+            self.assertLess(text.index("# Demo Site"), text.index("[Website]"))
+
+    def test_every_website_of_apps_json_with_a_production_url_gets_it_in_its_readme(self):
+        apps = json.loads(w.APPS_FILE.read_text())
+        for app in apps:
+            if app["stack"] == "next-js" and "productionUrl" in app:
+                self.assertEqual(app["productionUrl"], w.production_url(app["repo"]))
+
+    def test_the_project_must_have_a_package_json_a_lockfile_and_a_license(self):
+        for kwargs, expected in (({"package": None}, "no package.json"), ({"lockfile": None}, "no lockfile"), ({"license": None}, "no LICENSE file")):
+            with website(**kwargs) as folder:
+                self.assertIn(expected, "\n".join(g.problems(web_data(), folder, "next-js")))
+
+    def test_the_command_line_renders_and_checks_a_website(self):
+        script = str(Path(g.__file__))
+        with website() as folder:
+            run = lambda *a: subprocess.run([sys.executable, script, str(folder), "--repo", "LukeNeedham/Demo", "--stack", "next-js", *a],
+                                            capture_output=True, text=True)
+            (folder / "readme.yml").write_text(WEB_TEMPLATE.read_text())
+            self.assertEqual(1, run("--check").returncode)
+            self.assertEqual(0, run().returncode)
+            self.assertEqual(self.render(), (folder / "README.md").read_text())
+            self.assertEqual(0, run("--check").returncode)
+            (folder / "README.md").write_text("edited by hand\n")
+            self.assertEqual(1, run("--check").returncode)
+
+    def test_the_default_stack_is_still_the_android_app(self):
+        with website() as folder:
+            (folder / "readme.yml").write_text(WEB_TEMPLATE.read_text())
+            result = subprocess.run([sys.executable, str(Path(g.__file__)), str(folder), "--repo", "LukeNeedham/Demo"], capture_output=True, text=True)
+            self.assertEqual(1, result.returncode)
+            self.assertIn("screenshots", result.stderr)
 
 
 class SdkLevelsTest(unittest.TestCase):
@@ -213,7 +361,7 @@ class SdkLevelsTest(unittest.TestCase):
             if catalog is not None:
                 (app / "gradle").mkdir()
                 (app / "gradle" / "libs.versions.toml").write_text(catalog)
-            return g.sdk_levels(app)
+            return k.sdk_levels(app)
 
     def test_literals_with_comments(self):
         self.assertEqual((26, 36), self.levels(BUILD))
@@ -229,10 +377,10 @@ class SdkLevelsTest(unittest.TestCase):
         self.assertEqual((23, 36), self.levels(build, '[versions]\ncompileSdk = "36"\nmin-sdk = "23"\n'))
 
     def test_an_unreadable_min_sdk_is_an_error_not_a_guess(self):
-        with self.assertRaises(g.SdkError):
+        with self.assertRaises(k.SdkError):
             self.levels("android {\n compileSdk = 36\n}\n")
-        with tempfile.TemporaryDirectory() as tmp, self.assertRaises(g.SdkError):
-            g.sdk_levels(Path(tmp))
+        with tempfile.TemporaryDirectory() as tmp, self.assertRaises(k.SdkError):
+            k.sdk_levels(Path(tmp))
 
     def test_an_unreadable_compile_sdk_is_just_missing(self):
         self.assertEqual((26, None), self.levels("android {\n defaultConfig { minSdk = 26 }\n}\n"))
@@ -254,7 +402,7 @@ class CommandLineTest(unittest.TestCase):
             (app / "app" / "build.gradle.kts").write_text(BUILD)
             self.assertEqual(1, run("--check").returncode)
             self.assertEqual(0, run().returncode)
-            self.assertEqual(g.render(data(), "LukeNeedham/Demo", facts(screenshots=("docs/screenshots/HomePage.png",))), (app / "README.md").read_text())
+            self.assertEqual(k.render(data(), "LukeNeedham/Demo", facts(screenshots=("docs/screenshots/HomePage.png",))), (app / "README.md").read_text())
             self.assertEqual(0, run("--check").returncode)
             (app / "README.md").write_text("edited by hand\n")
             self.assertEqual(1, run("--check").returncode)
