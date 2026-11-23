@@ -124,11 +124,20 @@ class GenerateReadmeTest(unittest.TestCase):
         d["license"] = "MIT"
         self.assertIn("`license` is not a field", "\n".join(g.problems(d)))
 
-    def test_the_license_file_is_required_and_named_by_its_wording(self):
-        with app(license=None) as folder:
-            self.assertIn("no LICENSE file", "\n".join(g.problems(data(), folder)))
-        with app(license="  \n") as folder:
-            self.assertIn("no LICENSE file", "\n".join(g.problems(data(), folder)))
+    def test_the_license_section_is_there_only_when_there_is_a_license_file(self):
+        for license in (None, "  \n"):
+            with app(license=license) as folder:
+                self.assertEqual([], g.problems(data(), folder), "a LICENSE file is optional")
+                self.assertIsNone(g.license_of(folder))
+        with app(license="MIT License\n") as folder:
+            self.assertEqual("MIT", g.license_of(folder))
+        text = render(license=None)
+        self.assertNotIn("## License", text)
+        self.assertNotIn("LICENSE", text)
+        self.assertTrue(text.endswith("\n") and not text.endswith("\n\n"))
+        self.assertIn("## License", render(license="MIT"))
+
+    def test_the_license_is_named_by_its_wording(self):
         cases = {
             "MIT License\n\nCopyright (c) 2025 Someone\n": "MIT",
             "Apache License\n Version 2.0, January 2004": "Apache 2.0",
@@ -330,8 +339,20 @@ class WebsiteReadmeTest(unittest.TestCase):
             if app["stack"] == "next-js" and "productionUrl" in app:
                 self.assertEqual(app["productionUrl"], w.production_url(app["repo"]))
 
-    def test_the_project_must_have_a_package_json_a_lockfile_and_a_license(self):
-        for kwargs, expected in (({"package": None}, "no package.json"), ({"lockfile": None}, "no lockfile"), ({"license": None}, "no LICENSE file")):
+    def test_the_license_section_of_a_website_is_there_only_when_there_is_a_license_file(self):
+        self.assertIn("## License\n\nMIT. See [LICENSE](LICENSE).", self.render())
+        text = self.render(license=None)
+        self.assertNotIn("License", text)
+        self.assertTrue(text.endswith("\n") and not text.endswith("\n\n"))
+        with website(license=None) as folder:
+            self.assertEqual([], g.problems(web_data(), folder, "next-js"))
+        with website(license=None) as folder:
+            (folder / "CREDITS.md").write_text("x\n")
+            text = w.render(web_data(), "LukeNeedham/Demo", w.facts(folder))
+            self.assertTrue(text.endswith("## Credits\n\nSee [CREDITS.md](CREDITS.md).\n"))
+
+    def test_the_project_must_have_a_package_json_and_a_lockfile(self):
+        for kwargs, expected in (({"package": None}, "no package.json"), ({"lockfile": None}, "no lockfile")):
             with website(**kwargs) as folder:
                 self.assertIn(expected, "\n".join(g.problems(web_data(), folder, "next-js")))
 
@@ -397,7 +418,7 @@ class CommandLineTest(unittest.TestCase):
             app = Path(tmp)
             run = lambda *a: subprocess.run([sys.executable, script, tmp, "--repo", "LukeNeedham/Demo", *a], capture_output=True, text=True)
             (app / "readme.yml").write_text(TEMPLATE.read_text())
-            self.assertEqual(1, run().returncode)  # no screenshots and no LICENSE yet
+            self.assertEqual(1, run().returncode)  # no screenshots yet
             (app / "docs" / "screenshots").mkdir(parents=True)
             (app / "docs" / "screenshots" / "HomePage.png").write_bytes(b"png")
             (app / "LICENSE").write_text("MIT License\n")

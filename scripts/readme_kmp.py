@@ -11,7 +11,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent / "screenshots"))
 from app_config import SETTINGS  # noqa: E402
 from check_screenshot_package import package_folders  # noqa: E402
 from generate_readme import (  # noqa: E402
-    HEADER, LICENSE_FILE, FactsError, common_problems, license_name, license_text, missing_license)
+    HEADER, FactsError, common_problems, end_of, license_of)
 
 LINKS = {"play-store": "Google Play", "f-droid": "F-Droid", "web": "Web app"}
 SCREENSHOTS = "docs/screenshots"
@@ -70,14 +70,13 @@ class Facts:
     min_sdk: int
     compile_sdk: int = None
     screenshots: tuple = ()
-    license: str = "All rights reserved"
+    license: str = None  # the name of the license, or None without a LICENSE file
 
 
 def facts(app_dir, repo=None):
     """The [Facts] of the app ([repo] is not needed: they come from the files). Raises [SdkError] when the minimum Android version cannot be read."""
     min_sdk, compile_sdk = sdk_levels(app_dir)
-    text = license_text(app_dir)
-    return Facts(min_sdk, compile_sdk, tuple(screenshot_files(app_dir)), license_name(text) if text else "All rights reserved")
+    return Facts(min_sdk, compile_sdk, tuple(screenshot_files(app_dir)), license_of(app_dir))
 
 
 def screenshot_files(app_dir):
@@ -87,8 +86,7 @@ def screenshot_files(app_dir):
 
 def problems(data, app_dir=None):
     """What is wrong with the parsed readme.yml [data] of an Android app, as a list of sentences. With the folder of the app
-    [app_dir], it also checks what the README needs from the project: the screenshots of docs/screenshots/ and the LICENSE
-    file. Without, it checks only the data."""
+    [app_dir], it also checks what the README needs from the project: the screenshots of docs/screenshots/. Without, it checks only the data."""
     found = common_problems(data, KNOWN, LINKS)
     if not isinstance(data, dict):
         return found
@@ -115,7 +113,6 @@ def problems(data, app_dir=None):
                          + ("It says `screenshots: manual`, so commit one into docs/screenshots/" if manual else
                             "Add a screenshot package (docs/screenshots.md in LukeNeedham/ci-workflows), or, for an app "
                             "that cannot render previews, set `screenshots: manual` and commit one into docs/screenshots/"))
-        found += missing_license(app_dir, "app")
     return found
 
 
@@ -193,9 +190,4 @@ def render(data, repo, facts):
         out += [str(notes).strip(), ""]
     for section in data.get("sections") or []:
         out += [f"## {str(section['title']).strip()}", "", str(section["body"]).strip(), ""]
-    out += [
-        "## License",
-        "",
-        f"{facts.license}. See [{LICENSE_FILE}]({LICENSE_FILE}).",
-    ]
-    return "\n".join(out) + "\n"
+    return end_of(out, facts.license)

@@ -40,7 +40,8 @@ The long guide is `docs/next-js-app.md` in that repo. If you can reach GitHub, r
   `LukeNeedham/ci-workflows`, and committed to the PR branch. **Never edit `README.md`; edit `readme.yml`** and keep it accurate
   (write it once from `docs/readme-template-web.yml` if it is missing). Fields: `name`, `tagline`, `description` (required), `links`
   (credits are not a section: put them in `CREDITS.md` at the repo root, which the README links to when it exists) (`other` only: the production link is the site's `productionUrl` in `apps.json` of ci-workflows, never in `readme.yml`), `developer.notes`, `sections`. There are no screenshots, icon or install steps. The commands, the Node version
-  and the license come from the project (`package.json`, the lockfile, `LICENSE`, which is required).
+  and the license come from the project (`package.json`, the lockfile). A `LICENSE` file or a `CREDITS.md` in the root adds a License or
+  Credits section to the README, which names and links it; without the file there is no section.
 - Test `XPageContent` by rendering it with a state and clicking, and the view model with `renderHook`.
 
 ## CI

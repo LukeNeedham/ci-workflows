@@ -25,7 +25,7 @@ def skip_reason(app_dir):
     """Why there is nothing to render, or None when there is."""
     if not (Path(app_dir) / "readme.yml").is_file():
         return ("There is no readme.yml yet, so the app is not held to the screenshot rules and nothing is rendered. "
-                "Migrate it: a readme.yml, a screenshot package with an order.txt, and a LICENSE "
+                "Migrate it: a readme.yml, a screenshot package with an order.txt "
                 "(docs/readme.md and docs/screenshots.md in LukeNeedham/ci-workflows).")
     if manual_screenshots(app_dir) and not package_folders(app_dir):
         return ("readme.yml says `screenshots: manual`, so nothing is rendered: the screenshots committed by hand in "

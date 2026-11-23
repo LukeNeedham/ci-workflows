@@ -12,8 +12,8 @@ picked up and understood the same way. The layout lives **here**; the content li
    layout. **What every app shares comes from the script, and from the project itself:**
    - the **minimum Android version**, read from `minSdk` in `app/build.gradle.kts` (and the platform to install, from
      `compileSdk`), so it can never be out of date, and the build fails if it cannot be read;
-   - the **license**, named from the `LICENSE` file at the repo root (**required**: an app that had no license gets
-     one saying `Copyright (c) <year> Luke Needham. All rights reserved.`), so the README cannot disagree with it;
+   - the **license**, named from the `LICENSE` file at the repo root, which adds a `## License` section **when the file exists**
+     (like `CREDITS.md` for a website), so the README cannot disagree with it;
    - the icon, the screenshots (the PNGs of `docs/screenshots/`), the install step, the generic developer setup (the
      requirements, with the JDK of the shared settings, the clone, build and test commands, CI);
    - **the architecture is not described in the README**: it is the same in every app and enforced by the shared
@@ -43,8 +43,8 @@ In this order (the title block and the sections are always there, so they cannot
    build and test commands, CI, and a pointer to the shared architecture and conventions), then **`developer.notes`:
    only what is specific to this app** (a secret, a local setup step, a quirk)
 6. Any `sections` of the app (Privacy, Roadmap, Credits, Known issues), as `## <title>`
-7. `## License`: the name of the license in the `LICENSE` file (recognised by its wording: MIT, Apache 2.0, GPL, BSD, "All rights
-   reserved"; otherwise its first line), linking to the file
+7. `## License`, only if the app has a `LICENSE` file at the repo root: the name of the license in it (recognised by its wording: MIT,
+   Apache 2.0, GPL, BSD, "All rights reserved"; otherwise its first line), linking to the file
 
 ## Fields of readme.yml
 
@@ -68,15 +68,16 @@ Unknown fields are an error, so a typo does not silently drop content. Keep it a
 
 ### The LICENSE file
 
-Every app has a `LICENSE` file at the repo root, and the README generator fails without one. An app that is not open
-source (most of them) has this, as the whole file:
+The README has a License section when the app has a `LICENSE` file at the repo root, and none when it has not (or when the
+file is empty): nothing fails without one. A new app is made with one. An app that is not open source (most of them) has this, as
+the whole file:
 
 ```
 Copyright (c) 2026 Luke Needham. All rights reserved.
 ```
 
 An open-source app has the full text of its license (MIT, Apache 2.0 and so on). The file is handwritten and committed
-with the app's first `readme.yml`; CI never writes it.
+(it is not generated: CI never writes it).
 
 ## Websites
 
@@ -98,10 +99,10 @@ its format is its own and smaller: [`readme-template-web.yml`](readme-template-w
 stale. Unknown fields, `#`/`##` headings in the text and a `license` field are errors, as for the apps.
 
 The layout, in this order: the name as the one `#` heading and the tagline (with the `links` under it), `## Description`,
-`## Getting started as a developer`, any `sections`, `## Credits` (only when the site has a `CREDITS.md` file at the repo root: the README just links to it, and a `sections` entry titled Credits is then an error) and `## License`. **What comes from the project:** the package
+`## Getting started as a developer`, any `sections`, `## Credits` (only when the site has a `CREDITS.md` file at the repo root: the README just links to it, and a `sections` entry titled Credits is then an error) and `## License` (only when it has a `LICENSE` file: the README names the license and links to it). **What comes from the project:** the package
 manager (from the lockfile: `yarn.lock`, `pnpm-lock.yaml` or `package-lock.json`), the commands (the `dev`, `lint`, `format`,
-`typecheck`, `test` and `build` scripts of `package.json`, the ones it has), the Node version (`engines.node`) and the license
-(the `LICENSE` file, which is required) and the production address (`productionUrl` in `apps.json`). The architecture is not described: it is the same for every site ([next-js-app.md](next-js-app.md)).
+`typecheck`, `test` and `build` scripts of `package.json`, the ones it has), the Node version (`engines.node`), the license
+(the `LICENSE` file) and the production address (`productionUrl` in `apps.json`). The architecture is not described: it is the same for every site ([next-js-app.md](next-js-app.md)).
 
 `README.md` is ignored by Prettier (`/README.md` in `.prettierignore`), because it is generated, and `readme.yml` is not.
 
@@ -123,7 +124,7 @@ python3 /tmp/ci-workflows/scripts/generate_readme.py . --stack next-js    # a we
   `XPage` + `XPageContent` ([pages.md](pages.md#migrating-an-existing-app)), its app shell (`MainActivity`, `Root`, `Router`;
   [app-shell.md](app-shell.md#migrating-an-existing-app)), and its `screenshot` package
   ([screenshots.md](screenshots.md)). The README cannot be generated before, since it shows the screenshots.
-- An app with **no `readme.yml`** gets a warning in its PR build and keeps its current README until it has one; the screenshot rules (and the `LICENSE`) apply from its `readme.yml` on.
+- An app with **no `readme.yml`** gets a warning in its PR build and keeps its current README until it has one; the screenshot rules apply from its `readme.yml` on.
   The [sync](sync.md) lists such apps (and invalid `readme.yml`s) in its run summary. It never writes a `readme.yml`.
 - The managed `CLAUDE.md` block that the sync gives every app tells Claude to write `readme.yml` once from the
   template when it is missing, and afterwards to edit only it. The skill says the same ([skill.md](skill.md)).
